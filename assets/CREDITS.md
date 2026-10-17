@@ -1,6 +1,22 @@
 # Krediteringer
 
-Figurer, våben og skjolde i `assets/` er lavet af **Kay Lousberg (KayKit)** og udgivet under **CC0 1.0** (fri brug, også kommercielt, uden krav om kreditering).
+Alle aktiver i `assets/` er udgivet under **CC0 1.0** (fri brug, også kommercielt, uden krav om kreditering). Vi krediterer alligevel med tak.
 
-- KayKit Character Pack: Adventurers 1.0 – https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
-- KayKit Character Pack: Skeletons 1.0 – https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0
+## Figurer, bygninger og ting
+- **Kay Lousberg (KayKit)**
+  - Character Pack: Adventurers 1.0 – https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
+  - Character Pack: Skeletons 1.0 – https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0
+  - Medieval Hexagon Pack 1.0 (landsbyen) – https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0
+  - Dungeon Remastered 1.0 (gravkrypten) – https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0
+
+## Musik (OpenGameArt.org)
+- *Vikings at Shore*, *Ditty at the Camp*, *Something Approaches* fra *Viking Tales* – Eldritch Grim – https://opengameart.org/content/viking-tales
+- *Viking March* – nightm4re – https://opengameart.org/content/viking-march
+- *Thor Bring Me Victory* – The Oracle – https://opengameart.org/content/thor-bring-me-victory
+- *Epic Boss Battle* – Juhani Junkala – https://opengameart.org/content/boss-battle-music
+
+## Lydeffekter
+- **Kenney** – RPG Audio og Impact Sounds – https://kenney.nl/assets/rpg-audio · https://kenney.nl/assets/impact-sounds
+
+## Teksturer
+- **Poly Haven** – *Snow 02* (Rob Tuytel) og *Rock Face* – https://polyhaven.com

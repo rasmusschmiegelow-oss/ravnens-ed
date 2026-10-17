@@ -4,7 +4,8 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {loadAll,makeChar} from './models.js';
+import {loadAll,makeChar,makeProp} from './models.js';
+import {AU,audioInit,sfx,music,setMuted} from './audio.js';
 
 /* =========================================================
    UTIL
@@ -37,14 +38,14 @@ function pathDist(x,y){let m=1e9;for(const p of PATHS)for(let i=0;i<p.length-1;i
 function flatK(x,y,cx,cy,r){const d=Math.hypot(x-cx,y-cy);return d<r?1:d<r*1.7?1-(d-r)/(r*.7):0;}
 function hgt(x,y){
   let h=Math.sin(x*.004)*.9+Math.cos(y*.0035)*.8+Math.sin((x+y)*.0021)*1.2+Math.sin(x*.011+y*.007)*.3+Math.cos(x*.017-y*.013)*.15;
-  const f=Math.max(flatK(x,y,1800,2380,320),flatK(x,y,560,1200,300),flatK(x,y,1800,500,380),flatK(x,y,1450,1850,150),flatK(x,y,1800,840,200));
+  const f=Math.max(flatK(x,y,1800,2380,320),flatK(x,y,560,1200,300),flatK(x,y,1800,500,380),flatK(x,y,1450,1850,150),flatK(x,y,1800,840,200),flatK(x,y,2900,520,380),flatK(x,y,1180,1380,90));
   h*=1-f*.85;
   const le=lakeE(x,y); if(le<1.7) h=lerp(h,-0.95,sstep(1.7,1.0,le));
   const e=Math.min(x,y,WORLD.w-x,WORLD.h-y);
   if(e<PAD){const k=(PAD-e)/PAD;h+=k*k*20+Math.max(0,k)**3*Math.abs(Math.sin(x*.013)*Math.cos(y*.011))*26;}
   return h;
 }
-function groundY(x,y){const h=hgt(x,y);return lakeE(x,y)<1.25?Math.max(h,ICE_Y):h;}
+function groundY(x,y){if(CRYPT_FLOOR&&inCrypt(x,y))return CRYPT_FLOOR;const h=hgt(x,y);return lakeE(x,y)<1.25?Math.max(h,ICE_Y):h;}
 
 const OBS=[]; // collision: {x,y,r} circles or {x,y,w,h} rects
 const TREES=[],ROCKS=[],STONES=[],RINGROCKS=[];
@@ -58,11 +59,31 @@ const WALL_Y=820, WALL_H=40;
 OBS.push({x:0,y:WALL_Y,w:1720,h:WALL_H},{x:1880,y:WALL_Y,w:1720,h:WALL_H});
 const GATE={x:1720,y:WALL_Y,w:160,h:WALL_H,gate:true,gone:false}; OBS.push(GATE);
 OBS.push({x:380,y:1200,r:110}); // burial mound
+// The crypt beneath the barrow: an enclosed hall reached through the mound's door.
+const CRYPT={x0:2560,x1:3240,y0:320,y1:720,inX:2900,inY:655,exitX:2900,exitY:695,doorX:505,doorY:1200};
+const inCrypt=(x,y)=>x>CRYPT.x0-20&&x<CRYPT.x1+20&&y>CRYPT.y0-20&&y<CRYPT.y1+20;
+OBS.push({x:CRYPT.x0-20,y:CRYPT.y0-20,w:CRYPT.x1-CRYPT.x0+40,h:20},{x:CRYPT.x0-20,y:CRYPT.y1,w:CRYPT.x1-CRYPT.x0+40,h:20},
+  {x:CRYPT.x0-20,y:CRYPT.y0,w:20,h:CRYPT.y1-CRYPT.y0},{x:CRYPT.x1,y:CRYPT.y0,w:20,h:CRYPT.y1-CRYPT.y0});
+for(const [x,y] of [[2740,450],[3060,450],[2740,600],[3060,600]]) OBS.push({x,y,r:22});
+OBS.push({x:1180,y:1380,r:46}); // ruined hall on the barrow road
+// Chests: what each holds; crypt chests sit in the hall, the gold one needs the guardian's key.
+const CHESTS=[
+  {id:'ruin',x:1225,y:1325,item:'ravnefjer',runes:150},
+  {id:'wild',x:2560,y:1770,item:'ulvepels',runes:150},
+  {id:'cA',x:2630,y:380,item:'mjolnir',runes:250,crypt:1},
+  {id:'cB',x:3170,y:380,item:'idunn',runes:250,crypt:1},
+  {id:'gold',x:2900,y:362,item:'ulfberht',also:'brynje',runes:600,gold:1,crypt:1},
+];
+CHESTS.forEach(c=>OBS.push({x:c.x,y:c.y,r:16}));
+const WELL={x:1630,y:2235}; OBS.push({x:WELL.x,y:WELL.y,r:24});
 OBS.push({x:2850,y:1400,r:20}); // Mimir altar
 for(let i=0;i<14;i++){const a=i/14*TAU;if(Math.abs(angDiff(a,0))<.5)continue;const s={x:560+Math.cos(a)*265,y:1200+Math.sin(a)*265,r:15,h:rand(2.2,3.4),rot:a};STONES.push(s);OBS.push(s);}
 for(let i=0;i<24;i++){const a=i/24*TAU;if(Math.abs(angDiff(a,Math.PI/2))<.33)continue;const s={x:1800+Math.cos(a)*350,y:500+Math.sin(a)*330,r:rand(24,34)};RINGROCKS.push(s);OBS.push(s);}
 
 function clearZone(x,y,pad){
+  if(x>CRYPT.x0-140&&y<CRYPT.y1+120) return false;
+  if(Math.hypot(x-1180,y-1380)<120+pad) return false;
+  for(const c of CHESTS) if(Math.hypot(x-c.x,y-c.y)<60) return false;
   if(Math.hypot(x-1800,y-2380)<360+pad) return false;
   if(Math.hypot(x-1450,y-1850)<150+pad) return false;
   if(Math.hypot(x-560,y-1200)<330+pad) return false;
@@ -95,69 +116,6 @@ function clearZone(x,y,pad){
     const r=10+R()*18; let ok=true; for(const t of OBS){if(t.r&&Math.hypot(t.x-x,t.y-y)<t.r+r+8){ok=false;break;}} if(!ok) continue;
     const o={x,y,r}; ROCKS.push(o); OBS.push(o);
   }
-}
-
-/* =========================================================
-   AUDIO (synthesised)
-   ========================================================= */
-const AU={ctx:null,on:true,drum:0,boss:false};
-function audioInit(){
-  if(AU.ctx) {AU.ctx.resume?.();return;}
-  try{
-    const ac=new (window.AudioContext||window.webkitAudioContext)(); AU.ctx=ac;
-    AU.master=ac.createGain(); AU.master.gain.value=.75; AU.master.connect(ac.destination);
-    const comp=ac.createDynamicsCompressor(); comp.connect(AU.master); AU.out=comp;
-    const len=ac.sampleRate*2, b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0);
-    for(let i=0;i<len;i++) d[i]=Math.random()*2-1; AU.noise=b;
-    // wind bed
-    const n=ac.createBufferSource(); n.buffer=b; n.loop=true;
-    const bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=420; bp.Q.value=.6;
-    const wg=ac.createGain(); wg.gain.value=.09; n.connect(bp).connect(wg).connect(AU.out); n.start();
-    const lfo=ac.createOscillator(); lfo.frequency.value=.06; const lg=ac.createGain(); lg.gain.value=260; lfo.connect(lg).connect(bp.frequency); lfo.start();
-    const lfo2=ac.createOscillator(); lfo2.frequency.value=.11; const lg2=ac.createGain(); lg2.gain.value=.05; lfo2.connect(lg2).connect(wg.gain); lfo2.start();
-    // drone (D minor open fifth)
-    AU.music=ac.createGain(); AU.music.gain.value=0; AU.music.connect(AU.out);
-    const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=340; lp.Q.value=1; lp.connect(AU.music);
-    const dl=ac.createOscillator(); dl.frequency.value=.05; const dg=ac.createGain(); dg.gain.value=140; dl.connect(dg).connect(lp.frequency); dl.start();
-    [[73.42,-7],[110,5],[146.83,0],[220,9]].forEach(([f,dt],i)=>{const o=ac.createOscillator();o.type=i<3?'sawtooth':'triangle';o.frequency.value=f;o.detune.value=dt;const g=ac.createGain();g.gain.value=i<3?.045:.02;o.connect(g).connect(lp);o.start();});
-    AU.music.gain.linearRampToValueAtTime(.9,ac.currentTime+5);
-  }catch(e){AU.ctx=null;}
-}
-function env(g,t,a,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec);}
-function tone(type,f0,f1,dur,vol,delay=0){
-  const ac=AU.ctx,t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();
-  o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);
-  env(g,t,.005,vol,dur);o.connect(g).connect(AU.out);o.start(t);o.stop(t+dur+.05);
-}
-function noise(dur,ft,f0,f1,vol,delay=0,q=.8){
-  const ac=AU.ctx,t=ac.currentTime+delay,s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
-  s.buffer=AU.noise;f.type=ft;f.Q.value=q;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);
-  env(g,t,.004,vol,dur);s.connect(f).connect(g).connect(AU.out);s.start(t,Math.random()*1.5);s.stop(t+dur+.05);
-}
-function sfx(k){
-  if(!AU.ctx||!AU.on) return;
-  try{switch(k){
-    case 'swing': noise(.16,'bandpass',900,3200,.22); break;
-    case 'heavy': noise(.35,'bandpass',300,1800,.3); tone('sine',90,40,.3,.25); break;
-    case 'hit': noise(.12,'lowpass',2400,500,.35); tone('sine',140,50,.18,.4); break;
-    case 'roll': noise(.28,'lowpass',700,200,.25); break;
-    case 'bolt': tone('sine',600,1400,.18,.12); tone('triangle',900,2200,.12,.06); break;
-    case 'nova': noise(.6,'lowpass',4000,300,.3); tone('sine',300,80,.5,.2); break;
-    case 'hurt': tone('sawtooth',120,50,.25,.18); noise(.15,'lowpass',1500,300,.3); break;
-    case 'block': tone('square',1300,900,.18,.06); tone('square',1750,1200,.14,.04); noise(.08,'highpass',3000,0,.2); break;
-    case 'drink': for(let i=0;i<4;i++) tone('sine',220+i*30,150,.12,.1,i*.1); break;
-    case 'boom': tone('sine',70,28,.9,.6); noise(.7,'lowpass',900,100,.45); break;
-    case 'rune': [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone('sine',f,0,2.2,.07,i*.09)); break;
-    case 'die': tone('sawtooth',110,30,2.4,.22); tone('sine',55,25,3,.4); noise(2,'lowpass',600,60,.2); break;
-    case 'tick': tone('square',1800+Math.random()*600,0,.03,.03); break;
-    case 'ok': [392,493.88,587.33,783.99].forEach((f,i)=>tone('triangle',f,0,1.2,.08,i*.07)); break;
-    case 'no': tone('sawtooth',196,98,.8,.12); tone('sawtooth',185,92,.8,.1); break;
-    case 'howl': tone('sine',380,620,.6,.08); tone('sine',620,420,1,.08,.6); break;
-    case 'raven': for(let i=0;i<2;i++) noise(.12,'bandpass',1400,700,.18,i*.18,4); break;
-    case 'drum': tone('sine',130,42,.45,.5); noise(.08,'lowpass',500,100,.25); break;
-    case 'horn': tone('sawtooth',146.83,0,2.6,.12); tone('sawtooth',220,0,2.6,.08,.15); break;
-    case 'step': noise(.06,'lowpass',500,200,.05); break;
-  }}catch(e){}
 }
 
 /* =========================================================
@@ -228,15 +186,19 @@ const shieldTex=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#e6dcc4';g.fillRect(0,0
 const softDot=canvasTex(64,64,(g,w,h)=>{const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.4,'rgba(255,255,255,.5)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);});
 const fogTex=canvasTex(256,256,(g,w,h)=>{const r=rng(21);for(let i=0;i<26;i++){const x=60+r()*136,y=60+r()*136,rad=30+r()*70;const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(255,255,255,.22)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);}});
 
+/* --- Photographed textures (Poly Haven, CC0) */
+const texL=new THREE.TextureLoader();
+function ptex(name,srgb,rep){const t=texL.load('assets/textures/'+name);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.anisotropy=8;return t;}
+const SNOW_REP=120;
 /* --- Materials */
 const MAT={
-  snowMount:new THREE.MeshStandardMaterial({color:0xffffff,map:snowTex,vertexColors:true,roughness:.93}),
+  snowMount:new THREE.MeshStandardMaterial({color:0xffffff,map:ptex('snow_02_diff_1k.jpg',1,SNOW_REP),normalMap:ptex('snow_02_nor_gl_1k.jpg',0,SNOW_REP),roughnessMap:ptex('snow_02_rough_1k.jpg',0,SNOW_REP),normalScale:new THREE.Vector2(.9,.9),vertexColors:true,roughness:1}),
   bark:new THREE.MeshStandardMaterial({color:0x3b2c22,roughness:1}),
   pine:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,flatShading:true}),
-  rock:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,flatShading:true,map:stoneTex}),
+  rock:new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,map:ptex('rock_face_diff_1k.jpg',1,1),normalMap:ptex('rock_face_nor_gl_1k.jpg',0,1),roughnessMap:ptex('rock_face_rough_1k.jpg',0,1)}),
   wood:new THREE.MeshStandardMaterial({map:woodTex,roughness:.9}),
   roof:new THREE.MeshStandardMaterial({color:0xe9eef4,roughness:.85,map:snowTex}),
-  stone:new THREE.MeshStandardMaterial({color:0x8a9097,roughness:.9,map:stoneTex,flatShading:true}),
+  stone:new THREE.MeshStandardMaterial({color:0xb4b8bc,roughness:1,map:ptex('rock_face_diff_1k.jpg',1,1),normalMap:ptex('rock_face_nor_gl_1k.jpg',0,1),flatShading:true}),
   iron:new THREE.MeshStandardMaterial({color:0x2c3035,roughness:.45,metalness:.85}),
   steel:new THREE.MeshStandardMaterial({color:0xaab3bd,roughness:.25,metalness:1}),
   gold:new THREE.MeshStandardMaterial({color:0xd4ae55,roughness:.3,metalness:1}),
@@ -320,24 +282,64 @@ const dummy=new THREE.Object3D();
 
 /* --- Buildings */
 const SMOKERS=[]; const FIRE_FX=[]; const BANNERS=[];
-function buildHouse(h){
-  const g=new THREE.Group(); const cx=(h.x+h.w/2), cy=(h.y+h.h/2); const W=h.w*S, D=h.h*S, Hh=2.4;
-  g.position.set(cx*S,hgt(cx,cy)-.15,cy*S);
-  const walls=new THREE.Mesh(new THREE.BoxGeometry(W,Hh,D),MAT.wood); walls.position.y=Hh/2; walls.castShadow=walls.receiveShadow=true; g.add(walls);
-  const long=W>=D; const L=(long?W:D)+.6, half=(long?D:W)/2+.45;
-  for(const s of [-1,1]){const r=new THREE.Mesh(new THREE.BoxGeometry(long?L:half*1.42,.22,long?half*1.42:L),MAT.roof);
-    if(long){r.position.set(0,Hh+half*.5,s*half*.5);r.rotation.x=s*.78;}else{r.position.set(s*half*.5,Hh+half*.5,0);r.rotation.z=-s*.78;}
-    r.castShadow=r.receiveShadow=true; g.add(r);}
-  // gable crossed carvings (dragon heads)
-  for(const e of [-1,1]){for(const s of [-1,1]){const c=new THREE.Mesh(new THREE.BoxGeometry(.12,1.2,.12),MAT.wood);
-      if(long){c.position.set(e*L/2,Hh+half+.15,s*.22);c.rotation.x=s*.6;}else{c.position.set(s*.22,Hh+half+.15,e*L/2);c.rotation.z=-s*.6;}
-      g.add(c);}}
-  const door=new THREE.Mesh(new THREE.PlaneGeometry(.9,1.6),MAT.dark); door.position.set(0,.8,D/2+.01); g.add(door);
-  for(const s of [-1,1]){const w=new THREE.Mesh(new THREE.PlaneGeometry(.35,.3),MAT.window); w.position.set(s*W*.3,1.5,D/2+.01); g.add(w);}
-  const wl=new THREE.PointLight(0xff9a50,6,7,2); wl.position.set(0,1.4,D/2+.8); g.add(wl);
-  scene.add(g); SMOKERS.push(new THREE.Vector3(cx*S,hgt(cx,cy)+Hh+half+.4,cy*S));
+/** Places a loaded prop on the terrain. fit scales its widest side to that many metres. */
+function placeProp(key,x,y,{rot=0,scale=1,fit=0,collide=0,lift=0,ground}={}){
+  const p=makeProp(key); const s=fit?fit/Math.max(p.size.x,p.size.z):scale;
+  p.obj.scale.setScalar(s); p.obj.rotation.y=rot; p.obj.position.set(x*S,(ground??hgt(x,y))-p.minY*s+lift,y*S);
+  scene.add(p.obj); if(collide) OBS.push({x,y,r:collide}); p.s=s; return p;
 }
-HOUSES.forEach(buildHouse);
+const CHEST_M={}, CRYPT_LIGHTS=[];
+function buildWorldProps(){
+  // village: longhouse, sawmill, granary and watchtower on the old house plots, all facing the fire
+  ['building_barracks_red','building_lumbermill_red','building_grain','building_tower_A_red'].forEach((k,i)=>{
+    const h=HOUSES[i], cx=h.x+h.w/2, cy=h.y+h.h/2, rot=Math.atan2(1800-cx,2400-cy);
+    const p=placeProp(k,cx,cy,{rot,fit:Math.max(h.w,h.h)*S*1.25,lift:-.05});
+    SMOKERS.push(new THREE.Vector3(cx*S,hgt(cx,cy)+p.size.y*p.s*.85,cy*S));
+    const wl=new THREE.PointLight(0xff9a50,5,8,2); wl.position.set((cx+Math.sin(rot)*h.h*.7)*S,hgt(cx,cy)+1.4,(cy+Math.cos(rot)*h.h*.7)*S); scene.add(wl);
+  });
+  placeProp('building_well_red',WELL.x,WELL.y,{fit:2.6,rot:.4});
+  placeProp('bucket_water',WELL.x+30,WELL.y+12,{fit:.5});
+  [['barrel',1588,2486,0],['barrel',1606,2500,1],['crate_A_big',1722,2482,.3],['sack',1702,2490,0],['weaponrack',1612,2366,Math.PI],['resource_lumber',2032,2470,1.2],
+   ['wheelbarrow',1868,2522,2.4],['crate_B_small',1842,2534,.2],['target',2060,2250,-.6],['barrel',2028,2350,0],['sack',1990,2532,1]].forEach(([k,x,y,r])=>placeProp(k,x,y,{rot:r,fit:k==='resource_lumber'?2.4:k==='weaponrack'?1.8:k==='target'?1.6:k==='wheelbarrow'?1.6:1.1,collide:10}));
+  for(let x=1560;x<=2040;x+=44) if(Math.abs(x-1800)>40) placeProp('fence_wood_straight',x,2660,{fit:2.3,rot:0});
+  for(let y=2300;y<=2640;y+=44) {placeProp('fence_wood_straight',1540,y,{fit:2.3,rot:Math.PI/2});placeProp('fence_wood_straight',2080,y,{fit:2.3,rot:Math.PI/2});}
+  // Astrid's camp and the ruined hall on the barrow road
+  placeProp('tent',1400,1815,{fit:3.4,rot:.6,collide:30}); placeProp('crate_A_big',1505,1830,{fit:1,collide:10}); placeProp('sack',1490,1812,{fit:.9});
+  placeProp('building_destroyed',1180,1380,{fit:6.5,rot:.8});
+  placeProp('flag_red',1700,895,{fit:1.2}); placeProp('flag_red',1900,895,{fit:1.2});
+  // chests across the world and in the crypt
+  for(const c of CHESTS){
+    const g=c.crypt?hgt(2900,520):undefined;
+    const p=placeProp(c.gold?'chest_gold':'chest',c.x,c.y,{fit:1.15,rot:c.crypt?0:Math.atan2(1800-c.x,2400-c.y),ground:g});
+    CHEST_M[c.id]={obj:p.obj,lid:p.obj.getObjectByName(c.gold?'chest_gold_lid':'chest_lid'),open:0};
+  }
+  buildCrypt();
+}
+let CRYPT_FLOOR=0, CRYPT_VOID=null;
+function buildCrypt(){
+  CRYPT_FLOOR=hgt(2900,520); const g=CRYPT_FLOOR;
+  for(let x=CRYPT.x0+40;x<CRYPT.x1;x+=80) for(let y=CRYPT.y0+40;y<CRYPT.y1;y+=80) placeProp((x+y)%240?'floor_tile_large':'floor_dirt_large',x,y,{ground:g,lift:-.04});
+  for(let x=CRYPT.x0+40;x<CRYPT.x1;x+=80) placeProp(x===2920?'wall_arched':'wall',x,CRYPT.y0-10,{ground:g});
+  for(let y=CRYPT.y0+40;y<CRYPT.y1;y+=80){placeProp('wall',CRYPT.x0-10,y,{rot:Math.PI/2,ground:g});placeProp('wall',CRYPT.x1+10,y,{rot:Math.PI/2,ground:g});}
+  for(const [x,y] of [[2740,450],[3060,450],[2740,600],[3060,600]]) placeProp('pillar_decorated',x,y,{ground:g,fit:2});
+  const torch=(x,y,rot,lx,ly)=>{placeProp('torch_lit',x,y,{ground:g,lift:2.2,fit:.6,rot});
+    const L=new THREE.PointLight(0xff8a3a,0,20,1.4); L.position.set(lx*S,g+2.8,ly*S); scene.add(L); CRYPT_LIGHTS.push(L);
+    FIRE_FX.push({x:x*S,y:g+2.9,z:y*S,light:L,base:34,small:1,crypt:1});};
+  for(const x of [2700,2900,3100]) torch(x,CRYPT.y0+12,0,x,CRYPT.y0+40);
+  torch(CRYPT.x0+12,560,Math.PI/2,CRYPT.x0+40,560); torch(CRYPT.x1-12,560,-Math.PI/2,CRYPT.x1-40,560);
+  // darkness around the hall so the snow outside never shows through
+  const vm=new THREE.MeshBasicMaterial({color:0x020304});
+  const vg=new THREE.PlaneGeometry(90,60).rotateX(-Math.PI/2); CRYPT_VOID=new THREE.Group();
+  for(const [x,z,w,h] of [[2900,1020,1600,560],[2900,100,1600,420],[2300,520,520,1400],[3500,520,520,1400]]){const m=new THREE.Mesh(new THREE.PlaneGeometry(w*S,h*S).rotateX(-Math.PI/2),vm);m.position.set(x*S,g+.25,z*S);CRYPT_VOID.add(m);}
+  CRYPT_VOID.visible=false; scene.add(CRYPT_VOID);
+  for(const x of [2800,3000]) placeProp('banner_patternA_red',x,CRYPT.y0+6,{ground:g,lift:1.2,fit:1.2});
+  [['barrel_large',2590,690],['barrel_large',3210,690],['candle_triple',2860,350],['candle_triple',2940,350],['coin_stack_large',2955,375],['sword_shield_broken',2660,470],['keyring_hanging',3150,330],['column',2600,350],['column',3200,350]]
+    .forEach(([k,x,y])=>placeProp(k,x,y,{ground:g,fit:k==='column'?1.4:k.startsWith('barrel')?1.2:.9}));
+  // exit rune circle
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.7,.95,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:new THREE.Color(.4,1.6,2.6),transparent:true,opacity:.8}));
+  ring.position.set(CRYPT.exitX*S,g+.06,CRYPT.exitY*S); scene.add(ring);
+  const exitL=new THREE.PointLight(0x7fd6ff,0,8,1.6); exitL.position.set(CRYPT.exitX*S,g+1,CRYPT.exitY*S); scene.add(exitL); CRYPT_LIGHTS.push(exitL);
+}
 function buildFire(f){
   const g=new THREE.Group(); g.position.set(f.x*S,hgt(f.x,f.y),f.y*S);
   for(let i=0;i<9;i++){const a=i/9*TAU;const s=new THREE.Mesh(new THREE.DodecahedronGeometry(.22,0),MAT.stone);s.position.set(Math.cos(a)*.6,.08,Math.sin(a)*.6);s.castShadow=true;g.add(s);}
@@ -348,7 +350,6 @@ function buildFire(f){
 }
 FIRES.forEach(buildFire);
 // camp tent + logs
-{const t=new THREE.Mesh(new THREE.ConeGeometry(1.4,2.2,4),new THREE.MeshStandardMaterial({color:0x6b5a44,roughness:1,flatShading:true}));t.position.set(1400*S,hgt(1400,1820)+1.1,1820*S);t.rotation.y=.6;t.castShadow=true;scene.add(t);}
 // village banners & carved raven pillar
 function addBanner(x,y){const g=new THREE.Group();g.position.set(x*S,hgt(x,y),y*S);const p=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,4.2,6),MAT.wood);p.position.y=2.1;p.castShadow=true;g.add(p);
   const bg=new THREE.PlaneGeometry(1,1.8,6,6);bg.translate(.5,0,0);const b=new THREE.Mesh(bg,MAT.banner);b.position.y=3.1;b.castShadow=true;g.add(b);scene.add(g);BANNERS.push({mesh:b,geo:bg,base:bg.attributes.position.array.slice()});}
@@ -557,6 +558,9 @@ const ED={
   archer:{name:'Draugr-skytte',hp:48,r:14,spd:66,dmg:13,reach:420,runes:70},
   wolf:{name:'Gråulv',hp:52,r:15,spd:150,dmg:14,reach:160,runes:50},
   jarl:{name:'Hrafnkel, Draugr-jarlen',hp:820,r:26,spd:92,dmg:28,reach:100,runes:1600},
+  minion:{name:'Gravtræl',hp:45,r:13,spd:96,dmg:12,reach:42,runes:45},
+  seidr:{name:'Seiðr-draugr',hp:58,r:14,spd:58,dmg:15,reach:400,runes:95},
+  vogter:{name:'Gravvogteren',hp:560,r:22,spd:86,dmg:24,reach:92,runes:1300,aggro:190},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:2400,r:46,spd:64,dmg:40,reach:170,runes:6000},
 };
 const SPAWNS=[
@@ -566,8 +570,22 @@ const SPAWNS=[
   {t:'wolf',x:2500,y:1220},{t:'wolf',x:2560,y:1270},{t:'wolf',x:2620,y:1580},{t:'draugr',x:2400,y:1650},
   {t:'draugr',x:1600,y:1100},{t:'draugr',x:2000,y:1100},{t:'archer',x:1800,y:1220},{t:'wolf',x:1500,y:1300},{t:'wolf',x:2100,y:1300},
   {t:'archer',x:1450,y:700},{t:'archer',x:2150,y:700},
-  {t:'jarl',x:600,y:1200,boss:'jarl'},{t:'jotun',x:1800,y:470,boss:'jotun'},
+  {t:'jarl',x:600,y:1200,boss:'jarl'},
+  {t:'seidr',x:2700,y:430},{t:'seidr',x:3100,y:430},{t:'minion',x:2650,y:540},{t:'minion',x:3150,y:540},{t:'minion',x:2900,y:540},
+  {t:'vogter',x:2900,y:445,boss:'vogter'},{t:'jotun',x:1800,y:470,boss:'jotun'},
 ];
+// Equipment found in chests or bought from Dvalin. slot: weapon, armor or talisman (two talisman slots).
+const ITEMS={
+  ulfberht:{name:'Ulfberht-runen',slot:'weapon',desc:'+20 % skade med dit våben.'},
+  brynje:{name:'Jarnhud-brynje',slot:'armor',desc:'Du tager 15 % mindre skade.'},
+  ulvepels:{name:'Ulvepels',slot:'armor',desc:'Udholdenhed vender 30 % hurtigere tilbage.'},
+  ravnefjer:{name:'Ravnefjer',slot:'talisman',desc:'Rul koster 40 % mindre udholdenhed.'},
+  mjolnir:{name:'Mjølnirs ekko',slot:'talisman',desc:'Din klasse-evne lader 30 % hurtigere op.'},
+  idunn:{name:'Idunns æble',slot:'talisman',desc:'+1 mjødhorn.'},
+  fenrir:{name:'Fenrirs tand',slot:'talisman',desc:'+15 % skade, men 10 % mindre liv.'},
+};
+const SLOTN={weapon:'Våbenrune',armor:'Rustning',t1:'Talisman I',t2:'Talisman II'};
+const eqHas=id=>!!G.eq&&Object.values(G.eq).includes(id);
 const NPCS=[
   {id:'ulfr',name:'Gamle Ulfr',x:1748,y:2272,face:Math.PI*.4},
   {id:'dvalin',name:'Dvalin',x:1650,y:2352,face:-Math.PI/2},
@@ -581,10 +599,11 @@ let buf=null;
 const keys={}, mouse={x:innerWidth/2,y:innerHeight/2,l:false,r:false};
 const mouseW={x:0,y:0};
 
-const maxHp=()=>Math.round(64+P.stats.sty*5+P.stats.smi+P.level*4);
+const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1));
 const maxSt=()=>Math.round(72+P.stats.smi*4);
-const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0);
-function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.5:1);}
+const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0);
+const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1);
+function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.5:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1);}
 const lvlCost=L=>Math.floor(130*Math.pow(1.17,L-1));
 
 function newPlayer(cls,stats,name){
@@ -607,7 +626,8 @@ function resetWorld(){
   for(const s of SPAWNS){
     if(s.boss==='jarl'&&G.flags.jarlDead) continue;
     if(s.boss==='jotun'&&G.flags.jotunDone) continue;
-    spawnEnemy(s.t,s.x,s.y,s.boss?{boss:s.boss,dormant:s.boss==='jotun'&&!G.flags.jotunTalked,dmgMult:s.boss==='jotun'&&G.flags.enraged?1.2:1}:{});
+    if(s.boss==='vogter'&&G.flags.vogterDead) continue;
+    spawnEnemy(s.t,s.x,s.y,s.boss?{boss:s.boss,summoned:s.boss==='vogter',dormant:s.boss==='jotun'&&!G.flags.jotunTalked,dmgMult:s.boss==='jotun'&&G.flags.enraged?1.2:1}:{});
   }
   if(C){C.down=false;C.hp=C.maxHp;C.x=P.x-30;C.y=P.y+30;}
 }
@@ -660,22 +680,22 @@ function meleeHit(range,arc,dmg,opts={}){
     const a=Math.atan2(e.y-P.y,e.x-P.x); if(arc<TAU-.01&&Math.abs(angDiff(a,P.face))>arc/2+Math.atan2(e.r,Math.max(d,1))) continue;
     damageEnemy(e,dmg*atkMult(),opts); hit=true;
   }
-  if(hit){G.hitStop=opts.stagger?.09:.055;sfx('hit');}
+  if(hit){G.hitStop=opts.stagger?.09:.055;}
 }
 function tryAction(k,ix,iy){
   const p=P;
-  if(k==='roll'){ if(p.st<=0) return false; spend(20); let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
+  if(k==='roll'){ if(p.st<=0) return false; spend(eqHas('ravnefjer')?12:20); let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
     const gy=groundY(p.x,p.y); burst(p.x*S,gy+.1,p.y*S,14,2.2,.7,.5,.85,.9,1,{sys:FXN,up:.5,grav:1,drag:3,alpha:.5,grow:2}); return true;}
   if(k==='heal'){ if(p.flasks<=0){toast('Mjødhornet er tomt. Hvil ved en runesten.');return true;}
     p.act={kind:'heal',t:0,dur:1,hit:.6,move:.35,fn:()=>{p.flasks--;const h=Math.round(maxHp()*.45);p.hp=Math.min(maxHp(),p.hp+h);num(p.x,p.y,'+'+h,'heal');sfx('drink');
       for(let i=0;i<26;i++)FXA.emit(p.x*S+rand(-.4,.4),groundY(p.x,p.y)+rand(.2,1.6),p.y*S+rand(-.4,.4),0,rand(.5,1.6),0,rand(.6,1.2),rand(.2,.4),1.4,1.1,.4,1,0,.5);}}; return true;}
   if(k==='special'){
     if(p.specialT>0) return true;
-    if(p.cls==='berserker'){p.rage=8;p.specialT=CLASSES.berserker.scd;G.shake=.4;sfx('heavy');toast('Berserkergang: mere skade, og du heler når du rammer');
+    if(p.cls==='berserker'){p.rage=8;p.specialT=specialCd();G.shake=.4;sfx('heavy');toast('Berserkergang: mere skade, og du heler når du rammer');
       p.act={kind:'roar',t:0,dur:.5,hit:.2,move:0,fn:()=>burst(p.x*S,groundY(p.x,p.y)+1,p.y*S,50,5,.8,.4,2.2,.4,.2,{grav:2})};return true;}
-    if(p.cls==='skjoldmo'){ if(p.st<=0) return false; spend(15);p.specialT=CLASSES.skjoldmo.scd;p.dash={dx:Math.cos(p.face),dy:Math.sin(p.face),sp:540,t:.2};
+    if(p.cls==='skjoldmo'){ if(p.st<=0) return false; spend(15);p.specialT=specialCd();p.dash={dx:Math.cos(p.face),dy:Math.sin(p.face),sp:540,t:.2};
       p.act={kind:'bash',t:0,dur:.45,hit:.16,move:0,fn:()=>{swipe(p.x,p.y,p.face,1.8,66,0xbfe2ff);for(const e of G.enemies){if(e.dead)continue;const d=dist(p,e);if(d<66+e.r&&Math.abs(angDiff(Math.atan2(e.y-p.y,e.x-p.x),p.face))<1.1){damageEnemy(e,14*atkMult(),{stun:e.boss?.3:1.7,kb:60});}}G.shake=.25;sfx('block');}};return true;}
-    if(p.cls==='volve'){p.specialT=CLASSES.volve.scd;sfx('raven');
+    if(p.cls==='volve'){p.specialT=specialCd();sfx('raven');
       p.act={kind:'cast',t:0,dur:.55,hit:.22,move:.2,fn:()=>{for(let i=0;i<5;i++){const a=p.face+(i-2)*.35;spawnProj({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,dmg:12*atkMult(),friendly:true,kind:'raven',life:3,homing:true,r:8});}}};return true;}
   }
   if(k==='lmb'){
@@ -715,7 +735,7 @@ function updPlayer(dt){
   const spd=Math.hypot(vx,vy);p.move=lerp(p.move,clamp(spd/158,0,1.2),Math.min(1,dt*10));p.phase+=dt*spd*.055;
   if(spd>20&&p.roll<=0){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx('step');FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
   collide(p);
-  if(!p.act&&p.roll<=0&&p.stDelay<=0) p.st=Math.min(maxSt(),p.st+(p.blocking?12:52)*dt);
+  if(!p.act&&p.roll<=0&&p.stDelay<=0) p.st=Math.min(maxSt(),p.st+(p.blocking?12:52)*(eqHas('ulvepels')?1.3:1)*dt);
   p.hpLag+= (p.hp-p.hpLag)*Math.min(1,dt*(p.hpLag>p.hp?1.4:12));
   if(p.rage>0&&Math.random()<.5)FXA.emit(p.x*S+rand(-.3,.3),groundY(p.x,p.y)+rand(.3,1.6),p.y*S+rand(-.3,.3),0,1.2,0,.5,.3,2,.35,.15,1,0,1);
   // rune stain pickup
@@ -731,6 +751,7 @@ function hurtPlayer(dmg,fx,fy){
       p.st-=dmg*1.15;sfx('block');burst((p.x+Math.cos(p.face)*14)*S,groundY(p.x,p.y)+1,(p.y+Math.sin(p.face)*14)*S,18,4,.35,.15,3,2.4,1.2,{grav:9});
       if(p.st<=0){p.st=0;p.stagger=.7;dmg*=.5;toast('Din garde er brudt');}else{dmg*=.12;}
       p.stDelay=.6;}}
+  if(eqHas('brynje')) dmg*=.85;
   dmg=Math.round(dmg); if(dmg<=0) return;
   p.hp-=dmg; p.iframes=.22; p.hitId=(p.hitId||0)+1; num(p.x,p.y,dmg,'hurt');
   if(dmg>6){p.stagger=Math.max(p.stagger,.2);if(p.act&&p.act.kind!=='heavy')p.act=null;}
@@ -790,7 +811,7 @@ function damageEnemy(e,dmg,o={}){
   if(e.dead) return;
   if(e.dormant) return;
   dmg=Math.round(dmg*(.9+Math.random()*.2)); const crit=e.stun>0&&!o.stun; if(crit)dmg=Math.round(dmg*1.5);
-  e.hp-=dmg;e.flash=.13;e.aggro=true;
+  e.hp-=dmg;e.flash=.13;e.aggro=true;sfx(e.t==='jotun'?'icehit':e.t==='wolf'?'hit':'bonehit');
   num(e.x,e.y,dmg,crit?'crit':'');
   const gy=groundY(e.x,e.y)+(e.boss==='jotun'?4:1);
   burst(e.x*S,gy,e.y*S,10,3,.45,.2,e.t==='jotun'?.6:.3,e.t==='jotun'?1.6:.06,e.t==='jotun'?2.2:.05,{sys:e.t==='jotun'?FXA:FXN,grav:8,alpha:.9});
@@ -802,12 +823,13 @@ function damageEnemy(e,dmg,o={}){
   if(e.hp<=0) killEnemy(e);
 }
 function killEnemy(e){
-  e.dead=true;cancelAttacks(e);P.runes+=e.def.runes;
+  e.dead=true;cancelAttacks(e);P.runes+=e.def.runes;sfx('coins');
   const gy=groundY(e.x,e.y);
   for(let i=0;i<(e.boss?160:30);i++)FXA.emit(e.x*S+rand(-.5,.5),gy+rand(.2,e.boss?6:1.6),e.y*S+rand(-.5,.5),rand(-.6,.6),rand(.5,2.5),rand(-.6,.6),rand(1,2.2),rand(.15,.35),2.2,1.6,.6,1,-.4,.6,0);
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
   if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
+  if(e.boss==='vogter'){G.flags.vogterDead=true;G.boss=null;banner('FJENDE FÆLDET','Gravvogteren');setTimeout(()=>toast('Vogterens nøgle passer til guldkisten'),1600);sfx('boom');G.slowmo=1.2;saveGame();}
   if(e.boss==='jotun'){G.flags.jotunDone=true;G.boss=null;banner('RIMTURSEN ER FÆLDET','Hrimgrimr, Ymirs æt');sfx('boom');G.slowmo=2.2;G.endT=5.5;G.ending='sword';}
   setTimeout(()=>{scene.remove(e.model.root);},e.boss?4200:2400);
   e.deathT=0;
@@ -825,7 +847,7 @@ function updEnemy(e,dt){
   if(e.dormant) return;
   const dP=dist(e,P);
   if(!e.aggro){
-    if(!P.dead&&dP<(e.boss?340:280)){e.aggro=true;e.returning=false;if(e.t==='wolf')sfx('howl');if(e.model.skel&&!e.awoke&&!e.boss){e.awoke=true;e.busy=1.1;e.cd=Math.max(e.cd,.3);}}
+    if(!P.dead&&dP<(e.def.aggro||(e.boss?340:280))){e.aggro=true;e.returning=false;if(e.t==='wolf')sfx('howl');if(e.model.skel&&!e.awoke&&!e.boss){e.awoke=true;e.busy=1.1;e.cd=Math.max(e.cd,.3);}}
     else{
       if(e.returning){const a=Math.atan2(e.home.y-e.y,e.home.x-e.x);e.x+=Math.cos(a)*e.def.spd*dt;e.y+=Math.sin(a)*e.def.spd*dt;e.face=a;e.move=1;e.phase+=dt*e.def.spd*.055;e.hp=Math.min(e.maxHp,e.hp+e.maxHp*.2*dt);if(dist(e,e.home)<12)e.returning=false;collide(e);}
       else{e.move=lerp(e.move,0,dt*4);}
@@ -847,18 +869,18 @@ function updEnemy(e,dt){
   let moving=0;
   const step=(dir,mult=1)=>{e.x+=Math.cos(dir)*sp*mult*dt;e.y+=Math.sin(dir)*sp*mult*dt;moving=mult;};
   const dm=e.dmgMult||1;
-  if(e.t==='draugr'){
+  if(e.t==='draugr'||e.t==='minion'){
     if(d>e.def.reach*.8+tg.r) step(a);
     else if(e.cd<=0){arcAtk(e,a,1.9,e.def.reach+10,.55,e.def.dmg*dm);e.busy=.55+.55;e.cd=.9+Math.random()*.8;}
-  } else if(e.t==='archer'){
+  } else if(e.t==='archer'||e.t==='seidr'){
     if(d>330) step(a); else if(d<170) step(a+Math.PI,.8); else step(a+Math.PI/2*(Math.sin(e.t0*.7)>0?1:-1),.4);
     if(e.cd<=0&&d<430){e.aim={t:.8,track:true,len:d};e.busy=1.15;e.cd=1.8+Math.random()*.8;
-      e.sched.push({t:.8,fn:()=>{e.shotId=(e.shotId||0)+1;const t2=pickTarget(e);const aa=Math.atan2(t2.y-e.y,t2.x-e.x);spawnProj({x:e.x,y:e.y,vx:Math.cos(aa)*400,vy:Math.sin(aa)*400,dmg:e.def.dmg,friendly:false,kind:'arrowE',life:1.4,r:5});}});}
+      e.sched.push({t:.8,fn:()=>{e.shotId=(e.shotId||0)+1;const t2=pickTarget(e);const aa=Math.atan2(t2.y-e.y,t2.x-e.x);const mage=e.t==='seidr';spawnProj({x:e.x,y:e.y,vx:Math.cos(aa)*(mage?250:400),vy:Math.sin(aa)*(mage?250:400),dmg:e.def.dmg,friendly:false,kind:mage?'boltE':'arrowE',life:mage?2.4:1.4,r:mage?8:5,homingP:mage});if(mage)sfx('bolt');}});}
   } else if(e.t==='wolf'){
     if(d>140) step(a+Math.sin(e.t0*1.4)*.5); else if(e.cd>0) step(a+Math.PI/2,.5);
     if(e.cd<=0&&d<170){const la=a;e.aim={t:.45,len:150,lunge:true};e.busy=.45+.3+.45;e.cd=1.3+Math.random()*.8;
       e.sched.push({t:.45,fn:()=>{e.dash={dx:Math.cos(la),dy:Math.sin(la),sp:440,t:.3,dmg:e.def.dmg};}});}
-  } else if(e.t==='jarl') jarlAI(e,tg,d,a,step,dm);
+  } else if(e.t==='jarl'||e.t==='vogter') jarlAI(e,tg,d,a,step,dm);
   else if(e.t==='jotun') jotunAI(e,tg,d,a,step,dm);
   e.move=lerp(e.move,moving,dt*8); e.phase+=dt*sp*moving*.055;
   collide(e);
@@ -897,7 +919,7 @@ function jotunAI(e,tg,d,a,step,dm){
 function iceLine(e,a,dm){for(let i=1;i<=7;i++){const x=e.x+Math.cos(a)*(60+i*70),y=e.y+Math.sin(a)*(60+i*70);circAtk(x,y,50,.55+i*.11,e.def.dmg*.75*dm,{owner:e,frost:true,onFire:()=>spikeFx(x,y)});}e.busy=1.0;sfx('nova');}
 function frostRain(e,dm){for(let i=0;i<8;i++){const a=Math.random()*TAU,r=Math.random()*210;const x=P.x+Math.cos(a)*r,y=P.y+Math.sin(a)*r;circAtk(x,y,62,1.0+Math.random()*.7,e.def.dmg*.7*dm,{owner:e,frost:true,onFire:()=>spikeFx(x,y)});}e.busy=1.1;}
 function spikeFx(x,y){const gy=groundY(x,y);const c=new THREE.Mesh(new THREE.ConeGeometry(.9,3.4,5),MAT.iceGlow);c.position.set(x*S,gy-1,y*S);c.rotation.set(rand(-.2,.2),rand(0,3),rand(-.2,.2));scene.add(c);G.fx.push({mesh:c,t:0,life:1.1,spike:true,gy});
-  for(let i=0;i<20;i++)FXA.emit(x*S,gy+.5,y*S,rand(-2,2),rand(2,6),rand(-2,2),rand(.4,.8),rand(.15,.3),.7,1.6,2.4,1,9,1);G.shake=Math.max(G.shake,.15);}
+  for(let i=0;i<20;i++)FXA.emit(x*S,gy+.5,y*S,rand(-2,2),rand(2,6),rand(-2,2),rand(.4,.8),rand(.15,.3),.7,1.6,2.4,1,9,1);G.shake=Math.max(G.shake,.15);sfx('spike');}
 function updHazards(dt){
   for(let i=G.hazards.length-1;i>=0;i--){const h=G.hazards[i];
     if(h.owner&&h.owner.dead){disposeHaz(h);G.hazards.splice(i,1);continue;}
@@ -919,22 +941,24 @@ function updHazards(dt){
 
 /* --- Projectiles */
 const PROJ_GEO={arrow:new THREE.CylinderGeometry(.02,.02,.9,4).rotateZ(Math.PI/2),bolt:new THREE.IcosahedronGeometry(.2,1),raven:new THREE.ConeGeometry(.12,.5,5).rotateZ(-Math.PI/2)};
-const PROJ_MAT={arrow:sm(0x8a6a44),arrowE:glowMat(new THREE.Color(.6,2.4,3.4)),bolt:glowMat(new THREE.Color(1,2.4,4)),raven:sm(0x0b0c10,.4)};
-function spawnProj(o){const g=o.kind==='bolt'?PROJ_GEO.bolt:o.kind==='raven'?PROJ_GEO.raven:PROJ_GEO.arrow;const m=new THREE.Mesh(g,PROJ_MAT[o.kind]);scene.add(m);o.mesh=m;o.h=1.25;G.projs.push(o);}
+const PROJ_MAT={boltE:glowMat(new THREE.Color(2.2,.7,3.4)),arrow:sm(0x8a6a44),arrowE:glowMat(new THREE.Color(.6,2.4,3.4)),bolt:glowMat(new THREE.Color(1,2.4,4)),raven:sm(0x0b0c10,.4)};
+function spawnProj(o){const g=o.kind==='bolt'||o.kind==='boltE'?PROJ_GEO.bolt:o.kind==='raven'?PROJ_GEO.raven:PROJ_GEO.arrow;const m=new THREE.Mesh(g,PROJ_MAT[o.kind]);scene.add(m);o.mesh=m;o.h=1.25;G.projs.push(o);}
 function updProjs(dt){
   for(let i=G.projs.length-1;i>=0;i--){const p=G.projs[i];p.life-=dt;
     if(p.homing){let best=null,bd=420;for(const e of G.enemies){if(e.dead||e.dormant)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<bd){bd=d;best=e;}}
       if(best){const a=Math.atan2(best.y-p.y,best.x-p.x),c=Math.atan2(p.vy,p.vx),na=c+clamp(angDiff(a,c),-4*dt,4*dt),s=Math.hypot(p.vx,p.vy)*1.01;p.vx=Math.cos(na)*Math.min(s,520);p.vy=Math.sin(na)*Math.min(s,520);}}
+    if(p.homingP&&!P.dead){const a=Math.atan2(P.y-p.y,P.x-p.x),c=Math.atan2(p.vy,p.vx),na=c+clamp(angDiff(a,c),-1.3*dt,1.3*dt),sp=Math.hypot(p.vx,p.vy);p.vx=Math.cos(na)*sp;p.vy=Math.sin(na)*sp;}
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     let dead=p.life<=0||blockedPt(p.x,p.y);
     if(!dead){
-      if(p.friendly){for(const e of G.enemies){if(e.dead||e.dormant)continue;if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r){damageEnemy(e,p.dmg,{});dead=true;sfx('hit');break;}}}
+      if(p.friendly){for(const e of G.enemies){if(e.dead||e.dormant)continue;if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r){damageEnemy(e,p.dmg,{});dead=true;break;}}}
       else{for(const tg of targets()){if(Math.hypot(tg.x-p.x,tg.y-p.y)<tg.r+p.r){hurt(tg,p.dmg,p.x-p.vx*.1,p.y-p.vy*.1);dead=true;break;}}}
     }
     const gy=groundY(p.x,p.y)+p.h;
     p.mesh.position.set(p.x*S,gy,p.y*S);p.mesh.rotation.y=-Math.atan2(p.vy,p.vx);
     if(p.kind==='bolt'){FXA.emit(p.x*S,gy,p.y*S,rand(-.3,.3),rand(-.3,.3),rand(-.3,.3),.35,.45,.6,1.4,2.6,1,0,2,1);}
     if(p.kind==='raven'){FXA.emit(p.x*S,gy,p.y*S,0,0,0,.4,.35,1.2,.5,2.2,.8,0,0,0);}
+    if(p.kind==='boltE'){FXA.emit(p.x*S,gy,p.y*S,rand(-.3,.3),rand(-.3,.3),rand(-.3,.3),.4,.5,2,.6,2.6,1,0,2,1);}
     if(p.kind==='arrowE'){FXA.emit(p.x*S,gy,p.y*S,0,0,0,.25,.25,.5,1.6,2.2,.8,0,0,0);}
     if(dead){if(p.kind!=='arrow')burst(p.x*S,gy,p.y*S,14,3,.4,.25,.8,1.6,2.6,{grav:2});scene.remove(p.mesh);G.projs.splice(i,1);}
   }
@@ -948,8 +972,48 @@ function interactTarget(){
   if(C&&C.down&&dist(P,C)<60) return {label:'Hjælp Astrid op',fn:()=>{C.down=false;C.hp=C.maxHp*.4;toast('Astrid er på benene igen');}};
   for(const n of NPCS){ if(n.id==='astrid'&&C) continue; const r=n.head?95:70; if(dist(P,n)<r) return {label:(n.head?'Tal med ':'Tal med ')+n.name,fn:()=>talk(n.id)}; }
   for(const rs of RUNESTONES){ if(dist(P,rs)<64) return {label:'Hvil ved runestenen',fn:()=>openRest(rs.id)}; }
+  for(const c of CHESTS){ if(G.flags.chests?.[c.id]) continue; if(Math.hypot(P.x-c.x,P.y-c.y)<62) return {label:c.gold&&!G.flags.vogterDead?'Guldkisten er låst':'Åbn kisten',fn:()=>openChest(c)}; }
+  if(Math.hypot(P.x-CRYPT.doorX,P.y-CRYPT.doorY)<70) return {label:G.flags.jarlDead?'Gå ned i gravkrypten':'Døren i højen er forseglet',fn:()=>{if(!G.flags.jarlDead){toast('En kold kraft holder døren lukket. Hrafnkel vogter stadig højen.');return;}travel(CRYPT.inX,CRYPT.inY,'GRAVKRYPTEN','Under Hrafnkels høj');}};
+  if(Math.hypot(P.x-CRYPT.exitX,P.y-CRYPT.exitY)<55) return {label:'Forlad krypten',fn:()=>travel(CRYPT.doorX+45,CRYPT.doorY,'','')};
   if(!GATE.gone&&Math.abs(P.x-1800)<110&&P.y>WALL_Y+WALL_H&&P.y<WALL_Y+WALL_H+90) return {label:'Undersøg Jötunporten',fn:()=>talk('gate')};
   return null;
+}
+
+/* --- Chests, equipment and travelling through doors */
+function openChest(c){
+  if(c.gold&&!G.flags.vogterDead){toast('Låst. Gravvogteren bærer nøglen.');sfx('block');return;}
+  G.flags.chests=G.flags.chests||{}; G.flags.chests[c.id]=true; sfx('chest');
+  const m=CHEST_M[c.id]; if(m) m.opening=true;
+  const gy=groundY(c.x,c.y); burst(c.x*S,gy+.8,c.y*S,40,2.2,1.4,.25,2.4,1.8,.6,{grav:-.4,drag:1});
+  setTimeout(()=>{P.runes+=c.runes;num(c.x,c.y,'+'+c.runes+' runer','crit');giveItem(c.item);if(c.also)setTimeout(()=>giveItem(c.also),1400);saveGame();},500);
+}
+function giveItem(id){
+  G.inv=G.inv||[]; if(G.inv.includes(id)) return; G.inv.push(id); const it=ITEMS[id];
+  const slot=it.slot==='talisman'?(!G.eq.t1?'t1':!G.eq.t2?'t2':null):(!G.eq[it.slot]?it.slot:null);
+  if(slot){G.eq[slot]=id; if(id==='idunn')P.flasks++;}
+  banner('FUNDET',it.name); toast(it.desc+(slot?' (taget på)':' Tryk I for at tage det på.')); sfx('pickup');
+}
+function equip(id){
+  const it=ITEMS[id]; for(const k in G.eq) if(G.eq[k]===id){G.eq[k]=null;if(id==='idunn')P.flasks=Math.min(P.flasks,maxFlasks());P.hp=Math.min(P.hp,maxHp());renderInv();return;}
+  let slot=it.slot==='talisman'?(!G.eq.t1?'t1':!G.eq.t2?'t2':'t2'):it.slot;
+  if(G.eq[slot]==='idunn') P.flasks=Math.max(0,P.flasks-1);
+  G.eq[slot]=id; if(id==='idunn')P.flasks++; P.hp=Math.min(P.hp,maxHp()); sfx('pickup'); renderInv();
+}
+function renderInv(){
+  const el=$('invSlots'); el.innerHTML='';
+  for(const k of ['weapon','armor','t1','t2']){const id=G.eq[k];const d=document.createElement('div');d.className='slotrow';
+    d.innerHTML=`<span class="ab">${SLOTN[k]}</span><span class="nm">${id?ITEMS[id].name+'<small>'+ITEMS[id].desc+'</small>':'<small>Tom</small>'}</span>`;el.appendChild(d);}
+  const list=$('invItems'); list.innerHTML='';
+  if(!(G.inv||[]).length){list.innerHTML='<p class="mute small">Du har intet udstyr endnu. Kig efter kister i verden og i gravkrypten under højen.</p>';return;}
+  for(const id of G.inv){const it=ITEMS[id], on=eqHas(id);const b=document.createElement('button');b.type='button';b.className='invbtn'+(on?' on':'');
+    b.innerHTML=`<span><b>${it.name}</b><small>${it.desc}</small></span><span class="tag">${on?'Tag af':'Tag på'}</span>`;b.addEventListener('click',()=>equip(id));list.appendChild(b);}
+}
+function openInv(){G.state='inv';renderInv();$('inv').hidden=false;$('invGo').focus({preventScroll:true});}
+$('invGo').addEventListener('click',()=>{$('inv').hidden=true;G.state='play';});
+function travel(x,y,title,sub){
+  const f=$('fade'); f.classList.add('on'); G.state='travel'; sfx('gate');
+  setTimeout(()=>{P.x=x;P.y=y;P.act=null;P.roll=0;if(C){C.x=x-20;C.y=y+15;}G.boss=null;snapCam();if(title)banner(title,sub);
+    setTimeout(()=>{f.classList.remove('on');G.state='play';},250);},550);
 }
 
 /* =========================================================
@@ -961,6 +1025,7 @@ const D={
     const f=F();
     if(!f.metUlfr){f.metUlfr=true;return ulfrHub('Den gamle mand læner sig på sin stav og ser længe på dig. «Endnu en, der vågnede ved stenen. Ravnene førte dig hertil, gjorde de ikke? Fimbulvinteren har varet i tre år. Rimtursen Hrimgrimr sidder bag Jötunporten i nord og ånder frost over Midgard. Porten åbnes kun med Jarlens Horn, og hornet ligger i gravhøjen mod vest hos Hrafnkel, der nægtede at dø.»');}
     if(!f.horn) return ulfrHub('«Vest, forbi den døde skov og ad den gamle sti. Gravhøjen står bag en ring af sten. Hrafnkel slår hårdt, men langsomt. Rul ind under hans hug, ikke væk fra dem.»');
+    if(!f.gateOpen&&!f.vogterDead) return ulfrHub('Ulfr ser hornet i dit bælte og lukker øjnene. «Så har han fået fred. Nu hvor Hrafnkel er borte, er døren i højen ikke længere forseglet. Hans gravvogter ligger dernede med skatte fra den gamle tid. Gå derned, hvis du tør, eller gå nordpå til porten.»');
     if(!f.gateOpen) return ulfrHub('Ulfr ser hornet i dit bælte og lukker øjnene. «Så har han fået fred. Gå nordpå til porten. Blæs, og lad Rimtursen høre, at Midgard ikke er død endnu.»');
     return ulfrHub('«Ravnene flyver lavt i dag. Vend tilbage med livet i behold.»');
   },
@@ -971,6 +1036,8 @@ const D={
     G._dvText=null;
     if(G.weaponLvl<3) n.opts.push({t:`Forstærk mit våben (+15 % skade) · ${wc} runer`,go:()=>{if(P.runes<wc){G._dvText='«Det rækker ikke. Kom igen, når dine lommer klirrer.»';}else{P.runes-=wc;G.weaponLvl++;sfx('block');G._dvText=`Han hamrer runer ind i stålet, til de gløder. «Sådan. Det bider bedre nu.» (Våben +${G.weaponLvl})`;}return D.dvalin();}});
     if(G.extraFlasks<3) n.opts.push({t:`Køb et ekstra mjødhorn · ${fc} runer`,go:()=>{if(P.runes<fc){G._dvText='«Mjød er dyrt i en vinter som denne. Du har ikke nok.»';}else{P.runes-=fc;G.extraFlasks++;P.flasks++;sfx('drink');G._dvText='«Fyldt fra min egen tønde. Drik det ikke på én gang.» (+1 mjødhorn)';}return D.dvalin();}});
+    const tc=c(900);
+    if(!(G.inv||[]).includes('fenrir')) n.opts.push({t:`Køb Fenrirs tand (+15 % skade, −10 % liv) · ${tc} runer`,go:()=>{if(P.runes<tc){G._dvText='«Den tand har kostet bedre folk end dig en hånd. Kom med flere runer.»';}else{P.runes-=tc;G._dvText='«Bær den med respekt. Ulven glemmer ikke.»';giveItem('fenrir');}return D.dvalin();}});
     if(!f.haggled) n.opts.push({t:'Du tager vel ikke fuld pris af en, der skal redde din hals?',stat:'kar',dc:12,ok:()=>{f.haggled=true;G.discount=.75;G._dvText='Dvalin grynter og tørrer hænderne i forklædet. «Hmpf. Du minder mig om min bror. Tre fjerdedele af prisen, så. Sig det ikke til nogen.»';return D.dvalin();},fail:()=>{f.haggled=true;G._dvText='«Prisen er prisen. Min hals er dværgestærk.»';return D.dvalin();}});
     n.opts.push({t:'Farvel.'});
     return n;
@@ -1026,10 +1093,10 @@ function ulfrHub(text){
 function mimirWin(){F().mimir=true;sfx('rune');return{who:'Mimirs Hoved',text:'«Klogt. Hør da: Rimtursen var engang Hrimgrimr Ymirsson, og han elskede en menneskekvinde ved navn Sigrun. Hun døde i den første vinter, og siden har han villet, at alle skulle fryse som hun. Nævn hende, og han husker, hvem han var.» Du har fået Mimirs Visdom: +2 på alle terningeslag.',opts:[{t:'Tak, vise hoved.'}]};}
 function mimirLose(){const f=F();f.mimirFailed=true;setTimeout(()=>{for(let i=0;i<3;i++){const a=i*2.1;spawnEnemy('wolf',2850+Math.cos(a)*240,1400+Math.sin(a)*180,{aggro:true});}sfx('howl');},400);return{who:'Mimirs Hoved',text:'«Forkert.» Øjnene lukker sig. Isen sprækker under dig, og ulve hyler i tågen.',opts:[{t:'Træk våbnet.'}]};}
 function jotunEnt(){return G.enemies.find(e=>e.boss==='jotun'&&!e.dead);}
-function startJotun(){const j=jotunEnt();if(j){j.dormant=false;j.aggro=true;G.boss=j;}AU.boss=true;banner('Hrimgrimr, Rimtursen','','frost');return null;}
+function startJotun(){const j=jotunEnt();if(j){j.dormant=false;j.aggro=true;G.boss=j;}banner('Hrimgrimr, Rimtursen','','frost');return null;}
 function peaceEnd(){G.flags.jotunDone=true;G.flags.peace=true;G.ending='word';const j=jotunEnt();if(j){j.leaving=true;}G.endT=6.5;sfx('ok');
   return{who:'Hrimgrimr',text:'Kæmpen står længe stille. Så knæler han, og isen i hans skæg begynder at dryppe. «Sigrun…» Han rejser sig, vender ryggen til dig og går ind i tågen mod nord. Bag dig synger en fugl for første gang i tre år.',opts:[{t:'Se ham gå.'}]};}
-function openGate(text){G.flags.gateOpen=true;GATE.gone=true;G.gateAnim=0;sfx('horn');G.shake=.5;toast(text);banner('JÖTUNPORTEN ER ÅBEN','');saveGame();}
+function openGate(text){G.flags.gateOpen=true;GATE.gone=true;G.gateAnim=0;sfx('horn');setTimeout(()=>sfx('gate'),900);G.shake=.5;toast(text);banner('JÖTUNPORTEN ER ÅBEN','');saveGame();}
 
 const dlgEl=$('dlg'), dlgOpts=$('dlgOpts');
 let dlgCur=null, dlgNPC=null;
@@ -1042,6 +1109,7 @@ function talk(id){
 }
 function showNode(n){
   if(!n){closeDialog();return;}
+  sfx('page');
   dlgCur=n;dlgEl.hidden=false;$('dlgWho').textContent=n.who;$('dlgText').textContent=n.text;dlgOpts.innerHTML='';
   (n.opts&&n.opts.length?n.opts:[{t:'Farvel.'}]).forEach((o,i)=>{
     const li=document.createElement('li');const b=document.createElement('button');b.className='opt';b.type='button';
@@ -1115,7 +1183,7 @@ function statRows(el,editable){
     row.appendChild(bx);el.appendChild(row);
   }
 }
-function derived(){const dm=Math.round(atkMult()*100);return`<span>Liv <b>${maxHp()}</b></span><span>Udholdenhed <b>${maxSt()}</b></span><span>Skade <b>${dm} %</b></span><span>Mjødhorn <b>${maxFlasks()}</b></span><span>Våben <b>+${G.weaponLvl}</b></span>`;}
+function derived(){const dm=Math.round(atkMult()*100);return`<span>Liv <b>${maxHp()}</b></span><span>Udholdenhed <b>${maxSt()}</b></span><span>Skade <b>${dm} %</b></span><span>Mjødhorn <b>${maxFlasks()}</b></span><span>Våben <b>+${G.weaponLvl}</b></span><span>Udstyr <b>${Object.values(G.eq||{}).filter(Boolean).map(i=>ITEMS[i].name).join(', ')||'intet'}</b></span>`;}
 function renderRest(){
   const rs=RUNESTONES[G.lastRS];$('restName').textContent=rs.name;$('rLvl').textContent=P.level;$('rRunes').textContent=P.runes;$('rCost').textContent=lvlCost(P.level);
   statRows($('rStats'),true);$('rDerived').innerHTML=derived();
@@ -1125,7 +1193,7 @@ function renderRest(){
 }
 $('restLeave').addEventListener('click',()=>{$('rest').hidden=true;G.state='play';});
 const SAVE_KEY='ravnensEd.v1';
-function makeSave(){return{name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play};}
+function makeSave(){return{name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq};}
 function saveGame(){if(!P||G.flags.jotunDone)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSave()));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
@@ -1134,15 +1202,17 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
    GAME FLOW
    ========================================================= */
 function resetRun(){
-  G.flags={};G.weaponLvl=0;G.extraFlasks=0;G.discount=1;G.lastRS=0;G.stain=null;G.deaths=0;G.play=0;G.ending=null;G.endT=0;G.boss=null;AU.boss=false;
+  G.flags={};G.inv=[];G.eq={weapon:null,armor:null,t1:null,t2:null};G.weaponLvl=0;G.extraFlasks=0;G.discount=1;G.lastRS=0;G.stain=null;G.deaths=0;G.play=0;G.ending=null;G.endT=0;G.boss=null;
+  for(const id in CHEST_M){const m=CHEST_M[id];m.opening=false;m.open=0;if(m.lid)m.lid.rotation.x=0;}
   RUNESTONES.forEach(r=>{r.lit=r.id===0;RS_MESH[r.id].mat.emissiveIntensity=r.lit?2.6:0;RS_MESH[r.id].light.intensity=r.lit?22:0;});
   GATE.gone=false;G.gateAnim=null;gateDoors.forEach(d=>d.hinge.rotation.y=0);
   if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true;
 }
 function beginGame(fromSave){
   resetRun();
-  if(fromSave){const s=fromSave;newPlayer(s.cls,s.stats,s.name);P.level=s.level;P.runes=s.runes;Object.assign(G.flags,s.flags||{});G.weaponLvl=s.weaponLvl||0;G.extraFlasks=s.extraFlasks||0;G.discount=s.discount||1;G.lastRS=s.lastRS||0;G.stain=s.stain||null;G.deaths=s.deaths||0;G.play=s.play||0;
+  if(fromSave){const s=fromSave;newPlayer(s.cls,s.stats,s.name);P.level=s.level;P.runes=s.runes;Object.assign(G.flags,s.flags||{});G.weaponLvl=s.weaponLvl||0;G.extraFlasks=s.extraFlasks||0;G.discount=s.discount||1;G.lastRS=s.lastRS||0;G.stain=s.stain||null;G.deaths=s.deaths||0;G.play=s.play||0;G.inv=s.inv||[];G.eq=s.eq||{weapon:null,armor:null,t1:null,t2:null};
     (s.lit||[]).forEach((l,i)=>{RUNESTONES[i].lit=l;RS_MESH[i].mat.emissiveIntensity=l?2.6:0;RS_MESH[i].light.intensity=l?22:0;});
+    for(const id in (G.flags.chests||{})){const m=CHEST_M[id];if(m){m.open=1;if(m.lid)m.lid.rotation.x=-1.9;}}
     if(G.flags.gateOpen){GATE.gone=true;gateDoors.forEach(d=>d.hinge.rotation.y=d.s*1.6);}
     const rs=RUNESTONES[G.lastRS];P.x=rs.x;P.y=rs.y+46;P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();
     if(G.flags.astrid)makeCompanion();
@@ -1157,11 +1227,11 @@ function beginGame(fromSave){
 function toTitle(){
   $('pause').hidden=true;$('end').hidden=true;$('hud').hidden=true;$('rest').hidden=true;$('deathScr').hidden=true;$('prompt').hidden=true;dlgEl.hidden=true;$('letterbox').classList.remove('on');
   clearEnemies(); if(PM){scene.remove(PM.root);PM=null;} if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true; P=null;
-  G.state='title';AU.boss=false;$('title').hidden=false;$('bCont').hidden=!loadSave();
+  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!loadSave();
   for(const n of NUMS)n.el.remove();NUMS.length=0;
 }
 function showEnd(){
-  G.state='end';$('hud').hidden=true;$('prompt').hidden=true;clearSave();
+  G.state='end';music('victory');$('hud').hidden=true;$('prompt').hidden=true;clearSave();
   const peace=G.ending==='word';
   $('endEy').textContent=peace?'Ordets vej':'Sværdets vej';
   $('endT').textContent='Fimbulvinteren er brudt';
@@ -1209,20 +1279,24 @@ $('pzQuit').addEventListener('click',()=>{saveGame();toTitle();});
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT') return;
   keys[e.code]=true;
-  if(e.code==='KeyM'){AU.on=!AU.on;if(AU.master)AU.master.gain.value=AU.on?.75:0;toast(AU.on?'Lyd til':'Lyd fra');}
+  if(e.code==='KeyM'){setMuted(AU.on);toast(AU.on?'Lyd til':'Lyd fra');}
   if(G.state==='play'){
     if(e.code==='Space'){buf={k:'roll',t:G.time};e.preventDefault();}
     if(e.code==='KeyR') buf={k:'heal',t:G.time};
     if(e.code==='KeyF') buf={k:'special',t:G.time};
     if(e.code==='KeyE'){const it=interactTarget();if(it)it.fn();}
     if(e.code==='Escape') openPause();
+    if(e.code==='KeyI') openInv();
   } else if(G.state==='dialog'&&dlgCur&&!diceAnim){
     const n=parseInt(e.key,10);if(n>=1&&n<=9){const b=dlgOpts.querySelectorAll('button')[n-1];if(b){b.click();e.preventDefault();}}
   } else if(G.state==='pause'&&e.code==='Escape'){$('pause').hidden=true;G.state='play';}
+  else if(G.state==='inv'&&(e.code==='Escape'||e.code==='KeyI')){$('inv').hidden=true;G.state='play';}
   else if(G.state==='rest'&&e.code==='Escape'){$('rest').hidden=true;G.state='play';}
   if(e.code==='Space'&&G.state!=='play'&&document.activeElement===document.body) e.preventDefault();
 });
 addEventListener('keyup',e=>{keys[e.code]=false;});
+addEventListener('pointerdown',()=>audioInit(),{once:true});
+addEventListener('keydown',()=>audioInit(),{once:true});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouse.l=mouse.r=false;});
 addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
 cv.addEventListener('mousedown',e=>{if(G.state!=='play')return;if(e.button===0){mouse.l=true;buf={k:'lmb',t:G.time};}if(e.button===2){mouse.r=true;buf={k:'rmb',t:G.time};}});
@@ -1301,6 +1375,9 @@ function syncPlayer(dt){
   PM.tintEmissive(p.rage>0?.22:0,0,0);
 }
 const EANIM={
+  minion:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Chop',death:'Death_C_Skeletons'},
+  seidr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'Spellcasting',shoot:'Spellcast_Shoot',death:'Death_C_Skeletons'},
+  vogter:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'2H_Melee_Attack_Slice',leap:'1H_Melee_Attack_Jump_Chop',summon:'Spellcast_Summon',death:'Death_C_Skeletons'},
   draugr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Slice_Diagonal',death:'Death_C_Skeletons'},
   archer:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'1H_Ranged_Aiming',shoot:'1H_Ranged_Shoot',death:'Death_C_Skeletons'},
   jarl:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',summon:'Spellcast_Summon',death:'Death_C_Skeletons'},
@@ -1316,7 +1393,7 @@ function animEnemy(e,m,dt,gy){
   else if(e.atkHaz&&G.hazards.includes(e.atkHaz)){
     const h=e.atkHaz, own=h.k==='circle'&&Math.hypot(h.x-e.x,h.y-e.y)<20;
     let n=an.arc, fit=h.wind+.35;
-    if(e.t==='jarl'&&h.k==='circle'){n=an.leap;fit=h.wind+.5;}
+    if((e.t==='jarl'||e.t==='vogter')&&h.k==='circle'){n=an.leap;fit=h.wind+.5;}
     if(e.t==='jotun'&&h.k==='circle'){n=own?an.stomp:(G.hazards.filter(x=>x.owner===e).length>7?an.rain:an.cast);fit=own?h.wind+.4:h.wind+.3;}
     w={n,key:'a'+e.atkSeq,fit};
   }
@@ -1380,11 +1457,19 @@ function syncNPCs(dt){
   for(const id in NPCM){const m=NPCM[id]; if(m.anim&&m.root.visible) m.anim.update(dt);} if(CM) CM.anim.update(dt);
 }
 let smokeT=0;
+const NIGHT_FOG=new THREE.Color(0x1b2738), CRYPT_FOG=new THREE.Color(0x040507);
+scene.background=scene.fog.color;
 function ambientFX(dt){
+  const inC=!!P&&inCrypt(P.x,P.y); G.cryptK=lerp(G.cryptK||0,inC?1:0,Math.min(1,dt*(inC?6:2))); const ck=G.cryptK;
+  hemi.intensity=lerp(.62,.2,ck); moon.intensity=lerp(1.45,.03,ck); scene.fog.density=lerp(.0135,.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
+  scene.fog.color.copy(NIGHT_FOG).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>m.m.visible=ck<.5);
+  lantern.intensity=lerp(10,16,ck); CRYPT_LIGHTS.forEach(L=>{if(L.distance===8)L.intensity=ck*8;});
+  for(const id in CHEST_M){const m=CHEST_M[id];if(m.opening&&m.open<1){m.open=Math.min(1,m.open+dt*2.2);if(m.lid)m.lid.rotation.x=-1.9*easeOut(m.open);}}
   smokeT-=dt;
   if(smokeT<=0){smokeT=.12;for(const s of SMOKERS){if(P&&Math.abs(s.x-P.x*S)>45)continue;FXN.emit(s.x+rand(-.2,.2),s.y,s.z+rand(-.2,.2),wind*.15+rand(-.1,.1),rand(.6,1),rand(-.1,.1),rand(4,6),rand(1,1.6),.32,.33,.36,.35,-.05,.1,3);}}
   for(const f of FIRE_FX){
-    f.light.intensity=f.base*(.82+Math.sin(G.time*13+f.x)*.08+Math.sin(G.time*23.7+f.z)*.06+Math.random()*.06);
+    if(f.crypt&&G.cryptK<.05&&f.light.intensity===0) continue;
+    f.light.intensity=(f.crypt?G.cryptK:1)*f.base*(.82+Math.sin(G.time*13+f.x)*.08+Math.sin(G.time*23.7+f.z)*.06+Math.random()*.06);
     if(P&&Math.abs(f.x-P.x*S)>50) continue;
     const n=f.small?1:3;
     for(let i=0;i<n;i++){FXA.emit(f.x+rand(-.22,.22),f.y+.15,f.z+rand(-.22,.22),rand(-.15,.15)+wind*.05,rand(1,2),rand(-.15,.15),rand(.35,.65),rand(.25,.45),1.3,.45,.1,.8,-.4,.2,-.5);}
@@ -1445,8 +1530,8 @@ function drawMini(){
 function objective(){const f=G.flags;
   if(!f.metUlfr) return ['Tal med Gamle Ulfr ved runestenen i Ravnsholm',''];
   if(!f.horn&&!f.gateOpen) return ['Find Draugr-jarlen i gravhøjen mod vest','Valgfrit: Astrid ved lejren · Mimirs Hoved på den frosne sø mod øst'];
-  if(!f.gateOpen) return ['Blæs i Jarlens Horn ved Jötunporten mod nord','Valgfrit: Mimirs Hoved kender Rimtursens hemmelighed'];
-  return ['Konfrontér Rimtursen bag Jötunporten',''];}
+  if(!f.gateOpen) return ['Blæs i Jarlens Horn ved Jötunporten mod nord',!f.vogterDead?'Valgfrit: Gravkrypten under højen er åben nu':'Valgfrit: Mimirs Hoved kender Rimtursens hemmelighed'];
+  return ['Konfrontér Rimtursen bag Jötunporten',G.flags.jarlDead&&!G.flags.vogterDead?'Valgfrit: Gravkrypten under højen er åben':''];}
 let lastRunes=-1, shownRunes=0;
 function updHUD(dt){
   if(!P) return;
@@ -1455,7 +1540,7 @@ function updHUD(dt){
   $('hpBar').style.width=hpW+'px';$('stBar').style.width=stW+'px';
   $('hpFill').style.width=(P.hp/mh*100)+'%';$('hpLag').style.width=(P.hpLag/mh*100)+'%';$('stFill').style.width=(P.st/ms*100)+'%';
   $('hLvl').textContent='· niveau '+P.level;$('hFlask').textContent=P.flasks;
-  const cd=CLASSES[P.cls].scd, pr=P.specialT/cd;$('specCd').style.setProperty('--p',(pr*100)+'%');$('slSpec').classList.toggle('ready',P.specialT<=0);
+  const cd=specialCd(), pr=P.specialT/cd;$('specCd').style.setProperty('--p',(pr*100)+'%');$('slSpec').classList.toggle('ready',P.specialT<=0);
   shownRunes+= (P.runes-shownRunes)*Math.min(1,dt*8); if(Math.abs(P.runes-shownRunes)<1)shownRunes=P.runes;
   const rr=Math.round(shownRunes); if(rr!==lastRunes){$('hRunes').textContent=rr.toLocaleString('da-DK');lastRunes=rr;}
   const [o1,o2]=objective();$('hObj').textContent=o1;$('hOpt').textContent=o2;
@@ -1465,6 +1550,17 @@ function updHUD(dt){
   const it=G.state==='play'?interactTarget():null; const pe=$('prompt');
   if(it){pe.hidden=false;pe.innerHTML='<kbd>E</kbd>'+escapeHtml(it.label);}else pe.hidden=true;
   drawMini();
+}
+
+/* --- Music follows the place and the fight */
+let musicT=0;
+function updMusic(dt){
+  musicT-=dt; if(musicT>0) return; musicT=.5;
+  if(!P||P.dead) return;
+  const b=G.boss&&!G.boss.dead?G.boss:null;
+  if(b) return music(b.t==='jotun'?'jotun':'jarl');
+  const home=Math.hypot(P.x-1800,P.y-2380)<620||Math.hypot(P.x-1450,P.y-1850)<260;
+  music(home?'village':'wild');
 }
 
 /* =========================================================
@@ -1487,8 +1583,7 @@ function frame(now){
     // boss triggers
     if(!P.dead&&G.flags.gateOpen&&!G.flags.jotunTalked&&Math.hypot(P.x-1800,P.y-500)<210&&jotunEnt()) talk('jotun');
     if(G.endT>0){G.endT-=rdt;if(G.endT<=0)showEnd();}
-    // boss drums
-    if(G.boss&&!G.boss.dead){AU.drum-=rdt;if(AU.drum<=0){AU.drum=G.boss.phase2?.42:.62;sfx('drum');}}
+    updMusic(rdt);
   } else if(G.state==='dialog'){ for(const e of G.enemies) if(e.leaving) {} }
   if(G.state==='dialog'||G.state==='end'){ if(G.endT>0&&G.state!=='end'){G.endT-=rdt;} }
   if(P&&G.state!=='title') syncPlayer(rdt);
@@ -1507,12 +1602,12 @@ function frame(now){
 function start(data){
   window.__gameReady=true;
   $('loading').hidden=true;
-  G.state='title';$('title').hidden=false;$('bCont').hidden=!loadSave();
+  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!loadSave();
   if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches) $('touchNote').hidden=false;
   if(data&&data.save){beginGame(data.save);if(data.pos&&P){P.x=data.pos.x;P.y=data.pos.y;snapCam();}}
 }
 // Developer handle, only with ?dev in the address.
-if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse};
+if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse,giveItem,travel,AU,CHESTS,openChest};
 G.camPos.set(1800*S+30,10,2300*S);G.camLook.set(1800*S,5,2300*S-8);
 requestAnimationFrame(frame);
 Promise.all([
@@ -1521,6 +1616,6 @@ Promise.all([
 ]).then(()=>{
   // redraw rune textures once the runic font is ready
   RS_MESH.forEach(m=>{m.mat.emissiveMap=runeTex('ᚱᚨᚢᚾ','#ffcf6a');m.mat.needsUpdate=true;});
-  initNPCs();
+  initNPCs(); buildWorldProps();
   start({});
 }).catch(err=>{$('loadTxt').textContent='Spillets figurer kunne ikke indlæses ('+(err&&err.message||err)+'). Genindlæs siden.';});

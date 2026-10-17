@@ -12,6 +12,15 @@ python3 tools/serve.py
 
 Åbn derefter http://localhost:8765 i en browser.
 
+## Indhold
+
+- Tre klasser (Berserker, Skjoldmø, Völve) med animerede figurer
+- Soulslike kamp med rul, blok, varslede angreb og runer, der tabes ved død
+- Dialog med terningeslag (d20), ledsageren Astrid og to slutninger
+- Bosser: Draugr-jarlen, Gravvogteren i krypten og Rimtursen
+- Gravkrypten under højen, kister med udstyr og et udstyrsvindue (I)
+- Musik der skifter med område og bosskamp, optagede lydeffekter
+
 ## Styring
 
 | Tast | Handling |
@@ -23,7 +32,8 @@ python3 tools/serve.py
 | Mellemrum | Rul (usårlig mens du ruller) |
 | R | Drik mjød |
 | F | Klasse-evne |
-| E | Tal, hvil, interagér |
+| E | Tal, hvil, åbn kister, interagér |
+| I | Udstyr |
 | Hjul | Zoom |
 | Esc | Pause |
 | M | Lyd til og fra |
@@ -32,7 +42,11 @@ python3 tools/serve.py
 
 - `index.html` – sidens opmærkning, HUD og menuer
 - `styles.css` – al styling
-- `src/main.js` – spilmotor, verden, kamp, dialog og lyd (Three.js 0.160 via CDN)
+- `src/main.js` – verden, kamp, dialog, udstyr og spilforløb (Three.js 0.160 via CDN)
+- `src/models.js` – indlæsning af figurer, bygninger og animationer
+- `src/audio.js` – musik, lydeffekter og syntetiseret vind
+- `assets/` – figurer, bygninger, musik, lyd og teksturer (se `assets/CREDITS.md`)
+- Tilføj `?dev` til adressen for et udviklerhåndtag (`window.__rv`)
 
 ## Udgivelse
 

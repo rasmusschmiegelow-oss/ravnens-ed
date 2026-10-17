@@ -11,6 +11,12 @@ const FILES = {
   Skeleton_Blade: 'props/Skeleton_Blade.gltf', Skeleton_Axe: 'props/Skeleton_Axe.gltf', Skeleton_Crossbow: 'props/Skeleton_Crossbow.gltf',
   Skeleton_Staff: 'props/Skeleton_Staff.gltf', Skeleton_Shield_Large_A: 'props/Skeleton_Shield_Large_A.gltf', Skeleton_Shield_Small_A: 'props/Skeleton_Shield_Small_A.gltf',
 };
+// Buildings and props for the village (KayKit Medieval Hexagon) and the crypt (KayKit Dungeon Remastered).
+for (const n of ['building_barracks_red', 'building_lumbermill_red', 'building_well_red', 'building_tower_A_red', 'building_watermill_red', 'building_grain',
+  'building_destroyed', 'fence_wood_straight', 'fence_wood_straight_gate', 'barrel', 'crate_A_big', 'crate_B_small', 'sack', 'tent', 'weaponrack',
+  'resource_lumber', 'wheelbarrow', 'bucket_water', 'target', 'flag_red', 'rock_single_A', 'rock_single_B', 'rock_single_C', 'rock_single_D', 'rock_single_E']) FILES[n] = `village/${n}.gltf`;
+for (const n of ['chest', 'chest_gold', 'torch_lit', 'pillar_decorated', 'banner_patternA_red', 'barrel_large', 'wall', 'wall_arched', 'wall_doorway',
+  'floor_tile_large', 'floor_dirt_large', 'candle_triple', 'column', 'coin_stack_large', 'sword_shield_broken', 'keyring_hanging']) FILES[n] = `crypt/${n}.glb`;
 const SRC = {};
 const RAW_H = 2.2; // KayKit rigs stand about 2.2 units tall
 
@@ -26,6 +32,8 @@ export const LOOKS = {
   archer: {file: 'Skeleton_Rogue', h: 1.8, props: {r: 'Skeleton_Crossbow'}, tint: 0xb8c8c4, eyes: [0.5, 2.4, 3.4]},
   minion: {file: 'Skeleton_Minion', h: 1.75, props: {r: 'Skeleton_Blade'}, tint: 0xb8c8c4, eyes: [0.5, 2.4, 3.4]},
   jarl: {file: 'Skeleton_Warrior', h: 3.3, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0x8a9aa0, eyes: [0.8, 2.8, 4.2], emissive: 0x06141a},
+  seidr: {file: 'Skeleton_Mage', h: 1.85, props: {r: 'Skeleton_Staff'}, tint: 0xb4bcd0, eyes: [2.2, .8, 3.6]},
+  vogter: {file: 'Skeleton_Warrior', h: 2.7, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0xa09890, eyes: [3.6, 1.2, .3], emissive: 0x140804},
   jotun: {file: 'Barbarian', h: 8.2, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '1H_Axe', 'Mug'], tint: 0xd8f0ff, emissive: 0x1d4f6e, ice: true},
 };
 
@@ -95,4 +103,12 @@ export function makeChar(role, {iceMaterial} = {}) {
     tintEmissive(r, g, b) { for (const m of mats) if (m.emissive) m.emissive.setRGB(m.userData.baseEmissive.r + r, m.userData.baseEmissive.g + g, m.userData.baseEmissive.b + b); },
     opacity(v) { for (const m of mats) { m.transparent = v < 1; m.opacity = v; } },
   };
+}
+
+/** A static prop: cloned scene with shadows and its footprint size (x/z) and height in metres before scaling. */
+export function makeProp(key, {cast = true, receive = true} = {}) {
+  const o = SRC[key].scene.clone(true);
+  o.traverse(m => { if (m.isMesh) { m.castShadow = cast; m.receiveShadow = receive; } });
+  const box = new THREE.Box3().setFromObject(o), size = box.getSize(new THREE.Vector3());
+  return {obj: o, size, minY: box.min.y};
 }

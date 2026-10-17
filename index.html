@@ -41,6 +41,7 @@
 <div id="prompt" hidden></div>
 <div id="toasts"></div>
 <div id="banner" hidden><div id="bannerT"></div><div id="bannerS"></div></div>
+<div id="fade"></div>
 <div id="deathScr" hidden><div>DU ER FALDET</div></div>
 
 <section id="loading" class="ov">
@@ -84,7 +85,8 @@
           <kbd>Mellemrum</kbd><span>Rul (du er usårlig mens du ruller)</span>
           <kbd>R</kbd><span>Drik mjød (heler)</span>
           <kbd>F</kbd><span>Klasse-evne</span>
-          <kbd>E</kbd><span>Tal, hvil, interagér</span>
+          <kbd>E</kbd><span>Tal, hvil, åbn kister, interagér</span>
+          <kbd>I</kbd><span>Udstyr</span>
           <kbd>Hjul</kbd><span>Zoom kameraet</span>
           <kbd>Esc</kbd><span>Pause og karakterark</span>
         </div>
@@ -128,6 +130,15 @@
   </div>
 </section>
 
+<section id="inv" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Udstyr</div><h2>Hvad du bærer</h2></div>
+    <div class="stats" id="invSlots"></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Fundet</div><div class="invlist" id="invItems"></div></div>
+    <div><button class="btn" id="invGo">Luk</button></div>
+  </div>
+</section>
+
 <section id="pause" class="ov" hidden>
   <div class="panel pz">
     <div><div class="eyebrow">Pause</div><h2 id="pzName"></h2><div class="mute" id="pzClass"></div></div>
@@ -135,7 +146,7 @@
     <div class="kv" id="pzDerived"></div>
     <div class="ctrls">
       <kbd>Venstreklik</kbd><span>Let angreb</span><kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova</span>
-      <kbd>Mellemrum</kbd><span>Rul</span><kbd>R / F / E</kbd><span>Mjød · evne · interagér</span><kbd>M</kbd><span>Lyd til og fra</span>
+      <kbd>Mellemrum</kbd><span>Rul</span><kbd>R / F / E</kbd><span>Mjød · evne · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
   </div>
