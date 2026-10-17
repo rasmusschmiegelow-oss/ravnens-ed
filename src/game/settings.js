@@ -3,8 +3,8 @@
    SETTINGS: volume, difficulty, screen shake, hints and key bindings (saved per browser)
    ========================================================= */
 const SET_KEY='ravnensEd.settings';
-const BIND_DEFAULT={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',roll:'Space',heal:'KeyR',special:'KeyF',interact:'KeyE',lock:'Tab',inv:'KeyI',journal:'KeyJ'};
-const BIND_NAME={up:'Frem',down:'Tilbage',left:'Venstre',right:'Højre',roll:'Rul',heal:'Drik mjød',special:'Klasse-evne',interact:'Interagér',lock:'Lås på fjende',inv:'Udstyr',journal:'Dagbog'};
+const BIND_DEFAULT={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',roll:'Space',heal:'KeyR',special:'KeyF',art:'KeyQ',interact:'KeyE',lock:'Tab',inv:'KeyI',journal:'KeyJ'};
+const BIND_NAME={up:'Frem',down:'Tilbage',left:'Venstre',right:'Højre',roll:'Rul',heal:'Drik mjød',special:'Klasse-evne',art:'Våbenkunst',interact:'Interagér',lock:'Lås på fjende',inv:'Udstyr',journal:'Dagbog'};
 const DIFF={story:{name:'Fortælling',desc:'Fjender slår blødere og har mindre liv. For dig, der vil opleve historien.',dmg:.55,hp:.75},
   normal:{name:'Normal',desc:'Spillet som det er tænkt: hårdt, men fair.',dmg:1,hp:1},
   hard:{name:'Hård',desc:'Fjender slår hårdere og tåler mere. Ingen nåde.',dmg:1.3,hp:1.2}};
@@ -25,7 +25,7 @@ function keyLabel(code){
 }
 /** The label of an action for the active input device, used in hints and prompts. */
 function actLabel(action){
-  if(G.padActive) return {roll:'B',heal:'X',special:'Y',interact:'A',lock:'R3',inv:'View',journal:'Op på D-pad',attack:'RB',heavy:'RT'}[action]||'';
+  if(G.padActive) return {roll:'B',heal:'X',special:'Y',art:'LB',interact:'A',lock:'R3',inv:'View',journal:'Op på D-pad',attack:'RB',heavy:'RT'}[action]||'';
   if(action==='attack') return 'venstreklik'; if(action==='heavy') return 'højreklik';
   return keyLabel(SET.bind[action]);
 }

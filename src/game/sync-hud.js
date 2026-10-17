@@ -12,7 +12,7 @@ const _h=new THREE.Vector3(), _c=new THREE.Vector3();
 function updTrail(dt){
   for(const q of trailPts) q.age+=dt;
   while(trailPts.length&&trailPts[0].age>.2) trailPts.shift();
-  const A=P&&P.act, swinging=A&&(A.kind==='atk'||A.kind==='heavy'||A.kind==='bash')&&P.cls!=='volve'&&PM;
+  const A=P&&P.act, swinging=A&&(A.kind==='atk'||A.kind==='heavy'||A.kind==='bash'||A.kind==='crit'||(A.kind==='art'&&!A.beam&&A.anim!=='Spellcasting'))&&(P.cls!=='volve'||A.kind==='crit')&&PM;
   if(swinging){const hand=PM.bone('handslot.r');if(hand){hand.getWorldPosition(_h);_c.set(P.x*S,groundY(P.x,P.y)+1.15,P.y*S);const dir=_h.clone().sub(_c).setY(0).normalize();
       const len=P.cls==='berserker'?1.15:.95;trailPts.push({a:_h.clone(),b:_h.clone().addScaledVector(dir,len).add(new THREE.Vector3(0,.15,0)),age:0});if(trailPts.length>TRAIL_N)trailPts.shift();}}
   const pa=trailGeo.attributes.position.array, ca=trailGeo.attributes.color.array, n=trailPts.length;
@@ -40,6 +40,7 @@ function syncPlayer(dt){
     else if(k==='bash') w={n:an.bash,key:A,fit:A.dur*1.1};
     else if(k==='roar') w={n:an.roar,key:A,fit:.9};
     else if(k==='heal') w={n:an.heal,key:A,fit:A.dur};
+    else if(k==='crit'||k==='art') w={n:A.anim,key:A,fit:A.fit||A.dur};
   }
   else if(p.stagger>.08) w={n:'Hit_A',key:'hit'+p.hitId,fit:.35};
   else if(p.blocking) w={n:'Blocking'};
@@ -55,15 +56,22 @@ const EANIM={
   wolf:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',death:'Death',hit:'Idle_HitReact_Left'},
   trold:{...QA,move:'Walk',arc:'Bite_Front',hit:'HitRecieve'}, bjergtrold:{...QA,arc:'Weapon'}, rimtrold:{...QA,arc:'Punch',leap:'Jump'},
   ildvaette:{...QA,arc:'Weapon'}, frostvaette:{...QA,arc:'Weapon'},
-  gjenganger:QF, gjenganger2:QF, stenvaette:QF, stenvaette2:QF, vaette:{...QF,shoot:'Punch'}, lindorm:{...QF,breath:'Yes'},
+  gjenganger:QF, gjenganger2:QF, stenvaette:QF, stenvaette2:QF, vaette:{...QF,shoot:'Punch'}, lindorm:{...QF,breath:'Yes',roar:'No'},
   lindyngel:{idle:'Dragon_Flying',calm:'Dragon_Flying',move:'Dragon_Flying',walk:'Dragon_Flying',aim:'Dragon_Flying',dash:'Dragon_Attack',death:'Dragon_Death',hit:'Dragon_Hit'},
   minion:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Chop',death:'Death_C_Skeletons'},
   seidr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'Spellcasting',shoot:'Spellcast_Shoot',death:'Death_C_Skeletons'},
-  vogter:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'2H_Melee_Attack_Slice',leap:'1H_Melee_Attack_Jump_Chop',summon:'Spellcast_Summon',death:'Death_C_Skeletons'},
+  vogter:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'2H_Melee_Attack_Slice',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',summon:'Spellcast_Summon',roar:'Taunt_Longer',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
   draugr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Slice_Diagonal',death:'Death_C_Skeletons'},
   archer:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'1H_Ranged_Aiming',shoot:'1H_Ranged_Shoot',death:'Death_C_Skeletons'},
-  jarl:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',summon:'Spellcast_Summon',death:'Death_C_Skeletons'},
-  jotun:{idle:'2H_Melee_Idle',calm:'Idle',move:'Walking_A',arc:'2H_Melee_Attack_Slice',stomp:'2H_Melee_Attack_Chop',cast:'Spellcast_Shoot',rain:'Spellcast_Long',death:'Death_B'},
+  jarl:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',summon:'Spellcast_Summon',roar:'Taunt',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
+  askedraugr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Chop',death:'Death_C_Skeletons'},
+  askeskytte:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'1H_Ranged_Aiming',shoot:'1H_Ranged_Shoot',death:'Death_C_Skeletons'},
+  eldseidr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',cast:'Spellcast_Long',death:'Death_C_Skeletons'},
+  glodulv:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',death:'Death',hit:'Idle_HitReact_Left'},
+  lavavaette:{...QF,arc:'Punch'}, glodkaempe:{...QF,arc:'Punch',leap:'Headbutt',spin:'Punch',roar:'Yes'},
+  garm:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',arc:'Attack',breath:'Attack',roar:'Idle_2_HeadLow',death:'Death',hit:'Idle_HitReact_Left'},
+  surt:{idle:'Idle',calm:'Idle',move:'Walk',walk:'Walk',arc:'Weapon',stomp:'Punch',leap:'Jump',cast:'Yes',rain:'Wave',roar:'No',death:'Death',hit:'HitReact'},
+  jotun:{idle:'2H_Melee_Idle',calm:'Idle',move:'Walking_A',arc:'2H_Melee_Attack_Slice',stomp:'2H_Melee_Attack_Chop',cast:'Spellcast_Shoot',rain:'Spellcast_Long',roar:'Cheer',death:'Death_B'},
 };
 function animEnemy(e,m,dt,gy){
   const an=EANIM[e.t]; let w;
@@ -71,16 +79,16 @@ function animEnemy(e,m,dt,gy){
     w={n:an.death,key:'dead',fade:.1};
     const k=clamp((e.deathT-(e.boss?2.2:1.3))/(e.boss?1.6:.8),0,1); if(k>0){m.opacity(1-k);m.root.position.y=gy-k*(e.boss?1.5:.3);} if(k>=1)m.root.visible=false;
   }
-  else if(e.stun>0) w={n:an.hit||'Hit_B',key:'st'+e.stunId,fit:.5};
+  else if(e.pose&&e.pose.t>0&&an[e.pose.n]){e.pose.t-=dt;w={n:an[e.pose.n],key:e.pose.key,fit:e.pose.fit||e.pose.t+.2};}
+  else if(e.stun>0) w={n:an.hit||'Hit_B',key:'st'+e.stunId,fit:e.broken>0?Math.max(.5,e.broken):.5};
   else if(e.atkHaz&&G.hazards.includes(e.atkHaz)){
     const h=e.atkHaz, own=h.k==='circle'&&Math.hypot(h.x-e.x,h.y-e.y)<20;
     let n=an.arc, fit=h.wind+.35;
-    if(KIND[e.t]==='brute'&&h.k==='circle'){n=an.leap;fit=h.wind+.5;}
+    if(KIND[e.t]==='brute'&&h.k==='circle'){n=h.spin&&an.spin?an.spin:an.leap;fit=h.wind+.5;}
     if(e.t==='lindorm'&&h.k==='circle'){n=an.breath;fit=h.wind+.3;}
     if(e.t==='jotun'&&h.k==='circle'){n=own?an.stomp:(G.hazards.filter(x=>x.owner===e).length>7?an.rain:an.cast);fit=own?h.wind+.4:h.wind+.3;}
     w={n,key:'a'+e.atkSeq,fit};
   }
-  else if(e.summoned&&e.busy>.5&&e.t==='jarl') w={n:an.summon,key:'sum',fit:1.2};
   else if(e.dash&&an.dash) w={n:an.dash,key:'d'+e.dashSeq,fit:.5};
   else if(e.aim&&an.aim) w={n:an.aim};
   else if(e.shotId&&e.busy>0&&an.shoot) w={n:an.shoot,key:'s'+e.shotId,fit:.45};
@@ -92,6 +100,7 @@ function animEnemy(e,m,dt,gy){
   drive(m,w); m.anim.update(dt);
   const fl=e.flash>0?1:0; m.flash(fl);
 }
+const P2COL={jarl:[.6,1.6,2.4],vogter:[2.6,.6,.2],lindorm:[.7,1.6,2.4],jotun:[.7,1.6,2.4],glodkaempe:[3,1,.2],garm:[2.8,.4,.15],surt:[3.2,1.2,.2]};
 const easeOut=t=>1-Math.pow(1-t,3), easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function lerpAng(a,b,t){return a+angDiff(b,a)*t;}
 function syncEnemies(dt){
@@ -99,7 +108,7 @@ function syncEnemies(dt){
   for(const e of G.enemies){
     const m=e.model; if(!m) continue;
     // far-away enemies are not drawn or animated (their logic still runs)
-    const far=Math.hypot(e.x-cx,e.y-cz)>(e.boss==='jotun'?2200:1300); if(far){m.root.visible=false;if(e.hpEl)e.hpEl.style.display='none';continue;} if(!e.leaving&&!(e.dead&&e.deathT>3))m.root.visible=true;
+    const far=Math.hypot(e.x-cx,e.y-cz)>(e.boss==='jotun'||e.boss==='surt'?2200:1300); if(far){m.root.visible=false;if(e.hpEl)e.hpEl.style.display='none';continue;} if(!e.leaving&&!(e.dead&&e.deathT>3))m.root.visible=true;
     const gy=groundY(e.x,e.y);
     let lift=0;
     if(e.air){e.airT=(e.airT||0)+dt;lift=Math.sin(clamp(e.airT/1,0,1)*Math.PI)*5;}
@@ -115,6 +124,7 @@ function syncEnemies(dt){
       else poseHum(m,a);
       const fl=e.flash>0?1.6:0; m.mats.forEach(mt=>{if(mt.emissive)mt.emissive.setScalar(fl*.5);});
     }
+    if(e.boss&&e.phase2&&!e.dead&&Math.random()<.6){const c=P2COL[e.t]||[2,1,.4],h=(INTRO[e.boss]&&INTRO[e.boss].h)||3;FXA.emit(e.x*S+rand(-1,1)*h*.25,gy+lift+rand(.2,h),e.y*S+rand(-1,1)*h*.25,rand(-.3,.3),rand(.6,1.6),rand(-.3,.3),rand(.5,1),rand(.15,.32),c[0],c[1],c[2],1,-.4,.5,0);}
     if(e.stun>0&&Math.random()<.4)FXA.emit(e.x*S+rand(-.3,.3),gy+(e.boss?4:2),e.y*S+rand(-.3,.3),0,.4,0,.5,.25,2.4,2.2,.8,1,0,0);
     if(e.t==='jotun'&&!e.dead&&!e.leaving){if(Math.random()<.35)FXN.emit(e.x*S+rand(-2.2,2.2),gy+rand(.2,1.5),e.y*S+rand(-2.2,2.2),rand(-.3,.3),rand(.1,.4),rand(-.3,.3),2.5,.6,.85,.92,1,.12,-.03,.3,2.5);if(Math.random()<.3)FXA.emit(e.x*S+rand(-.3,.3)+Math.cos(e.face)*.8,gy+7.6,e.y*S+rand(-.3,.3)+Math.sin(e.face)*.8,Math.cos(e.face)*1.2,-.2,Math.sin(e.face)*1.2,1.2,.35,.4,.7,.9,.6,-.1,.5,2);}
     if(e.t==='draugr'||e.t==='archer'||e.t==='jarl'){if(Math.random()<.04)FXA.emit(e.x*S,gy+(e.t==='jarl'?2.6:1.4),e.y*S,rand(-.2,.2),rand(.3,.7),rand(-.2,.2),1,.15,.4,1.4,2,1,-.1,0,0);}
@@ -146,18 +156,25 @@ function syncNPCs(dt){
 }
 let smokeT=0;
 const NIGHT_FOG=new THREE.Color(0x1b2738), CRYPT_FOG=new THREE.Color(0x040507);
+// Askefjorden's air: red-brown smoke, warm light from below, falling ash
+const ASHC={fog:new THREE.Color(0x2b1712),hemi:new THREE.Color(0xc07a58),hemiG:new THREE.Color(0x2a1208),moon:new THREE.Color(0xffa070),snow:new THREE.Color(0x8e8682),mist:new THREE.Color(0x5a4440),
+  hemi0:hemi.color.clone(),hemiG0:hemi.groundColor.clone(),moon0:moon.color.clone(),snow0:snow.material.color.clone(),mist0:new THREE.Color(0xb9cbe0)};
 scene.background=scene.fog.color;
 function ambientFX(dt){
   const inC=!!P&&inCrypt(P.x,P.y); G.cryptK=lerp(G.cryptK||0,inC?1:0,Math.min(1,dt*(inC?6:2))); const ck=G.cryptK;
-  hemi.intensity=lerp(.62,.2,ck); moon.intensity=lerp(1.45,.03,ck); scene.fog.density=lerp(.0135,.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
-  scene.fog.color.copy(NIGHT_FOG).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>m.m.visible=ck<.5);
+  const ak=ashK(P?P.x:G.camLook.x/S); G.ashK=lerp(G.ashK??ak,ak,Math.min(1,dt*1.5)); const aK=G.ashK; skyUniforms.uAsh.value=aK;
+  hemi.intensity=lerp(lerp(.62,.6,aK),.2,ck); moon.intensity=lerp(lerp(1.45,1.1,aK),.03,ck); scene.fog.density=lerp(lerp(.0135,.017,aK),.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
+  hemi.color.copy(ASHC.hemi0).lerp(ASHC.hemi,aK); hemi.groundColor.copy(ASHC.hemiG0).lerp(ASHC.hemiG,aK); moon.color.copy(ASHC.moon0).lerp(ASHC.moon,aK);
+  snow.material.color.copy(ASHC.snow0).lerp(ASHC.snow,aK); snow.material.opacity=.85-aK*.3;
+  scene.fog.color.copy(NIGHT_FOG).lerp(ASHC.fog,aK).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>{m.m.visible=ck<.5;m.m.material.color.copy(ASHC.mist0).lerp(ASHC.mist,aK);});
+  updAct2(dt);
   lantern.intensity=lerp(10,16,ck); CRYPT_LIGHTS.forEach(L=>{if(L.distance===8)L.intensity=ck*8;});
   for(const id in CHEST_M){const m=CHEST_M[id];if(m.opening&&m.open<1){m.open=Math.min(1,m.open+dt*2.2);if(m.lid)m.lid.rotation.x=-1.9*easeOut(m.open);}}
   smokeT-=dt;
   if(smokeT<=0){smokeT=.12;for(const s of SMOKERS){if(P&&Math.abs(s.x-P.x*S)>45)continue;FXN.emit(s.x+rand(-.2,.2),s.y,s.z+rand(-.2,.2),wind*.15+rand(-.1,.1),rand(.6,1),rand(-.1,.1),rand(4,6),rand(1,1.6),.32,.33,.36,.35,-.05,.1,3);}}
   for(const f of FIRE_FX){
-    if(f.crypt&&G.cryptK<.05&&f.light.intensity===0) continue;
-    f.light.intensity=(f.crypt?G.cryptK:1)*f.base*(.82+Math.sin(G.time*13+f.x)*.08+Math.sin(G.time*23.7+f.z)*.06+Math.random()*.06);
+    if(f.light){if(f.crypt&&G.cryptK<.05&&f.light.intensity===0) continue;
+      f.light.intensity=(f.crypt?G.cryptK:1)*f.base*(.82+Math.sin(G.time*13+f.x)*.08+Math.sin(G.time*23.7+f.z)*.06+Math.random()*.06);}
     if(P&&Math.abs(f.x-P.x*S)>50) continue;
     const n=f.small?1:3;
     for(let i=0;i<n;i++){FXA.emit(f.x+rand(-.22,.22),f.y+.15,f.z+rand(-.22,.22),rand(-.15,.15)+wind*.05,rand(1,2),rand(-.15,.15),rand(.35,.65),rand(.25,.45),1.3,.45,.1,.8,-.4,.2,-.5);}
@@ -199,15 +216,25 @@ const miniBg=document.createElement('canvas');miniBg.width=miniBg.height=900;
   g.fillStyle='#5a6068';g.fillRect(0,WALL_Y*k,WORLD.w*k,WALL_H*k);
   g.fillStyle='rgba(150,220,255,.25)';g.beginPath();g.arc(1800*k,500*k,330*k,0,TAU);g.fill();
   g.strokeStyle='rgba(200,200,200,.5)';g.lineWidth=2;g.beginPath();g.arc(560*k,1200*k,265*k,0,TAU);g.stroke();
-  g.fillStyle='#6a4a30';for(const h of HOUSES)g.fillRect(h.x*k,h.y*k,h.w*k,h.h*k);}
+  g.fillStyle='#6a4a30';for(const h of HOUSES)g.fillRect(h.x*k,h.y*k,h.w*k,h.h*k);
+  g.fillStyle='#231c1c';g.fillRect(RIDGE.x*k,PAD*k,(WORLD.w-PAD-RIDGE.x)*k,(WORLD.h-2*PAD)*k);
+  g.strokeStyle='rgba(190,160,140,.5)';g.lineWidth=4;for(const p of PATHS.slice(3)){g.beginPath();p.forEach(([x,y],i)=>i?g.lineTo(x*k,y*k):g.moveTo(x*k,y*k));g.stroke();}
+  g.fillStyle='rgba(20,14,12,.85)';for(const t of ASH.trees){if(!t.col)continue;g.beginPath();g.arc(t.x*k,t.y*k,1.8,0,TAU);g.fill();}
+  g.fillStyle='#e0661c';for(const p of LAVA){g.beginPath();g.ellipse(p.x*k,p.y*k,p.rx*k,p.ry*k,0,0,TAU);g.fill();}
+  g.fillStyle='#3a1a12';g.fillRect((RIDGE.x-130)*k,0,260*k,(RIDGE.passY-RIDGE.passW)*k);g.fillRect((RIDGE.x-130)*k,(RIDGE.passY+RIDGE.passW)*k,260*k,WORLD.h*k);
+  g.fillStyle='#4a2418';g.fillRect(3640*k,FWALL_Y*k,(WORLD.w-3640)*k,40*k);
+  g.fillStyle='#000';g.beginPath();g.arc(GNIPA.x*k,GNIPA.y*k,26*k,0,TAU);g.fill();}
 function drawMini(){
   const W=340,k=900/WORLD.w,zoomMap=1.25;mctx.clearRect(0,0,W,W);mctx.save();mctx.beginPath();mctx.arc(W/2,W/2,W/2,0,TAU);mctx.clip();
   const view=W/zoomMap; const cx=P.x*k, cy=P.y*k;
   mctx.drawImage(miniBg,cx-view/2,cy-view/2,view,view,0,0,W,W);
   const tp=(x,y)=>[(x*k-cx)*zoomMap+W/2,(y*k-cy)*zoomMap+W/2];
   if(!GATE.gone){const [x,y]=tp(1800,WALL_Y+20);mctx.fillStyle='#9bd3ea';mctx.fillRect(x-10,y-4,20,8);}
+  if(!ICEWALL.gone){const [x,y]=tp(RIDGE.x,RIDGE.passY);mctx.fillStyle='#9bd3ea';mctx.fillRect(x-4,y-14,8,28);}
+  if(!FIREGATE.gone){const [x,y]=tp(5000,FWALL_Y+20);mctx.fillStyle='#ff8a3a';mctx.fillRect(x-10,y-4,20,8);}
+  for(const b of ASH.beacons){const [x,y]=tp(b.x,b.y);mctx.fillStyle=G.flags.beacons?.[b.id]?'#ffb04a':'#6a5a50';mctx.beginPath();mctx.arc(x,y,4,0,TAU);mctx.fill();}
   RUNESTONES.forEach(r=>{const [x,y]=tp(r.x,r.y);mctx.fillStyle=r.lit?'#f3d68a':'#5f646a';mctx.beginPath();mctx.moveTo(x,y-9);mctx.lineTo(x+6,y);mctx.lineTo(x,y+9);mctx.lineTo(x-6,y);mctx.closePath();mctx.fill();if(r.lit){mctx.shadowColor='#f3d68a';}});
-  NPCS.forEach(n=>{if(n.id==='astrid'&&C)return;const [x,y]=tp(n.x,n.y);mctx.fillStyle='#e7e0cf';mctx.beginPath();mctx.arc(x,y,4.5,0,TAU);mctx.fill();});
+  NPCS.forEach(n=>{if(n.id==='astrid'&&C)return;if(n.showIf&&!n.showIf())return;const [x,y]=tp(n.x,n.y);mctx.fillStyle='#e7e0cf';mctx.beginPath();mctx.arc(x,y,4.5,0,TAU);mctx.fill();});
   for(const e of G.enemies){if(e.dead||e.dormant)continue;const [x,y]=tp(e.x,e.y);if(x<0||x>W||y<0||y>W)continue;mctx.fillStyle=e.boss?'#ff6a4a':'rgba(220,80,60,.85)';mctx.beginPath();mctx.arc(x,y,e.boss?7:3,0,TAU);mctx.fill();}
   if(G.stain){const [x,y]=tp(G.stain.x,G.stain.y);mctx.fillStyle='#f3d68a';mctx.font='18px "Noto Sans Runic"';mctx.textAlign='center';mctx.fillText('ᚱ',x,y+6);}
   if(C){const [x,y]=tp(C.x,C.y);mctx.fillStyle='#a9e08a';mctx.beginPath();mctx.arc(x,y,4.5,0,TAU);mctx.fill();}
@@ -216,6 +243,14 @@ function drawMini(){
   mctx.fillStyle='#d4ae55';mctx.font='22px "IM Fell English SC", Georgia';mctx.textAlign='center';mctx.fillText('N',W/2,24);
 }
 function objective(){const f=G.flags;
+  if(f.jotunDone&&!f.act2) return ['Fimbulvinteren er brudt',''];
+  if(f.act2){
+    const n=Object.keys(f.beacons||{}).length, opt=f.q_varder&&!f.vardeDone?(n<3?`Valgfrit: Tænd varderne (${n} af 3)`:'Valgfrit: Fortæl Ragna, at varderne brænder'):f.q_sindri&&!f.sindriDone?(f.muspelsten?'Valgfrit: Bring Muspelstenen til Sindri':'Valgfrit: Find Muspelstenen ved lavasøen mod sydøst'):'';
+    if(!f.metRagna) return ['Følg røgen mod øst gennem Askepasset til Skjoldvik','Valgfrit: Gamle Ulfr i Ravnsholm'];
+    if(!f.garmDead&&!f.fgateOpen) return ['Fæld Garm, Helhunden, ved Gnipahellir mod nord',opt];
+    if(!f.fgateOpen) return ['Åbn Flammeporten mod nord',opt];
+    return ['Fæld Surt ved Muspelrevnen bag Flammeporten',opt];
+  }
   if(!f.metUlfr) return ['Tal med Gamle Ulfr ved runestenen i Ravnsholm',''];
   if(!f.horn&&!f.gateOpen) return ['Find Draugr-jarlen i gravhøjen mod vest','Valgfrit: Astrid ved lejren · Mimirs Hoved på den frosne sø mod øst'];
   if(!f.gateOpen) return ['Blæs i Jarlens Horn ved Jötunporten mod nord',!f.vogterDead?'Valgfrit: Gravkrypten under højen er åben nu':'Valgfrit: Mimirs Hoved kender Rimtursens hemmelighed'];
@@ -233,12 +268,15 @@ function updHUD(dt){
   $('hpFill').style.width=(P.hp/mh*100)+'%';$('hpLag').style.width=(P.hpLag/mh*100)+'%';$('stFill').style.width=(P.st/ms*100)+'%';
   $('hLvl').textContent='· niveau '+P.level;$('hFlask').textContent=P.flasks;
   const cd=specialCd(), pr=P.specialT/cd;$('specCd').style.setProperty('--p',(pr*100)+'%');$('slSpec').classList.toggle('ready',P.specialT<=0);
+  $('artCd').style.setProperty('--p',((P.artT||0)/artCd()*100)+'%');$('slArt').classList.toggle('ready',!(P.artT>0));
+  G.kbdT=(G.kbdT||0)-dt; if(G.kbdT<=0){G.kbdT=.5;$('artName').textContent=ARTS[artKey()].name;$('kHeal').textContent=actLabel('heal');$('kSpec').textContent=actLabel('special');$('kArt').textContent=actLabel('art');}
   shownRunes+= (P.runes-shownRunes)*Math.min(1,dt*8); if(Math.abs(P.runes-shownRunes)<1)shownRunes=P.runes;
   const rr=Math.round(shownRunes); if(rr!==lastRunes){$('hRunes').textContent=rr.toLocaleString('da-DK');lastRunes=rr;}
   const [o1,o2]=objective();$('hObj').textContent=o1;$('hOpt').textContent=o2;
   $('hComp').hidden=!C; if(C){$('cFill').style.width=(C.hp/C.maxHp*100)+'%';$('hCompName').textContent=compName();}
   const b=G.boss; $('hBoss').hidden=!b||b.dead;
-  if(b&&!b.dead){$('bossName').textContent=b.def.name;b.lag=b.lag==null?b.hp:b.lag+(b.hp-b.lag)*Math.min(1,dt*(b.lag>b.hp?1.2:10));$('bossFill').style.width=(b.hp/b.maxHp*100)+'%';$('bossLag').style.width=(b.lag/b.maxHp*100)+'%';}
+  if(b&&!b.dead){$('bossName').textContent=b.def.name;b.lag=b.lag==null?b.hp:b.lag+(b.hp-b.lag)*Math.min(1,dt*(b.lag>b.hp?1.2:10));$('bossFill').style.width=(b.hp/b.maxHp*100)+'%';$('bossLag').style.width=(b.lag/b.maxHp*100)+'%';
+    $('bossPoise').style.width=(b.broken>0?100:Math.max(0,b.poise/b.maxPoise*100))+'%';$('bossPoiseBar').classList.toggle('broken',b.broken>0);}
   const it=G.state==='play'?interactTarget():null; const pe=$('prompt');
   if(it){pe.hidden=false;pe.innerHTML='<kbd>E</kbd>'+escapeHtml(it.label);}else pe.hidden=true;
   drawMini();
@@ -250,7 +288,8 @@ function updMusic(dt){
   musicT-=dt; if(musicT>0) return; musicT=.5;
   if(!P||P.dead) return;
   const b=G.boss&&!G.boss.dead?G.boss:null;
-  if(b) return music(b.t==='jotun'?'jotun':'jarl');
+  if(b) return music(b.phase2?'boss2':b.t==='jotun'||b.t==='surt'?'jotun':'jarl');
+  if(inAsh(P.x)) return music(Math.hypot(P.x-4350,P.y-2380)<330?'village':'ash');
   const home=Math.hypot(P.x-1800,P.y-2380)<620||Math.hypot(P.x-1450,P.y-1850)<260;
   music(home?'village':'wild');
 }

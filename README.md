@@ -1,6 +1,6 @@
 # Ravnens Ed
 
-Et nordisk 3D action-RPG i browseren. Soulslike kamp møder dialog med terningeslag, sat i Fimbulvinterens Midgard.
+Et nordisk 3D action-RPG i browseren. Soulslike kamp møder dialog med terningeslag, sat i Fimbulvinterens Midgard og den brændende Askefjord.
 
 ## Spil lokalt
 
@@ -17,7 +17,12 @@ python3 tools/serve.py
 - Tre klasser (Berserker, Skjoldmø, Völve) med animerede figurer
 - Soulslike kamp med rul, blok, varslede angreb og runer, der tabes ved død
 - Dialog med terningeslag (d20), ledsageren Astrid og to slutninger
-- Bosser: Draugr-jarlen, Gravvogteren i krypten, Lindormen på søen og Rimtursen
+- To akter: Fimbulvinterens Midgard og Askefjorden bag bjergkammen, hvor Surts ild er brudt igennem isen
+- Bosser: Draugr-jarlen, Gravvogteren, Lindormen og Rimtursen i akt I; Garm, Glødkæmpen og Surt i akt II
+- Alle bosser har en anden fase med nye angreb og ny musik, og en filmisk indledning med navneskilt første gang
+- Balance og brud: slag tærer på fjendens balance, og en fjende med brudt balance kan få et kritisk stød. Rygstød på intetanende fjender
+- Våbenkunst (Q): hvert våben har sin egen, fx Jordkløver, Valkyriestød og Seiðstråle
+- En slutning, der husker dine valg fra begge akter
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
 - Træer bliver gennemsigtige, når de står mellem kameraet og spilleren
 - Gravkrypten under højen, kister med udstyr og et udstyrsvindue (I)
@@ -39,12 +44,13 @@ python3 tools/serve.py
 | Mellemrum | Rul (usårlig mens du ruller) |
 | R | Drik mjød |
 | F | Klasse-evne |
+| Q | Våbenkunst |
 | E | Tal, hvil, åbn kister, interagér |
 | I | Udstyr |
 | J | Dagbog |
 | Tab | Lås på fjende |
 
-Med controller: RB let angreb, RT tungt angreb, LT blok, B rul, X mjød, Y evne, A interagér, R3 lås, Start pause.
+Med controller: RB let angreb, RT tungt angreb, LT blok, LB våbenkunst, B rul, X mjød, Y evne, A interagér, R3 lås, Start pause.
 | Hjul | Zoom |
 | Esc | Pause |
 | M | Lyd til og fra |
@@ -62,6 +68,7 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, B rul, X mjød, Y evne,
 | `util-world.js` | hjælpefunktioner, verdenskort, højdekort, kollisionsobjekter, kister |
 | `render.js` | renderer, efterbehandling, grafikindstillinger, himmel, lys, materialer, terræn |
 | `world-build.js` | træer, sten, græs, bygninger, runesten, krypten |
+| `world-act2.js` | Askefjorden: døde træer, lava, isvæggen, Flammeporten, Gnipahellir, Skjoldvik |
 | `effects.js` | partikler, spor på jorden, snefald |
 | `characters.js` | figurbygning og animationstabeller |
 | `state.js` | klasser, fjender, udstyr, spawn-steder, kollision, beskeder |
@@ -77,6 +84,7 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, B rul, X mjød, Y evne,
 | `journal.js` | dagbog, sideopgaver, Astrids holdning |
 | `talents.js` | evnetræer |
 | `tutorial.js` | tips de første minutter |
+| `cinematic.js` | bossernes indledninger |
 | `gamepad.js` | controller |
 | `devtools.js` | spiltest-bot og udviklerhåndtag (kun med `?dev`) |
 | `start.js` | starter løkken og indlæser aktiver |

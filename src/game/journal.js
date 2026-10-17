@@ -10,7 +10,22 @@ const QUESTS=[
     {t:'Find Draugr-jarlen i gravhøjen mod vest, og tag Jarlens Horn.',show:f=>f.metUlfr,done:f=>f.horn||f.gateForced},
     {t:'Åbn Jötunporten mod nord.',show:f=>f.horn||f.gateForced,done:f=>f.gateOpen},
     {t:'Konfrontér Rimtursen bag porten.',show:f=>f.gateOpen,done:f=>f.jotunDone},
+    {t:'Følg røgen mod øst gennem Askepasset til Skjoldvik.',show:f=>f.act2,done:f=>f.metRagna},
+    {t:'Fæld Garm, Helhunden, ved Gnipahellir nord for byen.',show:f=>f.metRagna,done:f=>f.garmDead||f.fgateOpen},
+    {t:'Åbn Flammeporten mod nord.',show:f=>f.garmDead||f.fgateOpen,done:f=>f.fgateOpen},
+    {t:'Fæld Surt ved Muspelrevnen.',show:f=>f.fgateOpen,done:f=>f.surtDone},
   ]},
+  {id:'varder',title:'Vardernes lys',active:f=>f.q_varder,steps:[
+    {t:f=>`Tænd de tre varder på højderne omkring Askefjorden (${Object.keys(f.beacons||{}).length} af 3).`,done:f=>Object.keys(f.beacons||{}).length>=3},
+    {t:'Fortæl Ragna, at varderne brænder.',show:f=>Object.keys(f.beacons||{}).length>=3,done:f=>f.vardeDone},
+  ],end:f=>f.vardeDone&&'Ragna gav dig Vardeflammen. De overlevende finder hjem.'},
+  {id:'sindri',title:'Muspelstenen',active:f=>f.q_sindri,steps:[
+    {t:'Sindri kan smede en askebrynje af en Muspelsten. Glødkæmpen ved lavasøen sydøst for Skjoldvik bærer én.',done:f=>f.muspelsten},
+    {t:'Bring Muspelstenen til Sindri.',show:f=>f.muspelsten,done:f=>f.sindriDone},
+  ]},
+  {id:'logi',title:'Surts herold',active:f=>f.metLogi,steps:[
+    {t:'Logi, Surts herold, spærrer vejen mod Flammeporten. Han vil vide, hvad du bringer hans herre.',done:f=>f.logiGone||f.surtLore},
+  ],end:f=>f.logiRing?'Du gav Logi Hrafnkels ring for Surts hemmelighed.':f.surtLore?'Du talte Logi til at afsløre Surts svaghed.':f.logiAngry?'Du truede Logi væk. Surt ved, at du kommer.':''},
   {id:'ulfr',title:'En faders sorg',active:f=>f.q_ulfr,steps:[
     {t:'Ulfr fortalte, at Draugr-jarlen engang var hans søn Hrafnkel. Giv ham fred.',done:f=>f.jarlDead},
     {t:'Du fandt Hrafnkels ring på jarlens lig. Bring den til Ulfr, eller behold den.',show:f=>f.ring,done:f=>f.ulfrDone},
@@ -52,7 +67,7 @@ function openJournal(){
   const f=G.flags, el=$('jrBody'); el.innerHTML='';
   const sec=t=>{const h=document.createElement('div');h.className='eyebrow';h.style.marginTop='4px';h.textContent=t;el.appendChild(h);};
   const card=(q)=>{const st=questState(q);const d=document.createElement('div');d.className='jq'+(st.done?' done':'');
-    d.innerHTML=`<h3>${q.title}${st.done?' <span class="mute small">· fuldført</span>':''}</h3>`+st.steps.map(s=>`<p class="${s.done(f)?'sd':''}">${s.t}</p>`).join('')+(q.end&&q.end(f)?`<p class="mute small">${q.end(f)}</p>`:'');el.appendChild(d);};
+    d.innerHTML=`<h3>${q.title}${st.done?' <span class="mute small">· fuldført</span>':''}</h3>`+st.steps.map(s=>`<p class="${s.done(f)?'sd':''}">${typeof s.t==='function'?s.t(f):s.t}</p>`).join('')+(q.end&&q.end(f)?`<p class="mute small">${q.end(f)}</p>`:'');el.appendChild(d);};
   sec('Hovedopgave'); card(QUESTS[0]);
   const side=QUESTS.slice(1).filter(q=>q.active(f));
   sec('Sideopgaver'); if(side.length) side.sort((a,b)=>questState(a).done-questState(b).done).forEach(card); else el.insertAdjacentHTML('beforeend','<p class="mute small">Ingen endnu. Tal med folk i Ravnsholm, og lyt efter, hvad de har brug for.</p>');

@@ -13,6 +13,11 @@ function interactTarget(){
   if(Math.hypot(P.x-CRYPT.doorX,P.y-CRYPT.doorY)<70) return {label:G.flags.jarlDead?'Gå ned i gravkrypten':'Døren i højen er forseglet',fn:()=>{if(!G.flags.jarlDead){toast('En kold kraft holder døren lukket. Hrafnkel vogter stadig højen.');return;}travel(CRYPT.inX,CRYPT.inY,'GRAVKRYPTEN','Under Hrafnkels høj');}};
   if(Math.hypot(P.x-CRYPT.exitX,P.y-CRYPT.exitY)<55) return {label:'Forlad krypten',fn:()=>travel(CRYPT.doorX+45,CRYPT.doorY,'','')};
   if(!GATE.gone&&Math.abs(P.x-1800)<110&&P.y>WALL_Y+WALL_H&&P.y<WALL_Y+WALL_H+90) return {label:'Undersøg Jötunporten',fn:()=>talk('gate')};
+  if(!FIREGATE.gone&&Math.abs(P.x-5000)<110&&P.y>FWALL_Y+40&&P.y<FWALL_Y+150) return {label:'Undersøg Flammeporten',fn:()=>talk('fgate')};
+  if(!ICEWALL.gone&&Math.abs(P.x-(RIDGE.x-70))<90&&Math.abs(P.y-RIDGE.passY)<RIDGE.passW+20) return {label:'Undersøg isvæggen',fn:()=>toast('En mur af evig is spærrer passet mod øst. Den smelter ikke, så længe Fimbulvinteren varer.')};
+  if(G.flags.act2) for(const b of ASH.beacons){ if(G.flags.beacons?.[b.id]) continue; if(Math.hypot(P.x-b.x,P.y-b.y)<70) return {label:'Tænd varden',fn:()=>{
+    G.flags.beacons=G.flags.beacons||{};G.flags.beacons[b.id]=true;lightBeacon(b.id);const n=Object.keys(G.flags.beacons).length;
+    banner('VARDEN BRÆNDER',n<3?`${n} af 3`:'Alle tre varder brænder');if(n>=3&&G.flags.q_varder)setTimeout(()=>toast('Vend tilbage til Ragna i Skjoldvik'),2400);saveGame();}}; }
   return null;
 }
 
@@ -22,6 +27,7 @@ const CRITTER_SPAWNS=[
   ['deer',1250,2050,1],['deer',1290,2090,1],['stag',1180,2010,1],['fox',2250,2150,1],['fox',950,1750,1],['deer',2400,2250,1],['stag',2500,2280,1],['fox',1600,1500,1],['deer',700,2000,1],['stag',3000,1900,1],
   ['husky',1622,2326,0],['husky',1662,2316,0],['horse',1575,2440,0],['horse',1570,2478,0],['cow',1760,2632,0],['cow',1830,2640,0],['donkey',2050,2420,0],
   ['farmer',1750,2470,0],['worker',1980,2400,0],['guard',1768,2178,0],['hguard',1832,2178,0],
+  ['farmer',4390,2510,0],['worker',4220,2360,0],['guard',4300,2190,0],['hguard',4560,2340,0],
 ];
 const CRITTERS=[];
 function initCritters(){

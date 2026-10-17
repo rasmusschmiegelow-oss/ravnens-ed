@@ -6,6 +6,7 @@ const F=()=>G.flags;
 const D={
   ulfr(){
     const f=F();
+    if(f.act2&&!f.surtDone) return ulfrHub(f.metRagna?'«Ragna af Skjoldvik? Hun var ung, da jeg var ung. Hun ser mere i ilden end jeg i ravnene. Lyt til hende.»':'Ulfr står ved runestenen og ser mod øst, hvor himlen er rød. «Vinteren er brudt, men se dér. Røgen. Isen i Askepasset er smeltet, og noget brænder på den anden side. Gå derover, og find Skjoldvik, hvis byen stadig står.»');
     if(!f.metUlfr){f.metUlfr=true;return ulfrHub('Den gamle mand læner sig på sin stav og ser længe på dig. «Endnu en, der vågnede ved stenen. Ravnene førte dig hertil, gjorde de ikke? Fimbulvinteren har varet i tre år. Rimtursen Hrimgrimr sidder bag Jötunporten i nord og ånder frost over Midgard. Porten åbnes kun med Jarlens Horn, og hornet ligger i gravhøjen mod vest hos Hrafnkel, der nægtede at dø.»');}
     if(!f.horn) return ulfrHub('«Vest, forbi den døde skov og ad den gamle sti. Gravhøjen står bag en ring af sten. Hrafnkel slår hårdt, men langsomt. Rul ind under hans hug, ikke væk fra dem.»');
     if(!f.gateOpen&&!f.vogterDead) return ulfrHub('Ulfr ser hornet i dit bælte og lukker øjnene. «Så har han fået fred. Nu hvor Hrafnkel er borte, er døren i højen ikke længere forseglet. Hans gravvogter ligger dernede med skatte fra den gamle tid. Gå derned, hvis du tør, eller gå nordpå til porten.»');
@@ -103,6 +104,72 @@ const D={
       {t:'Sæt skulderen mod porten og bryd den op.',stat:'sty',dc:19,ok:()=>{f.gateForced=true;openGate('Isen knager, så brister den. Med et brøl presser du dørene fra hinanden.');return null;},fail:()=>{P.hp=Math.max(1,P.hp-18);num(P.x,P.y,18,'hurt');return{who:'Jötunporten',text:'Kulden bider sig fast i dine hænder. Porten rokker sig ikke, og du mister huden på knoerne. (−18 liv)',opts:[{t:'Gå.'}]};}},
       {t:'Gå.'}]};
   },
+  ragna(){
+    const f=F(), first=!f.metRagna; f.metRagna=true; const lit=Object.keys(f.beacons||{}).length;
+    const n={who:'Ragna, völve af Skjoldvik',text:G._rgText||(first?'En gammel kvinde med aske i håret sidder ved bålet og kaster knogler i gløderne. Hun ser ikke op. «Jeg så dig i ilden, før du kom. Ravnebæreren, der brød vinteren. Ved du, hvad du har gjort?»':'Ragna rører i gløderne. «Ilden taler stadig. Hvad vil du vide?»'),opts:[]};
+    G._rgText=null;
+    if(!f.ragnaWhy) n.opts.push({t:'Hvad mener du? Vinteren er brudt.',go:()=>{f.ragnaWhy=true;
+      note('surt','Ragna: Isen holdt Muspelheims ild nede. Nu vågner Surt i revnen bag Flammeporten. Garm, Helhunden, vogter vejen fra hulen Gnipahellir.');
+      G._rgText=(f.act1End==='word'?'«Du talte en jötun til fred. Det var smukt, og det var forkert. ':'«Du knuste en jötuns hjerte. Det var modigt, og det var forkert. ')+'Fimbulvinteren var ikke kun Rimtursens ondskab. Isen holdt Muspelheims ild nede. Nu er den brudt, og Surt vågner i revnen bag Flammeporten mod nord. Når han rejser sig helt, brænder Midgard, som det står i spådommen. Vejen til ham vogtes af Garm, Helhunden, i hulen Gnipahellir. Dræb hunden, så slukker runerne på porten.»';return D.ragna();}});
+    if(f.ragnaWhy&&!f.q_varder) n.opts.push({t:'Hvordan kan jeg hjælpe Skjoldvik?',go:()=>{questStart('q_varder','Vardernes lys');
+      G._rgText='«Tre varder står på højderne omkring fjorden: én mod nordvest, én ved vejen mod Gnipahellir og én mod sydøst. Når de brænder, kan de spredte overlevende finde hjem. Men Surts væsner vogter dem. Tænd dem, og du får det sidste, jeg ejer.»';return D.ragna();}});
+    if(f.q_varder&&!f.vardeDone&&lit>=3) n.opts.push({t:'Alle tre varder brænder.',go:()=>{f.vardeDone=true;P.runes+=800;sfx('coins');setTimeout(()=>giveItem('vardeflamme'),500);approve(1);
+      G._rgText='Ragna rejser sig for første gang og ser mod højderne, hvor lyset brænder. «De kommer hjem nu. Én efter én.» Hun lægger en glød i en lille jernkapsel og lukker din hånd om den. «Vardeflammen. Den slukker ikke, så længe du lever.» Du får også 800 runer.';return D.ragna();}});
+    if(f.ragnaWhy&&!f.ragnaGarm) n.opts.push({t:'Læs Garms skæbne i knoglerne for mig.',stat:'vil',dc:15,ok:()=>{f.ragnaGarm=true;f.garmLore=true;note('garm','Ragna: Garm bærer et gammelt sår fra lænken Gleipnir. Han tager mere skade, end han lader som om.');
+      G._rgText='Knoglerne lægger sig i et mønster, og Ragna nikker langsomt. «Lænken Gleipnir sad om hans hals i tusind år. Såret heler aldrig. Ram ham, og han bløder mere, end han viser.» (Garm tager mere skade)';return D.ragna();},
+      fail:()=>{f.ragnaGarm=true;G._rgText='Knoglerne falder i en bunke uden mening. Ragna fejer dem sammen. «Ilden tier i dag.»';return D.ragna();}});
+    n.opts.push({t:'Farvel.'});
+    return n;
+  },
+  sindri(){
+    const f=F(), first=!f.metSindri; f.metSindri=true; const c=x=>Math.round(x*G.discount);
+    const hello=f.durinChoice==='truth'?'«Du er den, der bragte Durins hammer hjem til min fætter Dvalin. Han skrev til mig med ravnen. Sindri hedder jeg. Ambolten her er din.»':f.durinChoice==='lie'?'«Dvalin skrev, at hans bror døde som en helt.» Han ser længe på dig. «Det var pænt af dig at sige. Sindri. Smed.»':'«Sindri, smed. Dvalins fætter. Ilden fra revnen er varm nok til at smede alt. Hvad skal det være?»';
+    const n={who:'Sindri',text:G._snText||(first?'En dværg med sod i skægget slår på en ambolt af sort sten, og gnisterne er hvide. '+hello:'«Ambolten venter.»'),opts:[]};
+    G._snText=null;
+    const wc=c(900*Math.max(1,G.weaponLvl-1)), fc=c(1200+Math.max(0,G.extraFlasks-2)*400);
+    if(G.weaponLvl<6) n.opts.push({t:`Smed Muspelild ind i mit våben (+15 % skade) · ${wc} runer`,go:()=>{if(P.runes<wc)G._snText='«Muspelild er ikke gratis. Kom med flere runer.»';else{P.runes-=wc;G.weaponLvl++;sfx('block');G._snText=`Han holder dit våben ned i en revne i ambolten, og stålet gløder hvidt. «Nu bider det.» (Våben +${G.weaponLvl})`;}return D.sindri();}});
+    if(G.extraFlasks<4) n.opts.push({t:`Køb et ekstra mjødhorn · ${fc} runer`,go:()=>{if(P.runes<fc)G._snText='«Mjød er sjælden i aske. Du har ikke nok.»';else{P.runes-=fc;G.extraFlasks++;P.flasks++;sfx('drink');G._snText='«Det sidste fra Skjoldviks kældre.» (+1 mjødhorn)';}return D.sindri();}});
+    if(!f.q_sindri) n.opts.push({t:'Hvad smeder du helst, hvis du kunne?',go:()=>{questStart('q_sindri','Muspelstenen');note('sindri','Sindri kan smede en brynje, der ikke brænder, hvis han får en Muspelsten. Glødkæmpen ved lavasøen sydøst for Skjoldvik bærer én i brystet.');
+      G._snText='«En askebrynje. Brynje, der ikke brænder. Men jeg skal bruge en Muspelsten, og den eneste, jeg kender, sidder i brystet på Glødkæmpen ved lavasøen sydøst for byen. Den vågner, hvis du går for tæt på.»';return D.sindri();}});
+    if(f.muspelsten&&!f.sindriDone) n.opts.push({t:'Her er Muspelstenen.',go:()=>{f.sindriDone=true;G.weaponLvl=Math.min(6,G.weaponLvl+1);setTimeout(()=>giveItem('askebrynje'),500);sfx('block');approve(1);
+      G._snText=`Sindri vejer stenen i hånden og fløjter. «Den er stadig varm.» Han arbejder hele natten. Om morgenen hænger en brynje af sorte ringe på ambolten, og dit våben gløder svagt. (Askebrynje, våben +${G.weaponLvl})`;return D.sindri();}});
+    n.opts.push({t:'Farvel.'});
+    return n;
+  },
+  logi(){
+    const f=F();
+    const n={who:'Logi, Surts herold',text:G._lgText||(f.metLogi?'«Stadig her, lille gnist?»':'En skikkelse af levende ild står midt på vejen. Flammerne former et smilende ansigt. «Logi. Herold for Surt, ilden der var før alt andet. Min herre ved, at du kommer. Han er … nysgerrig. Hvad bringer du ham?»'),opts:[]};
+    G._lgText=null; f.metLogi=true;
+    const gone=(t)=>{f.logiGone=true;return{who:'Logi',text:t,opts:[{t:'Gå videre.'}]};};
+    if(G.inv&&G.inv.includes('hrafnring')&&!f.logiRing) n.opts.push({t:'Tag denne ring. Den er kold som døden.',tag:'spc',tagT:'HRAFNKELS RING',go:()=>{f.logiRing=true;f.surtLore=true;
+      G.inv=G.inv.filter(i=>i!=='hrafnring');for(const k in G.eq)if(G.eq[k]==='hrafnring')G.eq[k]=null;P.hp=Math.min(P.hp,maxHp());setTimeout(()=>giveItem('logisglod'),600);
+      note('logi','Logi: Surts flamme blafrer, lige efter han har svunget sit sværd. Hans hug rammer også svagere, når han ved, at du kender hans hemmelighed.');
+      return gone('Logi holder ringen op mod sine flammer, og den hvæser. «Kulde! Ægte, dødningekold kulde. En sjælden gave i Muspelheim.» Han smiler bredere. «Til gengæld en hemmelighed: Surts flamme blafrer, lige efter han har svunget sit sværd. Og tag den her, før han ser den.» Logi går op i røg og efterlader en glød på vejen.');}});
+    if(!f.logiTried) n.opts.push({t:'Selv ild har en svaghed. Hvad er Surts?',stat:'kar',dc:16,ok:()=>{f.logiTried=true;f.surtLore=true;note('logi','Logi: Surts flamme blafrer, lige efter han har svunget sit sværd.');
+      return gone('Logi ler, så gnisterne flyver. «Modig gnist! Godt, du har fortjent det: hans flamme blafrer, lige efter han har svunget sit sværd. Lad os se, om du kan bruge det.» Han forsvinder i en hvirvel af aske.');},
+      fail:()=>{f.logiTried=true;G._lgText='«Du keder mig, gnist.» Flammerne blafrer utålmodigt.';return D.logi();}});
+    n.opts.push({t:'Træd til side, eller jeg slukker dig.',tag:'sty',tagT:'TRUSSEL',go:()=>{f.logiAngry=true;approve(-1);return gone('Logi blusser op i en søjle af ild. «Så skal min herre vide, at du kommer med sværd og ikke med ord.» Han er væk, og luften lugter af svovl. (Surt slår hårdere)');}});
+    n.opts.push({t:'Farvel.'});
+    return n;
+  },
+  fgate(){
+    const f=F();
+    if(f.garmDead) return {who:'Flammeporten',text:'Runerne på de sorte søjler er slukket. Ildtæppet mellem dem blafrer svagt, som om noget holder vejret.',opts:[{t:'Gå gennem ilden.',tag:'spc',tagT:'GARM ER DØD',go:()=>{openFireGate('Ildtæppet skilles for dig som et forhæng. Bag det gløder Muspelrevnen.');return null;}},{t:'Ikke endnu.'}]};
+    return {who:'Flammeporten',text:'To søjler af sort glas, og mellem dem et tæppe af flammer, der ikke giver varme, kun smerte. Runerne på søjlerne gløder. Ragna sagde, at de slukker, når Garm er død.',opts:[
+      {t:'Læs Surts runer baglæns, og bryd seglet.',stat:'vil',dc:18,ok:()=>{f.fgateForced=true;openFireGate('Runerne flimrer, da du læser dem baglæns, og slukker én efter én. Ildtæppet falder sammen.');return null;},
+        fail:()=>{const d=Math.round(maxHp()*.2);P.hp=Math.max(1,P.hp-d);num(P.x,P.y,d,'hurt');return{who:'Flammeporten',text:`Runerne flammer op og brænder sig ind i dine øjne. Du vakler tilbage. (−${d} liv)`,opts:[{t:'Gå.'}]};}},
+      {t:'Gå.'}]};
+  },
+  surt(){
+    const f=F(); f.surtTalked=true;
+    const past=f.act1End==='word'?'«Du talte Hrimgrimr til fred, hører jeg. Ord. Ord brænder lige så godt som alt andet.»':'«Du knuste Hrimgrimrs hjerte af is. Tak, lille gnist. Uden dig var jeg aldrig vågnet.»';
+    const n={who:'Surt, Herre over Muspelheim',text:'Revnen åbner sig, og en kæmpe af sort sten og flammer rejser sig. Hans sværd lyser som en sol. '+past,opts:[]};
+    if(f.surtLore) n.opts.push({t:'Jeg ved, hvornår din flamme blafrer.',tag:'spc',tagT:'LOGIS HEMMELIGHED',go:()=>{const s=surtEnt();if(s)s.vuln=1.15;return{who:'Surt',text:'For første gang ser kæmpen usikker ud. «Logi…» Så brøler han, og jorden revner.',opts:[{t:'Kæmp.',go:startSurt}]};}});
+    n.opts.push({t:'Ragnarok behøver ikke komme i dag.',stat:'kar',dc:20,ok:()=>{const s=surtEnt();if(s)s.dmgMult=(s.dmgMult||1)*.9;return{who:'Surt',text:'Surt tøver. «Modigt sagt. Men spådommen er ikke min at bryde.» Hans flamme blafrer, før han løfter sværdet. (Surt slår mindre hårdt)',opts:[{t:'Kæmp.',go:startSurt}]};},
+      fail:()=>{const s=surtEnt();if(s)s.dmgMult=(s.dmgMult||1)*1.1;return{who:'Surt',text:'«Du taler som en, der allerede brænder.» Flammerne om ham vokser.',opts:[{t:'Kæmp.',go:startSurt}]};}});
+    n.opts.push({t:'Midgard brænder ikke i dag.',tag:'sty',tagT:'KÆMP',go:startSurt});
+    return n;
+  },
   jotun(){
     const f=F(); f.jotunTalked=true;
     const opener=f.gateForced?'«DU BRØD MIN PORT, LILLE MENNESKE. SÅ BRYDER JEG DIG.»':'«LILLE MENNESKE. DU BÆRER JARLENS HORN. HRAFNKEL FIK FRED. DET FÅR DU IKKE.»';
@@ -132,6 +199,9 @@ function ulfrHub(text){
 }
 function mimirWin(){F().mimir=true;sfx('rune');note('sigrun','Mimir: Rimtursen var engang Hrimgrimr Ymirsson. Han elskede en menneskekvinde ved navn Sigrun.');return{who:'Mimirs Hoved',text:'«Klogt. Hør da: Rimtursen var engang Hrimgrimr Ymirsson, og han elskede en menneskekvinde ved navn Sigrun. Hun døde i den første vinter, og siden har han villet, at alle skulle fryse som hun. Nævn hende, og han husker, hvem han var.» Du har fået Mimirs Visdom: +2 på alle terningeslag.',opts:[{t:'Tak, vise hoved.'}]};}
 function mimirLose(){const f=F();f.mimirFailed=true;setTimeout(()=>{for(let i=0;i<3;i++){const a=i*2.1;spawnEnemy('wolf',2850+Math.cos(a)*240,1400+Math.sin(a)*180,{aggro:true});}sfx('howl');},400);return{who:'Mimirs Hoved',text:'«Forkert.» Øjnene lukker sig. Isen sprækker under dig, og ulve hyler i tågen.',opts:[{t:'Træk våbnet.'}]};}
+function surtEnt(){return G.enemies.find(e=>e.boss==='surt'&&!e.dead);}
+function startSurt(){const s=surtEnt();if(s){s.dormant=false;s.aggro=true;G.boss=s;}return null;}
+function openFireGate(text){G.flags.fgateOpen=true;setFireGate(true,false);sfx('gate');sfx('boom');G.shake=.5;toast(text);banner('FLAMMEPORTEN ER ÅBEN','Muspelrevnen venter','red');saveGame();}
 function jotunEnt(){return G.enemies.find(e=>e.boss==='jotun'&&!e.dead);}
 function startJotun(){const j=jotunEnt();if(j){j.dormant=false;j.aggro=true;G.boss=j;}banner('Hrimgrimr, Rimtursen','','frost');return null;}
 function peaceEnd(){G.flags.jotunDone=true;G.flags.peace=true;G.ending='word';const j=jotunEnt();if(j){j.leaving=true;}G.endT=6.5;sfx('ok');
@@ -142,7 +212,7 @@ const dlgEl=$('dlg'), dlgOpts=$('dlgOpts');
 let dlgCur=null, dlgNPC=null;
 function talk(id){
   const node=D[id](); if(!node) return;
-  dlgNPC=NPCS.find(n=>n.id===id)||(id==='gate'?{x:1800,y:WALL_Y+20,gate:true}:id==='jotun'?jotunEnt():null);
+  dlgNPC=NPCS.find(n=>n.id===id)||(id==='gate'?{x:1800,y:WALL_Y+20,gate:true}:id==='fgate'?{x:5000,y:FWALL_Y+20,gate:true}:id==='jotun'?jotunEnt():id==='surt'?surtEnt():null);
   if(dlgNPC&&!dlgNPC.gate){P.face=Math.atan2(dlgNPC.y-P.y,dlgNPC.x-P.x);}
   G.state='dialog';$('letterbox').classList.add('on');$('hud').style.opacity=0;mouse.l=mouse.r=false;buf=null;
   showNode(node);

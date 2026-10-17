@@ -27,14 +27,24 @@ const ED={
   lindyngel:{name:'Lindyngel',hp:110,r:13,spd:140,dmg:16,reach:160,runes:60},
   vaette:{name:'Lysvætte',hp:126,r:13,spd:70,dmg:19,reach:380,runes:90},
   lindorm:{name:'Lindormen fra Isfjorden',hp:1725,r:32,spd:96,dmg:40,reach:120,runes:2600,aggro:220},
-  vogter:{name:'Gravvogteren',hp:840,r:22,spd:86,dmg:32,reach:92,runes:1300,aggro:140},
+  vogter:{name:'Gravvogteren',hp:920,r:22,spd:86,dmg:32,reach:92,runes:1300,aggro:140},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:3600,r:46,spd:64,dmg:54,reach:170,runes:6000},
+  // Askefjorden
+  askedraugr:{name:'Askedraugr',hp:620,r:15,spd:84,dmg:50,reach:48,runes:300},
+  askeskytte:{name:'Askeskytte',hp:400,r:14,spd:66,dmg:42,reach:420,runes:320},
+  glodulv:{name:'Glødulv',hp:440,r:15,spd:160,dmg:42,reach:160,runes:260},
+  eldseidr:{name:'Ildseiðr',hp:460,r:14,spd:56,dmg:40,reach:460,runes:360},
+  lavavaette:{name:'Lavavætte',hp:1150,r:22,spd:52,dmg:50,reach:64,runes:700},
+  glodkaempe:{name:'Glødkæmpen',hp:4200,r:30,spd:58,dmg:70,reach:96,runes:4000,aggro:260},
+  garm:{name:'Garm, Helhunden',hp:3800,r:30,spd:150,dmg:44,reach:140,runes:9000,aggro:320},
+  surt:{name:'Surt, Herre over Muspelheim',hp:8000,r:44,spd:72,dmg:76,reach:210,runes:0,aggro:420},
 };
 // How each enemy fights: melee swings, ranged casters, lunging beasts, brutes with leaps, or a boss of its own.
 const KIND={draugr:'melee',minion:'melee',trold:'melee',bjergtrold:'melee',ildvaette:'melee',frostvaette:'melee',stenvaette:'melee',stenvaette2:'melee',
   archer:'ranged',seidr:'ranged',vaette:'ranged',wolf:'lunge',gjenganger:'lunge',gjenganger2:'lunge',lindyngel:'lunge',
-  jarl:'brute',vogter:'brute',rimtrold:'brute',jotun:'jotun',lindorm:'lindorm'};
-const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25,stenvaette2:.25,lindorm:2.2};
+  jarl:'brute',vogter:'brute',rimtrold:'brute',jotun:'jotun',lindorm:'lindorm',
+  askedraugr:'melee',lavavaette:'melee',askeskytte:'ranged',glodulv:'lunge',eldseidr:'mortar',glodkaempe:'brute',garm:'garm',surt:'surt'};
+const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25,stenvaette2:.25,lindorm:2.2,lavavaette:.25,glodkaempe:.3};
 const SPAWNS=[
   {t:'draugr',x:1640,y:1930},{t:'draugr',x:1960,y:1940},{t:'wolf',x:2150,y:1800},{t:'wolf',x:2200,y:1850},
   {t:'archer',x:1300,y:1600},{t:'draugr',x:1200,y:1560},
@@ -52,6 +62,19 @@ const SPAWNS=[
   {t:'lindyngel',x:3010,y:1150},{t:'lindyngel',x:3160,y:1300},{t:'lindorm',x:3120,y:1180,boss:'lindorm'},
   {t:'frostvaette',x:2220,y:960},{t:'frostvaette',x:2360,y:1050},{t:'rimtrold',x:2500,y:1000},{t:'rimtrold',x:2320,y:560},
   {t:'bjergtrold',x:1150,y:950},{t:'jotun',x:1800,y:470,boss:'jotun'},
+  // Askefjorden (act two)
+  {t:'askedraugr',x:4120,y:1990,act:2},{t:'askedraugr',x:4170,y:2100,act:2},{t:'glodulv',x:3990,y:1890,act:2},{t:'glodulv',x:4030,y:1860,act:2},
+  {t:'askeskytte',x:4620,y:2200,act:2},{t:'askedraugr',x:4680,y:2330,act:2},
+  {t:'askedraugr',x:3820,y:1290,act:2},{t:'askedraugr',x:3900,y:1300,act:2},{t:'eldseidr',x:3860,y:1220,act:2},
+  {t:'lavavaette',x:4240,y:1650,act:2},
+  {t:'glodulv',x:4460,y:1660,act:2},{t:'glodulv',x:4520,y:1700,act:2},{t:'glodulv',x:4420,y:1740,act:2},{t:'askeskytte',x:4220,y:1560,act:2},
+  {t:'garm',x:4300,y:1150,boss:'garm',act:2},
+  {t:'lavavaette',x:4950,y:1590,act:2},{t:'eldseidr',x:4860,y:1570,act:2},
+  {t:'askedraugr',x:5300,y:1500,act:2},{t:'askedraugr',x:5360,y:1560,act:2},{t:'askeskytte',x:5250,y:1620,act:2},{t:'eldseidr',x:5600,y:1700,act:2},
+  {t:'glodulv',x:5400,y:2300,act:2},{t:'glodulv',x:5500,y:2280,act:2},{t:'lavavaette',x:5480,y:2420,act:2},
+  {t:'glodkaempe',x:5060,y:2110,boss:'glodkaempe',act:2},
+  {t:'eldseidr',x:4790,y:1310,act:2},{t:'askedraugr',x:4950,y:1250,act:2},{t:'askedraugr',x:5050,y:1290,act:2},{t:'askeskytte',x:5200,y:1180,act:2},
+  {t:'surt',x:5000,y:520,boss:'surt',act:2},
 ];
 // Equipment found in chests or bought from Dvalin. slot: weapon, armor or talisman (two talisman slots).
 const ITEMS={
@@ -67,6 +90,11 @@ const ITEMS={
   mjolnir:{name:'Mjølnirs ekko',slot:'talisman',desc:'Din klasse-evne lader 30 % hurtigere op.'},
   idunn:{name:'Idunns æble',slot:'talisman',desc:'+1 mjødhorn.'},
   fenrir:{name:'Fenrirs tand',slot:'talisman',desc:'+15 % skade, men 10 % mindre liv.'},
+  tyrsrune:{name:'Tyrs rune',slot:'weapon',desc:'+30 % skade med dit våben.'},
+  askebrynje:{name:'Askebrynje',slot:'armor',desc:'Smedet af Sindri af Muspelsten. Du tager 25 % mindre skade.'},
+  vardeflamme:{name:'Vardeflammen',slot:'talisman',desc:'+15 % liv, og mjød heler mere.'},
+  garmtand:{name:'Garms tand',slot:'talisman',desc:'Våbenkunsten lader 30 % hurtigere op, og du giver 10 % mere skade.'},
+  logisglod:{name:'Logis glød',slot:'talisman',desc:'Dine slag bryder fjendens balance 40 % hurtigere.'},
 };
 const SLOTN={arm:'Våben',weapon:'Våbenrune',armor:'Rustning',t1:'Talisman I',t2:'Talisman II'};
 const eqHas=id=>!!G.eq&&Object.values(G.eq).includes(id);
@@ -78,6 +106,9 @@ const NPCS=[
   {id:'thorgrim',name:'Jarl Thorgrim',x:1880,y:2365,face:-Math.PI/2},
   {id:'bjorn',name:'Bjørn, såret jæger',x:2425,y:2125,face:Math.PI,showIf:()=>G.flags.q_bjorn&&!G.flags.bjornDone},
   {id:'mimir',name:'Mimirs Hoved',x:2850,y:1400,face:Math.PI/2,head:true},
+  {id:'ragna',name:'Ragna, völve af Skjoldvik',x:4270,y:2430,face:-Math.PI*.3,showIf:()=>G.flags.act2},
+  {id:'sindri',name:'Sindri, smed',x:4470,y:2420,face:Math.PI,showIf:()=>G.flags.act2},
+  {id:'logi',name:'Logi, Surts herold',x:4880,y:1190,face:Math.PI/2,showIf:()=>G.flags.act2&&!G.flags.logiGone,tall:1},
 ];
 
 const G={state:'loading',flags:{},weaponLvl:0,extraFlasks:0,discount:1,lastRS:0,stain:null,enemies:[],hazards:[],projs:[],fx:[],boss:null,shake:0,time:0,play:0,deaths:0,deadT:0,hitStop:0,slowmo:0,zoom:.35,camPos:new THREE.Vector3(),camLook:new THREE.Vector3(),dlgTarget:null,endT:0};
@@ -86,11 +117,11 @@ let buf=null;
 const keys={}, mouse={x:innerWidth/2,y:innerHeight/2,l:false,r:false};
 const mouseW={x:0,y:0};
 
-const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1)*(T('b_hud')?1.15:1));
+const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1)*(T('b_hud')?1.15:1)*(eqHas('vardeflamme')?1.15:1));
 const maxSt=()=>Math.round(72+P.stats.smi*4+(eqHas('hrafnring')?10:0));
 const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0);
 const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1);
-function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1);}
+function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1)*(eqHas('tyrsrune')?1.3:1)*(eqHas('garmtand')?1.1:1);}
 const lvlCost=L=>Math.floor(130*Math.pow(1.32,L-1));
 
 function newPlayer(cls,stats,name){
@@ -105,19 +136,22 @@ function initNPCs(){NPCS.forEach(n=>{const m=buildNPC(n.id);NPCM[n.id]=m;m.root.
 
 function spawnEnemy(t,x,y,extra={}){
   const d=ED[t];const hp0=Math.round(d.hp*DIFF[SET.diff].hp);const e={t,def:d,x,y,home:{x,y},r:d.r,hp:hp0,maxHp:hp0,aggro:false,busy:0,cd:Math.random(),sched:[],face:Math.PI/2,flash:0,stun:0,slow:0,dash:null,dead:false,phase:0,move:0,t0:Math.random()*9,anim:{},...extra};
+  e.maxPoise=e.poise=Math.round(d.poise||hp0*(e.boss?.6:.75)); e.poiseT=0; e.broken=0;
   e.model=buildEnemyModel(t); G.enemies.push(e); return e;
 }
-function clearEnemies(){for(const e of G.enemies){scene.remove(e.model.root);if(e.hpEl)e.hpEl.remove();}G.enemies=[];for(const h of G.hazards)disposeHaz(h);G.hazards=[];for(const p of G.projs)scene.remove(p.mesh);G.projs=[];}
+function clearEnemies(){for(const e of G.enemies){scene.remove(e.model.root);if(e.hpEl)e.hpEl.remove();}G.enemies=[];for(const h of G.hazards)disposeHaz(h);G.hazards=[];for(const p of G.projs)scene.remove(p.mesh);G.projs=[];for(const r of RUNEB)scene.remove(r.mesh);RUNEB.length=0;}
+const BOSS_DEAD={jarl:'jarlDead',jotun:'jotunDone',vogter:'vogterDead',lindorm:'lindormDead',garm:'garmDead',glodkaempe:'glodDead',surt:'surtDone'};
+function spawnFrom(s){
+  if(s.boss&&G.flags[BOSS_DEAD[s.boss]]) return;
+  if(s.t==='rimtrold'){spawnEnemy(s.t,s.x,s.y,{summoned:true});return;}
+  spawnEnemy(s.t,s.x,s.y,s.boss?{boss:s.boss,summoned:s.boss==='vogter',dormant:(s.boss==='jotun'&&!G.flags.jotunTalked)||(s.boss==='surt'&&!G.flags.surtTalked),
+    dmgMult:(s.boss==='jotun'&&G.flags.enraged?1.2:1)*(s.boss==='surt'?(G.flags.surtLore?.85:G.flags.logiAngry?1.15:1):1),vuln:s.boss==='garm'&&G.flags.garmLore?1.15:1}:{});
+}
+/** The second act's foes, when the winter has just broken. */
+function spawnAct2(){for(const s of SPAWNS) if(s.act===2) spawnFrom(s);}
 function resetWorld(){
   clearEnemies();G.boss=null;
-  for(const s of SPAWNS){
-    if(s.boss==='jarl'&&G.flags.jarlDead) continue;
-    if(s.boss==='jotun'&&G.flags.jotunDone) continue;
-    if(s.boss==='vogter'&&G.flags.vogterDead) continue;
-    if(s.boss==='lindorm'&&G.flags.lindormDead) continue;
-    if(s.t==='rimtrold'){spawnEnemy(s.t,s.x,s.y,{summoned:true});continue;}
-    spawnEnemy(s.t,s.x,s.y,s.boss?{boss:s.boss,summoned:s.boss==='vogter',dormant:s.boss==='jotun'&&!G.flags.jotunTalked,dmgMult:s.boss==='jotun'&&G.flags.enraged?1.2:1}:{});
-  }
+  for(const s of SPAWNS){ if(s.act===2&&!G.flags.act2) continue; spawnFrom(s); }
   if(C){C.down=false;C.hp=C.maxHp;C.x=P.x-30;C.y=P.y+30;}
 }
 
@@ -138,7 +172,7 @@ function collide(e){
   }
   e.x=clamp(e.x,PAD+e.r,WORLD.w-PAD-e.r); e.y=clamp(e.y,PAD-60+e.r,WORLD.h-PAD-e.r);
 }
-function blockedPt(x,y){for(const o of OBS){if(o.gone)continue;if(o.w!==undefined){if(x>o.x&&x<o.x+o.w&&y>o.y&&y<o.y+o.h)return true;}else if(o.r>0&&o.r>13){const dx=x-o.x,dy=y-o.y;if(dx*dx+dy*dy<o.r*o.r*.6)return true;}}return false;}
+function blockedPt(x,y){for(const o of OBS){if(o.gone||o.lava)continue;if(o.w!==undefined){if(x>o.x&&x<o.x+o.w&&y>o.y&&y<o.y+o.h)return true;}else if(o.r>0&&o.r>13){const dx=x-o.x,dy=y-o.y;if(dx*dx+dy*dy<o.r*o.r*.6)return true;}}return false;}
 
 /* =========================================================
    UI helpers: toasts, banner, labels

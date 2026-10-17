@@ -32,7 +32,7 @@ function renderRest(){
 $('restLeave').addEventListener('click',()=>{$('rest').hidden=true;G.state='play';});
 const SAVE_KEY='ravnensEd.v1';
 function makeSave(){return{name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq,talents:P.talents||[]};}
-function saveGame(){if(G.sim)return;if(!P||G.flags.jotunDone)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSave()));}catch(e){}}
+function saveGame(){if(G.sim)return;if(!P||G.flags.surtDone)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSave()));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 
@@ -44,6 +44,7 @@ function resetRun(){
   for(const id in CHEST_M){const m=CHEST_M[id];m.opening=false;m.open=0;if(m.lid)m.lid.rotation.x=0;}
   RUNESTONES.forEach(r=>{r.lit=r.id===0;RS_MESH[r.id].mat.emissiveIntensity=r.lit?2.6:0;RS_MESH[r.id].light.intensity=r.lit?22:0;});
   GATE.gone=false;G.gateAnim=null;gateDoors.forEach(d=>d.hinge.rotation.y=0);
+  setIceWall(false,true); setFireGate(false,true); resetBeacons();
   if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true;
 }
 function beginGame(fromSave){
@@ -52,10 +53,12 @@ function beginGame(fromSave){
     (s.lit||[]).forEach((l,i)=>{RUNESTONES[i].lit=l;RS_MESH[i].mat.emissiveIntensity=l?2.6:0;RS_MESH[i].light.intensity=l?22:0;});
     for(const id in (G.flags.chests||{})){const m=CHEST_M[id];if(m){m.open=1;if(m.lid)m.lid.rotation.x=-1.9;}}
     if(G.flags.gateOpen){GATE.gone=true;gateDoors.forEach(d=>d.hinge.rotation.y=d.s*1.6);}
+    if(G.flags.act2) setIceWall(true,true); if(G.flags.fgateOpen) setFireGate(true,true); for(const id in (G.flags.beacons||{})) lightBeacon(id,true);
     const rs=RUNESTONES[G.lastRS];P.x=rs.x;P.y=rs.y+46;P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();
     P.talents=s.talents||[];
     {const ck=G.flags.comp||(G.flags.astrid&&!G.flags.astridLeft?'astrid':null);if(ck)makeCompanion(ck);}
   }
+  if(!fromSave){P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();}
   resetWorld();
   $('title').hidden=true;$('create').hidden=true;$('hud').hidden=false;
   $('hName').textContent=P.name;$('specName').textContent=CLASSES[P.cls].special;$('specIco').innerHTML=CLASSES[P.cls].ico;
@@ -70,12 +73,30 @@ function toTitle(){
   G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!loadSave();
   for(const n of NUMS)n.el.remove();NUMS.length=0;
 }
+/** The first act ends with Rimtursen: the ice in the pass melts, and Askefjorden opens. */
+function startAct2(){
+  if(G.flags.act2) return;
+  G.flags.act2=true; G.flags.act1End=G.ending||'sword'; G.ending=null;
+  setIceWall(true,false); spawnAct2(); sfx('boom'); G.shake=.6;
+  if(!G.sim){const bc=$('bossCard');$('bcName').textContent='Akt II';$('bcSub').textContent='Askefjorden';
+    $('bcQuote').textContent=(G.flags.act1End==='word'?'Rimtursen gik mod nord, og isen begyndte at smelte.':'Rimtursens hjerte splintrede, og isen begyndte at smelte.')+' Men mod øst bliver himlen rød.';
+    bc.className='fire';bc.hidden=true;void bc.offsetWidth;bc.hidden=false;setTimeout(()=>{bc.hidden=true;},7500);
+    setTimeout(()=>toast('Isvæggen i Askepasset mod øst er smeltet. Følg røgen, eller tal med Gamle Ulfr.'),3500);}
+  saveGame();
+}
 function showEnd(){
   G.state='end';music('victory');$('hud').hidden=true;$('prompt').hidden=true;clearSave();
-  const peace=G.ending==='word';
+  const f=G.flags, peace=f.act1End==='word';
   $('endEy').textContent=peace?'Ordets vej':'Sværdets vej';
-  $('endT').textContent='Fimbulvinteren er brudt';
-  $('endP').textContent=peace?`Hrimgrimr gik mod nord med Sigruns navn på læben, og ingen så ham igen. Sneen smeltede fra Ravnsholms tage den forår, og skjaldene kalder dig ${P.name} Ordvise, den der fældede en jötun uden at trække våben.`:`Rimtursens hjerte af is splintrede mod sneen, og kulden gik ud af verden med ham. Ved næste midvinterblot rejste Ravnsholm en runesten med dit navn: ${P.name}, ${G.deaths?'den der rejste sig igen':'den der aldrig faldt'}.`;
+  $('endT').textContent='Ragnarok må vente';
+  const bits=[peace?'Hrimgrimr gik mod nord med Sigruns navn på læben, og vinteren gik med ham.':'Rimtursens hjerte af is splintrede mod sneen, og vinteren gik med ham.',
+    `Da Surt rejste sig fra Muspelrevnen, stod ${P.name} i vejen. Hans flamme sank tilbage i jorden, og asken over fjorden blev til regn.`];
+  if(f.vardeDone) bits.push('Varderne brændte hele vinteren, og de overlevende fandt hjem til Skjoldvik.');
+  if(f.ulfrChoice==='give') bits.push('Gamle Ulfr bar sin søns ring til sin død.'); else if(f.ulfrChoice==='kept') bits.push(f.logiRing?'Hrafnkels ring smeltede i Muspelheims ild.':'Hrafnkels ring sidder stadig kold på din finger.');
+  if(f.durinDone) bits.push(f.durinChoice==='truth'?'Dvalin og Sindri smeder sammen nu, og Durins navn står på deres ambolt.':'Dvalin fortæller stadig om sin bror, der tog tre draugr med sig.');
+  if(f.astrid&&!f.astridLeft) bits.push((f.appr||0)>=5?'Astrid Jarnsdóttir fulgte dig til verdens ende, og skjaldene nævner jer altid sammen.':'Astrid tog sin bue og gik sin egen vej, da det var forbi.');
+  bits.push(`Ved næste midvinterblot rejste Ravnsholm en runesten med dit navn: ${P.name}, ${G.deaths?'den der rejste sig igen':'den der aldrig faldt'}.`);
+  $('endP').textContent=bits.join(' ');
   const m=Math.floor(G.play/60);
   $('endStats').innerHTML=`<span>Klasse <b>${CLASSES[P.cls].name}</b></span><span>Niveau <b>${P.level}</b></span><span>Dødsfald <b>${G.deaths}</b></span><span>Tid <b>${m} min</b></span>`;
   $('end').hidden=false;$('endGo').focus({preventScroll:true});

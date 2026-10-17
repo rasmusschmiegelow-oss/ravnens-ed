@@ -5,12 +5,14 @@
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') return;
   if(G.state==='settings'&&captureRebind(e)) return;
+  if(G.state==='cine'){if(CINE&&CINE.t>.6&&(bound('interact',e.code)||['Escape','Space','Enter'].includes(e.code)))endIntro();e.preventDefault();return;}
   keys[e.code]=true; G.padActive=false;
   if(e.code==='KeyM'){setMuted(AU.on);toast(AU.on?'Lyd til':'Lyd fra');}
   if(G.state==='play'){
     if(bound('roll',e.code)){buf={k:'roll',t:G.time};e.preventDefault();}
     if(bound('heal',e.code)) buf={k:'heal',t:G.time};
     if(bound('special',e.code)) buf={k:'special',t:G.time};
+    if(bound('art',e.code)) buf={k:'art',t:G.time};
     if(bound('interact',e.code)){const it=interactTarget();if(it)it.fn();}
     if(e.code==='Escape') openPause();
     if(bound('inv',e.code)) openInv();
@@ -30,7 +32,7 @@ addEventListener('pointerdown',()=>audioInit(),{once:true});
 addEventListener('keydown',()=>audioInit(),{once:true});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouse.l=mouse.r=false;});
 addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
-cv.addEventListener('mousedown',e=>{if(G.state!=='play')return;if(e.button===0){mouse.l=true;buf={k:'lmb',t:G.time};}if(e.button===2){mouse.r=true;buf={k:'rmb',t:G.time};if(P)P.blockStart=G.time;}if(e.button===1){e.preventDefault();toggleLock();}});
+cv.addEventListener('mousedown',e=>{if(G.state==='cine'&&CINE&&CINE.t>.6){endIntro();return;}if(G.state!=='play')return;if(e.button===0){mouse.l=true;buf={k:'lmb',t:G.time};}if(e.button===2){mouse.r=true;buf={k:'rmb',t:G.time};if(P)P.blockStart=G.time;}if(e.button===1){e.preventDefault();toggleLock();}});
 addEventListener('mouseup',e=>{if(e.button===0)mouse.l=false;if(e.button===2)mouse.r=false;});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('wheel',e=>{if(G.state==='play'){G.zoom=clamp(G.zoom+e.deltaY*.0009,0,1);e.preventDefault();}},{passive:false});
@@ -41,10 +43,10 @@ cv.addEventListener('wheel',e=>{if(G.state==='play'){G.zoom=clamp(G.zoom+e.delta
 const ray=new THREE.Raycaster(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),0), hitV=new THREE.Vector3(), ndc=new THREE.Vector2();
 function camGoal(){
   let tx=P.x*S, tz=P.y*S; const ty=groundY(P.x,P.y);
-  const B=G.boss&&!G.boss.dead?G.boss:(G.lock&&!G.lock.dead?G.lock:null), big=B&&(B.t==='jotun'||B.t==='lindorm');
+  const B=G.boss&&!G.boss.dead?G.boss:(G.lock&&!G.lock.dead?G.lock:null), big=B&&(B.t==='jotun'||B.t==='lindorm'||B.t==='surt'||B.t==='garm');
   G.zEff=lerp(G.zEff??G.zoom,big?Math.max(G.zoom,.82):B?Math.max(G.zoom,.55):G.zoom,.03);
   if(B){const k=big?.3:.2;tx=lerp(tx,B.x*S,k);tz=lerp(tz,B.y*S,k);}
-  const z=G.zEff, d=lerp(11,27,z), pitch=lerp(.5,.98,z);
+  const z=Math.max(0,G.zEff-(G.fatalT>0?Math.sin(G.fatalT/.9*Math.PI)*.22:0)), d=lerp(11,27,z), pitch=lerp(.5,.98,z);
   return {pos:new THREE.Vector3(tx,ty+1+Math.sin(pitch)*d,tz+Math.cos(pitch)*d),look:new THREE.Vector3(tx,ty+1.2,tz-lerp(1.6,0,z))};
 }
 function snapCam(){const g=camGoal();G.camPos.copy(g.pos);G.camLook.copy(g.look);}
@@ -56,13 +58,15 @@ function updateCamera(dt){
     const tr=15;goal={pos:new THREE.Vector3(cx+Math.cos(titleT)*tr,hgt(1800,2300)+4.2+Math.sin(titleT*.7)*.8,cz+Math.sin(titleT)*tr),look:new THREE.Vector3(cx,hgt(1800,2300)+6.5,cz-30)};
     G.camPos.lerp(goal.pos,G.state==='loading'?1:Math.min(1,dt*.8));G.camLook.lerp(goal.look,Math.min(1,dt*1.2));
   } else if(G.state==='dialog'&&dlgNPC&&P){
-    const n=dlgNPC, tall=n.boss==='jotun'?8:n.gate?4:n.head?1.4:1.5;
+    const n=dlgNPC, tall=n.boss==='jotun'?8:n.boss==='surt'?7.2:n.gate?4:n.head?1.4:n.tall?2.6:1.5;
     const nx=n.x*S, nz=n.y*S, ny=(n.head?ICE_Y+.4:groundY(n.x,n.y))+tall;
     const px=P.x*S, pz=P.y*S, py=groundY(P.x,P.y);
     const dx=nx-px, dz=nz-pz, l=Math.hypot(dx,dz)||1, ux=dx/l, uz=dz/l;
-    const J=n.boss==='jotun', back=J?6:n.gate?6:3.1, side=J?8:2.5;
+    const J=n.boss==='jotun'||n.boss==='surt', back=J?6:n.gate?6:3.1, side=J?8:2.5;
     goal={pos:new THREE.Vector3(px-ux*back+(-uz)*side,py+(J?2.4:1.75),pz-uz*back+ux*side),look:new THREE.Vector3(nx-ux*.4,ny-(J?4:1.05),nz-uz*.4)};
     G.camPos.lerp(goal.pos,Math.min(1,dt*2.6));G.camLook.lerp(goal.look,Math.min(1,dt*3));
+  } else if(G.state==='cine'&&CINE){
+    cineCam(dt);
   } else if(P){
     goal=camGoal();G.camPos.lerp(goal.pos,Math.min(1,dt*5));G.camLook.lerp(goal.look,Math.min(1,dt*6));
   }

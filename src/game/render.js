@@ -52,10 +52,10 @@ function applyGfx(q){
 addEventListener('resize',onResize);
 
 // --- Sky with aurora, stars and moon
-const skyUniforms={uTime:{value:0}};
+const skyUniforms={uTime:{value:0},uAsh:{value:0}};
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyUniforms,
   vertexShader:`varying vec3 vDir;void main(){vDir=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;}`,
-  fragmentShader:`uniform float uTime;varying vec3 vDir;
+  fragmentShader:`uniform float uTime;uniform float uAsh;varying vec3 vDir;
   float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
@@ -69,6 +69,12 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
         float band=exp(-wav*wav*5.);float cur=fbm(vec2(uv.x*2.2+fi*7.,uTime*.05+fi))*.8+.2;float rays=.6+.4*n2(vec2(uv.x*16.+uTime*.3,fi));a+=band*cur*rays;}
       vec3 ac=mix(vec3(.15,1.,.62),vec3(.55,.3,1.),smoothstep(.15,.65,y));col+=ac*a*.55*smoothstep(.0,.22,y);}
     vec3 md=normalize(vec3(-.35,.42,-.84));float m=dot(d,md);col+=vec3(1.,.98,.92)*1.6*smoothstep(.99935,.99965,m)+vec3(.35,.45,.7)*pow(max(m,0.),300.)*.5+vec3(.2,.25,.4)*pow(max(m,0.),20.)*.12;
+    if(uAsh>0.){ // Askefjorden: a sky of smoke lit red from below, with drifting embers instead of an aurora
+      vec2 su=d.xz/(abs(y)+.25);float sm=fbm(su*1.3+vec2(uTime*.02,uTime*.013));
+      vec3 ash=mix(vec3(.42,.12,.05),vec3(.05,.025,.03),smoothstep(-.05,.5,y));ash=mix(ash,vec3(.16,.07,.06),sm*.6*smoothstep(0.,.3,y));
+      ash+=vec3(1.2,.35,.08)*pow(max(0.,1.-abs(y)*4.),3.)*(.6+.4*sm);
+      float em=h3(floor(d*300.+vec3(0.,-uTime*3.,0.)));ash+=vec3(2.,.7,.15)*step(.9985,em)*smoothstep(.0,.4,y);
+      col=mix(col,ash,uAsh);}
     gl_FragColor=vec4(col,1.);}`});
 const sky=new THREE.Mesh(new THREE.SphereGeometry(450,48,24),skyMat); sky.renderOrder=-1; sky.frustumCulled=false; scene.add(sky);
 { // environment map from a copy of the sky
@@ -155,7 +161,7 @@ function seeThrough(mat,sway=0){
    ========================================================= */
 {
   const ext=900, TW=WORLD.w+ext*2, TH=WORLD.h+ext*2;
-  const geo=new THREE.PlaneGeometry(TW*S,TH*S,600,500); geo.rotateX(-Math.PI/2);
+  const geo=new THREE.PlaneGeometry(TW*S,TH*S,Math.round(600*TW/5400),500); geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position, cols=new Float32Array(pos.count*3), nr=rng(77);
   for(let i=0;i<pos.count;i++){
     const px=pos.getX(i)/S+WORLD.w/2, py=pos.getZ(i)/S+WORLD.h/2;
@@ -167,6 +173,12 @@ function seeThrough(mat,sway=0){
     const bk=sstep(340,80,Math.hypot(px-560,py-1200)); r=lerp(r,.36,bk*.6);g=lerp(g,.42,bk*.6);b=lerp(b,.36,bk*.6);
     const jk=sstep(420,100,Math.hypot(px-1800,py-500)); r=lerp(r,.75,jk*.4);g=lerp(g,.9,jk*.4);b=lerp(b,1.05,jk*.4);
     const le=lakeE(px,py); if(le<1.6){const k=sstep(1.6,1.05,le);r=lerp(r,.55,k);g=lerp(g,.62,k);b=lerp(b,.7,k);}
+    const ak=ashK(px); if(ak>0){ // ash and black rock, scorched around the lava
+      const n=Math.abs(Math.sin(px*.021+py*.017)*Math.cos(px*.013-py*.009));
+      let ar=.2+n*.07,ag=.18+n*.05,ab=.18+n*.04; ar=lerp(ar,.3,pk*.8);ag=lerp(ag,.24,pk*.8);ab=lerp(ab,.2,pk*.8);
+      let lk=0;for(const p of LAVA){const e=lavaE(p,px,py);if(e<2.6)lk=Math.max(lk,sstep(2.6,1.0,e));}ar=lerp(ar,.1,lk);ag=lerp(ag,.07,lk);ab=lerp(ab,.06,lk);
+      const sk=sstep(240,90,Math.hypot(px-4350,py-2380)); ar=lerp(ar,.34,sk*.5);ag=lerp(ag,.3,sk*.5);ab=lerp(ab,.27,sk*.5);
+      r=lerp(r,ar,ak);g=lerp(g,ag,ak);b=lerp(b,ab,ak);}
     cols[i*3]=r*v;cols[i*3+1]=g*v;cols[i*3+2]=b*v;
   }
   geo.setAttribute('color',new THREE.BufferAttribute(cols,3)); geo.computeVertexNormals();

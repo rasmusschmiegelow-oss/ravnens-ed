@@ -1,7 +1,7 @@
 'use strict';
 /* =========================================================
    CONTROLLER (standard mapping, souls-style layout)
-   RB light · RT heavy · LT block · B roll · X mead · Y skill · A interact · R3 lock · Start pause · View gear · D-pad up journal
+   RB light · RT heavy · LT block · LB weapon art · B roll · X mead · Y skill · A interact · R3 lock · Start pause · View gear · D-pad up journal
    In menus: D-pad or left stick moves focus, A selects, B goes back.
    ========================================================= */
 const GPAD={prev:[],dead:.22,navT:0};
@@ -32,6 +32,7 @@ function pollPad(dt){
     if(down(1)) buf={k:'roll',t:G.time};
     if(down(2)) buf={k:'heal',t:G.time};
     if(down(3)) buf={k:'special',t:G.time};
+    if(down(4)) buf={k:'art',t:G.time};
     if(down(0)){const it=interactTarget();if(it)it.fn();}
     if(down(11)) toggleLock();
     if(down(9)) openPause();
@@ -44,6 +45,7 @@ function pollPad(dt){
     if(down(13)||(ly>.6&&GPAD.navT<=0)){GPAD.navT=.22;navFocus(1);}
     if(down(14)) navFocus(-1); if(down(15)) navFocus(1);
     if(down(0)){const a=document.activeElement;if(a&&a!==document.body&&a.click)a.click();else navFocus(0);}
+    if(G.state==='cine'&&(down(0)||down(1)||down(9))){if(CINE&&CINE.t>.6)endIntro();GPAD.prev=b;return;}
     if(down(1)||down(9)) dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape'}));
   }
   GPAD.prev=b;

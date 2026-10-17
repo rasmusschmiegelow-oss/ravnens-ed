@@ -10,6 +10,8 @@ const TUT=[
     text:()=>`En fjende! Lås fast med <b>${actLabel('lock')}</b>, og slå med <b>${actLabel('attack')}</b>. Røde felter på jorden viser, hvor et angreb lander. Blinker feltet, kan angrebet ikke blokeres, så rul.`,done:()=>(G.kills||0)>0},
   {id:'heal',when:()=>P.hp<maxHp()*.55,text:()=>`Du er såret. Drik mjød med <b>${actLabel('heal')}</b>. Hornene fyldes op igen, når du hviler ved en runesten.`,done:()=>G.tutHealed},
   {id:'rest',when:()=>P.runes>=lvlCost(P.level),text:()=>`Du har runer nok til et nyt niveau. Hvil ved en runesten med <b>${actLabel('interact')}</b>. Dør du først, ligger runerne, hvor du faldt.`,done:()=>G.tutRested},
+  {id:'fatal',when:()=>G.enemies.some(e=>e.broken>0&&!e.dead&&Math.hypot(e.x-P.x,e.y-P.y)<300),text:()=>`Fjendens balance er brudt! Gå helt hen til den, og slå med <b>${actLabel('attack')}</b> for et kritisk stød.`,done:()=>(G.fatals||0)>0},
+  {id:'art',when:()=>(G.kills||0)>3,text:()=>`Dit våben har en våbenkunst: <b>${ARTS[artKey()].name}</b>. Brug den med <b>${actLabel('art')}</b>. ${ARTS[artKey()].desc}`,done:()=>(P.artUses||0)>0},
   {id:'journal',when:()=>G.flags.metUlfr&&(G.kills||0)>2,text:()=>`Din dagbog (<b>${actLabel('journal')}</b>) holder styr på opgaver og det, folk har fortalt dig.`,done:()=>G.tutJournal},
 ];
 let hintEl=null, hintId=null;

@@ -40,7 +40,7 @@ const dummy=new THREE.Object3D();
   // ground detail: frost-bitten grass, pebbles, shrubs and fallen logs scattered through the snow
   {
     const dr=rng(99), pts=(n,ok)=>{const out=[];let tries=0;while(out.length<n&&tries++<n*6){const x=PAD+dr()*(WORLD.w-2*PAD),y=PAD+dr()*(WORLD.h-2*PAD);if(ok(x,y))out.push([x,y]);}return out;};
-    const open=(x,y,pad)=>lakeE(x,y)>1.15&&!inCrypt(x,y)&&pathDist(x,y)>pad&&Math.hypot(x-1800,y-2380)>250&&!(y>WALL_Y-30&&y<WALL_Y+WALL_H+30);
+    const open=(x,y,pad)=>x<RIDGE.x-180&&lakeE(x,y)>1.15&&!inCrypt(x,y)&&pathDist(x,y)>pad&&Math.hypot(x-1800,y-2380)>250&&!(y>WALL_Y-30&&y<WALL_Y+WALL_H+30);
     // grass: three crossed blades per tuft, straw to dark green, swaying in the wind
     const blades=[]; for(let b=0;b<3;b++){const g=new THREE.PlaneGeometry(.09,.55,1,3).translate(0,.27,0);const pa=g.attributes.position;for(let i=0;i<pa.count;i++){const yy=pa.getY(i);pa.setX(i,pa.getX(i)*(1-yy/.6));pa.setZ(i,yy*yy*.25);}g.rotateY(b*Math.PI/3+dr()*.3);blades.push(g);}
     const gg=mergeGeometries(blades); const gc=new Float32Array(gg.attributes.position.count*3);
@@ -113,6 +113,7 @@ function buildWorldProps(){
     CHEST_M[c.id]={obj:p.obj,lid:p.obj.getObjectByName(c.gold?'chest_gold_lid':'chest_lid'),open:0};
   }
   buildCrypt();
+  buildAct2Props();
 }
 let CRYPT_FLOOR=0, CRYPT_VOID=null;
 function buildCrypt(){
@@ -162,7 +163,7 @@ let gateDoors=[], gateTop=[];
   const wallMat=MAT.stone;
   const n=Math.ceil(WORLD.w/40)+30; const g=new THREE.BoxGeometry(1,1,1);
   const im=new THREE.InstancedMesh(g,wallMat,n*2); im.castShadow=im.receiveShadow=true; let k=0; const r=rng(31);
-  for(let x=-600;x<WORLD.w+600;x+=40){ if(x>1700&&x<1880) continue;
+  for(let x=-600;x<RIDGE.x+180;x+=40){ if(x>1700&&x<1880) continue;
     for(let row=0;row<2;row++){ if(k>=n*2) break; const hh=row?1.3+r()*.6:2+r()*.6;
       dummy.position.set((x+20)*S,hgt(x+20,WALL_Y+20)+(row?2.3+hh/2:hh/2),(WALL_Y+20)*S); dummy.rotation.set((r()-.5)*.05,(r()-.5)*.06,(r()-.5)*.05); dummy.scale.set(2+r()*.3,hh,2+r()*.2); dummy.updateMatrix(); im.setMatrixAt(k++,dummy.matrix);} }
   im.count=k; scene.add(im);

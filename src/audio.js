@@ -21,8 +21,9 @@ const SFX_FILES = [
 const TRACKS = {
   title: 'vikings_at_shore.mp3', village: 'ditty_at_the_camp.mp3', wild: 'something_approaches.mp3',
   jarl: 'thor_bring_me_victory.mp3', jotun: 'epic_boss_battle.m4a', victory: 'viking_march.mp3',
+  boss2: 'boss_phase2.mp3', ash: 'ash_lands.mp3',
 };
-const TRACK_VOL = {title: .55, village: .45, wild: .5, jarl: .55, jotun: .6, victory: .55};
+const TRACK_VOL = {title: .55, village: .45, wild: .5, jarl: .55, jotun: .6, victory: .55, boss2: .55, ash: .55};
 
 export function audioInit() {
   if (AU.ctx) { AU.ctx.resume?.(); return; }

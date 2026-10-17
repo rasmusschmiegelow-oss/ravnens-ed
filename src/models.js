@@ -51,6 +51,18 @@ export const LOOKS = {
   bjorn: {file: 'qHooded_Adventurer', h: 1.8, qt: true, tint: 0xd8c0a0},
   thorgrim: {file: 'qKing', h: 1.9, qt: true}, farmer: {file: 'qFarmer', h: 1.75, qt: true}, worker: {file: 'qWorker', h: 1.75, qt: true},
   guard: {file: 'qAdventurer', h: 1.8, qt: true}, hguard: {file: 'qHooded_Adventurer', h: 1.8, qt: true},
+  // Askefjorden: burnt draugr, fire wolves, lava golems, Garm, Surt and the people of Skjoldvik
+  askedraugr: {file: 'Skeleton_Warrior', h: 1.95, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Small_A'}, tint: 0x5c524c, eyes: [3.4, 1.1, .2], emissive: 0x160500},
+  askeskytte: {file: 'Skeleton_Rogue', h: 1.85, props: {r: 'Skeleton_Crossbow'}, tint: 0x5c524c, eyes: [3.4, 1.1, .2], emissive: 0x160500},
+  eldseidr: {file: 'Skeleton_Mage', h: 1.9, props: {r: 'Skeleton_Staff'}, tint: 0x6a4a40, eyes: [3.6, 1.4, .3], emissive: 0x240800},
+  glodulv: {file: 'qWolf', h: 1.15, qt: true, tint: 0x6a4034, emissive: 0x3a0c00},
+  lavavaette: {file: 'qGoleling_Evolved', h: 2.6, qt: true, tint: 0x4a3a34, emissive: 0x501200},
+  glodkaempe: {file: 'qGoleling_Evolved', h: 3.6, qt: true, tint: 0x3a2a24, emissive: 0x8a2400},
+  garm: {file: 'qWolf', h: 3.4, qt: true, tint: 0x3a2c2a, emissive: 0x2a0400},
+  surt: {file: 'qDemon', h: 7.6, qt: true, tint: 0x6a3420, emissive: 0x7a2404},
+  ragna: {file: 'Mage', h: 1.72, hide: ['Spellbook', 'Spellbook_open', '1H_Wand'], tint: 0xa87a6a},
+  sindri: {file: 'Barbarian', h: 1.22, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '2H_Axe', 'Mug', 'Barbarian_Cape'], tint: 0xb89080, wide: 1.35},
+  logi: {file: 'qDemon', h: 2.8, qt: true, tint: 0xe09060, emissive: 0x6a2000},
   jotun: {file: 'Barbarian', h: 8.2, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '1H_Axe', 'Mug'], tint: 0xd8f0ff, emissive: 0x1d4f6e, ice: true},
 };
 

@@ -21,6 +21,8 @@ Alle aktiver i `assets/` er udgivet under **CC0 1.0** (fri brug, også kommercie
 - *Viking March* – nightm4re – https://opengameart.org/content/viking-march
 - *Thor Bring Me Victory* – The Oracle – https://opengameart.org/content/thor-bring-me-victory
 - *Epic Boss Battle* – Juhani Junkala – https://opengameart.org/content/boss-battle-music
+- *Boss Battle Theme* (bossernes anden fase) – CleytonKauffman – https://opengameart.org/content/boss-battle-theme
+- *Ancient Power Of Serpents* (Askefjorden) – josepharaoh99 – https://opengameart.org/content/ancient-power-of-serpents
 
 ## Lydeffekter
 - **Kenney** – RPG Audio og Impact Sounds – https://kenney.nl/assets/rpg-audio · https://kenney.nl/assets/impact-sounds

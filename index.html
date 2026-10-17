@@ -31,12 +31,13 @@
   <div class="hud-bl">
     <div class="slot" id="slFlask">
       <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 10c10 2 20 9 25 24l3-1C30 17 19 7 7 6z" fill="#c9a24a" stroke="#3a2a10" stroke-width="1.2"/><path d="M8 7l-3 4" stroke="#e8d6a0" stroke-width="2"/><path d="M26 25l5-2M22 19l4-2M17 14l4-2" stroke="#7a5a20" stroke-width="1.4"/></svg>
-      <b id="hFlask">3</b><kbd>R</kbd>
+      <b id="hFlask">3</b><kbd id="kHeal">R</kbd>
     </div>
-    <div class="slot" id="slSpec"><div class="cd" id="specCd"></div><span id="specIco"></span><kbd>F</kbd><span class="slot-name" id="specName"></span></div>
+    <div class="slot" id="slSpec"><div class="cd" id="specCd"></div><span id="specIco"></span><kbd id="kSpec">F</kbd><span class="slot-name" id="specName"></span></div>
+    <div class="slot" id="slArt"><div class="cd" id="artCd"></div><span class="art-ico">ᛏ</span><kbd id="kArt">Q</kbd><span class="slot-name" id="artName"></span></div>
   </div>
   <div class="hud-br"><span class="rune">ᚱ</span><b id="hRunes">0</b></div>
-  <div class="boss" id="hBoss" hidden><div id="bossName"></div><div class="bar boss"><i class="lag" id="bossLag"></i><i class="fill" id="bossFill"></i></div></div>
+  <div class="boss" id="hBoss" hidden><div id="bossName"></div><div class="bar boss"><i class="lag" id="bossLag"></i><i class="fill" id="bossFill"></i></div><div class="bar poise" id="bossPoiseBar"><i class="fill" id="bossPoise"></i></div></div>
 </div>
 <div id="prompt" hidden></div>
 <div id="toasts"></div>
@@ -44,6 +45,8 @@
 <div id="fade"></div>
 <div id="hurtFx"></div>
 <div id="deathScr" hidden><div>DU ER FALDET</div></div>
+<div id="bossCard" hidden><div class="bc-line"></div><div id="bcName"></div><div id="bcSub"></div><div class="bc-line"></div><div id="bcQuote"></div></div>
+<div id="cineSkip" hidden></div>
 
 <section id="loading" class="ov">
   <div class="rn">ᚱᚨᚢᚾᛖᚾᛊ ᛖᛞ</div>
@@ -87,6 +90,7 @@
           <kbd>Mellemrum</kbd><span>Rul (usårlig; rul i sidste øjeblik for en perfekt undvigelse)</span>
           <kbd>R</kbd><span>Drik mjød (heler)</span>
           <kbd>F</kbd><span>Klasse-evne</span>
+          <kbd>Q</kbd><span>Våbenkunst (hvert våben har sin egen)</span>
           <kbd>E</kbd><span>Tal, hvil, åbn kister, interagér</span>
           <kbd>I</kbd><span>Udstyr</span>
           <kbd>J</kbd><span>Dagbog med opgaver</span>
@@ -167,7 +171,7 @@
     <div class="kv" id="pzDerived"></div>
     <div class="ctrls">
       <kbd>Venstreklik</kbd><span>Let angreb</span><kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova</span>
-      <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / E</kbd><span>Mjød · evne · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
+      <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / Q / E</kbd><span>Mjød · evne · våbenkunst · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
   </div>

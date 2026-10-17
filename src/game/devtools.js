@@ -9,6 +9,9 @@ const SIM_STAGES={
   C:{lvl:6,wpn:1,gear:['ravnefjer','ulvepels'],foes:['jarl','rimtrold','stenvaette2','lindyngel','vaette']},
   D:{lvl:8,wpn:2,gear:['ravnefjer','ulvepels','mjolnir'],foes:['vogter','lindorm']},
   E:{lvl:11,wpn:3,gear:['ravnefjer','brynje','mjolnir','ulfberht'],foes:['jotun']},
+  F:{lvl:14,wpn:4,gear:['ravnefjer','brynje','mjolnir','ulfberht'],foes:['askedraugr','askeskytte','glodulv','eldseidr','lavavaette','askedraugr+askedraugr+eldseidr','glodulv+glodulv+glodulv','askedraugr+askedraugr+askeskytte']},
+  G:{lvl:16,wpn:5,gear:['ravnefjer','askebrynje','mjolnir','tyrsrune'],foes:['garm','glodkaempe']},
+  H:{lvl:18,wpn:6,gear:['vardeflamme','askebrynje','garmtand','tyrsrune'],foes:['surt']},
 };
 function simSetup(cls,st){
   newPlayer(cls,{...CLASSES[cls].base},'Bot'); P.level=st.lvl;
@@ -25,7 +28,9 @@ function botThink(b){
   mouseW.x=e.x; mouseW.y=e.y; for(const k of ['up','down','left','right']) keys[SET.bind[k]]=false; mouse.r=false;
   // threats: telegraphed attacks about to land, lunges and incoming projectiles
   let threat=null;
-  for(const h of G.hazards){const left=h.wind-h.t; if(left>.3||left<.02) continue;
+  for(const h of G.hazards){
+    if(h.k==='burn'){if(Math.hypot(p.x-h.x,p.y-h.y)<h.r+p.r+4)threat=threat||{x:h.x,y:h.y,left:.1,burn:1};continue;}
+    const left=h.wind-h.t; if(left>.3||left<.02) continue;
     const ox=h.k==='arc'?h.owner.x:h.x, oy=h.k==='arc'?h.owner.y:h.y, dd=Math.hypot(p.x-ox,p.y-oy);
     const inside=h.k==='circle'?dd<h.r+p.r+6:dd<h.range+p.r+10&&Math.abs(angDiff(Math.atan2(p.y-oy,p.x-ox),h.ang))<h.arc/2+.3;
     if(inside){threat={x:ox,y:oy,h,left};break;}}
@@ -34,12 +39,16 @@ function botThink(b){
   if(threat&&b.react<=0){
     b.react=b.reaction;
     if(Math.random()<b.miss) return; // an average player misreads some attacks
-    if(p.cls==='skjoldmo'&&threat.h&&!threat.h.unblock&&threat.left<.2&&p.st>15){mouse.r=true;if(Math.random()<b.parry)p.blockStart=G.time;return;}
+    // the shield maiden blocks what her guard can take and rolls away from the rest
+    if(p.cls==='skjoldmo'&&threat.h&&!threat.h.unblock&&threat.left<.2&&p.st>15&&threat.h.dmg*.95<p.st*.55){mouse.r=true;if(Math.random()<b.parry)p.blockStart=G.time;return;}
     const away=Math.atan2(p.y-threat.y,p.x-threat.x)+(threat.h&&threat.h.k==='arc'||threat.lunge?(Math.random()<.5?1.3:-1.3):0);
     keys[Math.cos(away)>.3?SET.bind.right:Math.cos(away)<-.3?SET.bind.left:'_']=true; keys[Math.sin(away)>.3?SET.bind.down:Math.sin(away)<-.3?SET.bind.up:'_']=true;
     if(p.st>5) buf={k:'roll',t:G.time}; return;
   }
   if(p.hp<maxHp()*.38&&p.flasks>0&&!p.act&&d>90){buf={k:'heal',t:G.time};return;}
+  // a broken foe: go in for the fatal blow
+  {const fb=foes.find(q=>q.broken>.3&&Math.hypot(q.x-p.x,q.y-p.y)<260);if(fb&&p.st>0){const fd=Math.hypot(fb.x-p.x,fb.y-p.y);mouseW.x=fb.x;mouseW.y=fb.y;
+    if(fd<70+fb.r){buf={k:'lmb',t:G.time};return;} const fa=Math.atan2(fb.y-p.y,fb.x-p.x);keys[Math.cos(fa)>.38?SET.bind.right:Math.cos(fa)<-.38?SET.bind.left:'_']=true;keys[Math.sin(fa)>.38?SET.bind.down:Math.sin(fa)<-.38?SET.bind.up:'_']=true;return;}}
   const reach=p.cls==='volve'?320:(p.cls==='berserker'?58:52)+e.r;
   const want=p.cls==='volve'?240:reach*.8;
   const mv=(dir)=>{keys[Math.cos(dir)>.38?SET.bind.right:Math.cos(dir)<-.38?SET.bind.left:'_']=true;keys[Math.sin(dir)>.38?SET.bind.down:Math.sin(dir)<-.38?SET.bind.up:'_']=true;};
@@ -47,7 +56,8 @@ function botThink(b){
   if(fromHome>320) mv(homeDir);                    // stay in the arena like a real player would
   else if(p.st<18) mv(a+Math.PI+(Math.sin(G.time)>0?.9:-.9)); // back off sideways to recover stamina
   else if(d>want+10) mv(a); else if(p.cls==='volve'&&d<want-60) mv(a+Math.PI);
-  if(p.specialT<=0&&d<reach+40&&p.st>30&&Math.random()<.04) buf={k:'special',t:G.time};
+  if(!(p.artT>0)&&d<reach+30&&p.st>45&&Math.random()<.03) buf={k:'art',t:G.time};
+  else if(p.specialT<=0&&d<reach+40&&p.st>30&&Math.random()<.04) buf={k:'special',t:G.time};
   else if(d<reach&&p.st>22){
     if(p.cls==='berserker'&&p.st>60&&Math.random()<.18) buf={k:'rmb',t:G.time};
     else if(p.cls==='volve'&&d<120&&p.st>40) buf={k:'rmb',t:G.time};
@@ -57,8 +67,8 @@ function botThink(b){
 function simFight(cls,stageKey,foe,opts={}){
   const st=SIM_STAGES[stageKey]; simSetup(cls,st); clearEnemies();
   if(foe.includes('+')){const group=foe.split('+');group.slice(1).forEach((g,i)=>{const q=spawnEnemy(g,P.x+230,P.y+(i%2?1:-1)*(60+i*30),{aggro:true});q.home={x:q.x,y:q.y};});foe=group[0];}
-  const ex=foe==='jotun'?{boss:'jotun'}:foe==='jarl'?{boss:'jarl'}:foe==='vogter'?{boss:'vogter',summoned:true}:foe==='lindorm'?{boss:'lindorm'}:foe==='rimtrold'?{summoned:true}:{};
-  const e=spawnEnemy(foe,P.x+(foe==='jotun'?260:200),P.y,{...ex,aggro:true}); e.home={x:e.x,y:e.y};
+  const ex=['jotun','jarl','lindorm','garm','glodkaempe','surt'].includes(foe)?{boss:foe}:foe==='vogter'?{boss:'vogter',summoned:true}:foe==='rimtrold'?{summoned:true}:{};
+  const e=spawnEnemy(foe,P.x+(foe==='jotun'||foe==='surt'?260:200),P.y,{...ex,aggro:true}); e.home={x:e.x,y:e.y};
   const b={react:0,reaction:opts.reaction??.26,miss:opts.miss??.3,parry:opts.parry??.35,hx:P.x+100,hy:P.y};
   const dt=1/60; let t=0; const f0=P.flasks;
   const lim=opts.limit??150;
@@ -104,9 +114,21 @@ const ROUTE=[
   {optional:'lindorm',at:[2980,1260],rest:2},
   {gate:true},{clear:[1450,700,150,1450,620]},{clear:[2150,700,150,2150,620]},
   {boss:'jotun',at:[1800,700]},
+  // act two: Askefjorden
+  {act2:true},
+  {clear:[4090,1960,230],rest:3},{clear:[4650,2265,130]},{talk:'ragna'},{talk:'sindri'},{rest:4},
+  {clear:[3860,1270,130]},{beacon:'v1'},{clear:[4240,1650,90],rest:4},
+  {clear:[4930,1630,170,4760,1640]},{beacon:'v2'},{clear:[5330,1530,110]},{clear:[5250,1620,90]},{clear:[5600,1700,100],rest:4},
+  {clear:[5460,2330,150]},{beacon:'v3'},{chest:'ash2'},{chest:'ash1'},
+  {optional:'glodkaempe',at:[5060,2260]},{turnin:true,rest:4},
+  {clear:[4440,1660,240],rest:4},
+  {boss:'garm',at:[4300,1330],rest:4},
+  {clear:[5000,1260,250]},{talk:'logi'},{rest:5},
+  {fgate:true},
+  {boss:'surt',at:[5000,700]},
 ];
 function campaign(cls,opts={}){
-  const log=[], problems=[], bossLvl={}, attempts=[], t0=performance.now();
+  const log=[], problems=[], skipped=[], bossLvl={}, attempts=[], t0=performance.now();
   G.sim=true; const prevState=G.state; G.state='play'; const muted=!AU.on; setMuted(true); const prevDiff=SET.diff; SET.diff=opts.diff||'normal';
   let deaths=0, simTime=0;
   const b={react:0,reaction:opts.reaction??.26,miss:opts.miss??.3,parry:opts.parry??.35,hx:0,hy:0};
@@ -121,11 +143,17 @@ function campaign(cls,opts={}){
   const spend=()=>{ // level up like a player: main stat mostly, some agility; talents in class order
     const main=cls==='berserker'?'sty':cls==='volve'?'vil':(P.level%2?'sty':'smi');
     while(P.runes>=lvlCost(P.level)){P.runes-=lvlCost(P.level);P.stats[P.level%4===0?'smi':main]++;P.level++;}
+    // wear the best gear found so far, as a player would
+    const has=i=>(G.inv||[]).includes(i), pick=l=>l.find(has)||null;
+    G.eq.weapon=pick(['tyrsrune','ulfberht'])||G.eq.weapon; G.eq.armor=pick(['askebrynje','lindskael','brynje','ulvepels'])||G.eq.armor;
+    const tal=['vardeflamme','garmtand','logisglod','mjolnir','idunn','hrafnring','ravnefjer'].filter(has); G.eq.t1=tal[0]||null; G.eq.t2=tal[1]||null;
     while(talentPoints()>0){const t=TALENTS[cls].find(x=>!T(x.id));if(!t)break;P.talents=[...(P.talents||[]),t.id];}
     // Dvalin: buy a weapon upgrade or a mead horn when there is money left over
     const c=x=>Math.round(x*G.discount);
     if(G.weaponLvl<3&&P.runes>=c(450*(G.weaponLvl+1))){P.runes-=c(450*(G.weaponLvl+1));G.weaponLvl++;}
     if(G.extraFlasks<2&&P.runes>=c(500+G.extraFlasks*250)){P.runes-=c(500+G.extraFlasks*250);G.extraFlasks++;}
+    // Sindri in Skjoldvik takes the weapon further in the second act
+    if(G.flags.metSindri){const wc=c(900*Math.max(1,G.weaponLvl-1));if(G.weaponLvl<6&&P.runes>=wc+lvlCost(P.level)*.5){P.runes-=wc;G.weaponLvl++;}}
   };
   const rest=(id)=>{G.lastRS=id;RUNESTONES[id].lit=true;spend();P.hp=maxHp();P.st=maxSt();P.flasks=maxFlasks();resetWorld();P.x=RUNESTONES[id].x;P.y=RUNESTONES[id].y+46;if(C){C.x=P.x-30;C.y=P.y+30;C.down=false;C.hp=C.maxHp;}};
   const died=()=>{deaths++;G.stain=P.runes>0?{x:P.x,y:P.y,amount:P.runes}:null;P.runes=0;P.dead=false;G.boss=null;G.lock=null;rest(G.lastRS);};
@@ -133,7 +161,7 @@ function campaign(cls,opts={}){
   const goTo=(x,y)=>{P.x=x;P.y=y;collide(P);if(C){C.x=x-30;C.y=y+30;}b.hx=P.x;b.hy=P.y;
     if(G.stain&&Math.hypot(G.stain.x-x,G.stain.y-y)<450){P.runes+=G.stain.amount;G.stain=null;}};
   // fight everything near a point; returns true when cleared, retries after dying
-  const clearArea=(x,y,r,ax,ay,limit=90,tries=4)=>{
+  const clearArea=(x,y,r,ax,ay,limit=120,tries=6)=>{
     for(let k=0;k<tries;k++){
       goTo(ax??x,ay??(y+Math.min(r,160)));
       const foes=G.enemies.filter(e=>!e.dead&&!e.dormant&&Math.hypot(e.x-x,e.y-y)<r);
@@ -145,12 +173,12 @@ function campaign(cls,opts={}){
     }
     return false;
   };
-  const fightBoss=(kind,x,y,tries=6)=>{
+  const fightBoss=(kind,x,y,tries=8)=>{
     for(let k=0;k<tries;k++){
       // after a death the road respawns: clear what stands near the arena first, like a player walking back
       for(const q of G.enemies) if(!q.dead&&!q.boss&&!q.dormant&&Math.hypot(q.x-x,q.y-y)<420) clearArea(q.x,q.y,120,undefined,undefined,60,1);
       goTo(x,y); const e=G.enemies.find(q=>q.boss===kind&&!q.dead); if(!e) return true;
-      if(kind==='jotun'){e.dormant=false;G.flags.jotunTalked=true;} e.aggro=true;
+      if(kind==='jotun'||kind==='surt'){e.dormant=false;G.flags[kind+'Talked']=true;} e.aggro=true;
       bossLvl[kind]=P.level;
       let t=0; while(t<200){step(1/60);t+=1/60;if(P.dead||e.dead)break;}
       attempts.push({boss:kind,try:k+1,result:e.dead?'win':P.dead?'died':'timeout',bossHp:Math.round(Math.max(0,e.hp)/e.maxHp*100),t:Math.round(t),dist:Math.round(Math.hypot(P.x-e.x,P.y-e.y)),aggro:e.aggro});
@@ -160,19 +188,34 @@ function campaign(cls,opts={}){
     return false;
   };
   try{
-    newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
+    newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.hp=maxHp();P.st=maxSt();P.flasks=maxFlasks(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
     for(const s of ROUTE){
       const where=JSON.stringify(s);
       if(s.talk){D[s.talk]();
         // most players try Ulfr's Willpower check (DC 10): roll it like the game does
         if(s.talk==='ulfr'&&1+Math.floor(Math.random()*20)+mod(P.stats.vil)+2>=10){G.flags.ulfrCheck=true;G.flags.ulfrGift=true;G.flags.q_ulfr=true;}}
+      if(s.talk==='ragna'){G.flags.ragnaWhy=true;G.flags.q_varder=true;if(1+Math.floor(Math.random()*20)+mod(P.stats.vil)+2>=15)G.flags.garmLore=true;}
+      if(s.talk==='sindri'){G.flags.q_sindri=true;}
+      if(s.talk==='logi'){G.flags.metLogi=true;const ring=(G.inv||[]).includes('hrafnring');
+        if(ring){G.flags.logiRing=true;G.flags.surtLore=true;G.inv=G.inv.filter(i=>i!=='hrafnring');for(const k in G.eq)if(G.eq[k]==='hrafnring')G.eq[k]=null;giveItem('logisglod');}
+        else if(1+Math.floor(Math.random()*20)+mod(P.stats.kar)+2>=16)G.flags.surtLore=true; G.flags.logiGone=true;}
+      if(s.act2){startAct2();}
+      if(s.beacon){G.flags.beacons=G.flags.beacons||{};G.flags.beacons[s.beacon]=true;lightBeacon(s.beacon,true);}
+      if(s.turnin){const f=G.flags;if(Object.keys(f.beacons||{}).length>=3&&!f.vardeDone){f.vardeDone=true;P.runes+=800;giveItem('vardeflamme');}
+        if(f.muspelsten&&!f.sindriDone){f.sindriDone=true;G.weaponLvl=Math.min(6,G.weaponLvl+1);giveItem('askebrynje');}}
+      if(s.fgate){G.flags.fgateOpen=true;setFireGate(true,true);}
       if(s.recruit==='astrid'){if(P.runes>=150)P.runes-=150;makeCompanion('astrid');G.flags.astrid=true;}
-      if(s.clear&&!clearArea(...s.clear)) problems.push('Kunne ikke rydde '+where);
+      if(s.clear&&!clearArea(...s.clear)) skipped.push('Kunne ikke rydde '+where+' '+JSON.stringify(G.enemies.filter(e=>!e.dead&&Math.hypot(e.x-s.clear[0],e.y-s.clear[1])<s.clear[2]+200).map(e=>[e.t,Math.round(e.x),Math.round(e.y),Math.round(e.hp/e.maxHp*100)])));
       if(s.chest){const c=CHESTS.find(q=>q.id===s.chest);G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}
       if(s.boss){if(!fightBoss(s.boss,...s.at)){problems.push('Tabte til '+s.boss);break;}}
-      if(s.optional){fightBoss(s.optional,...s.at,3);if(G.flags.lindormDead){P.runes+=G.flags.lindormAdvance?550:800;G.flags.lindormPaid=true;giveItem('lindskael');}}
+      if(s.optional==='glodkaempe') fightBoss('glodkaempe',...s.at,3);
+      if(s.optional==='lindorm'){fightBoss(s.optional,...s.at,3);if(G.flags.lindormDead){P.runes+=G.flags.lindormAdvance?550:800;G.flags.lindormPaid=true;giveItem('lindskael');}}
       if(s.crypt){goTo(CRYPT.inX,CRYPT.inY);
-        for(const [x,y,r] of [[2900,600,100],[2690,545,140],[3110,545,140],[2640,420,130],[3160,420,130],[2900,420,150]]) if(!clearArea(x,y,r,2900,650,120,5)){problems.push('Kunne ikke rydde krypten ved '+x+','+y);break;}
+        // like a player, keep going back down until the whole hall is clear (a death respawns what was cleared)
+        const spots=[[2900,600,100],[2690,545,140],[3110,545,140],[2640,420,130],[3160,420,130],[2900,420,150]];
+        let ok=false; for(let pass=0;pass<5&&!ok;pass++){ok=true;for(const [x,y,r] of spots) if(!clearArea(x,y,r,2900,650,120,2)){ok=false;break;}
+          if(ok&&G.enemies.some(e=>!e.dead&&inCrypt(e.x,e.y))) ok=false;}
+        if(!ok) skipped.push('Kunne ikke rydde krypten');
         for(const c of CHESTS.filter(q=>q.crypt)){if(c.gold&&!G.flags.vogterDead)continue;G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}
         goTo(CRYPT.doorX+45,CRYPT.doorY);}
       if(s.gate){G.flags.gateOpen=true;GATE.gone=true;}
@@ -182,9 +225,9 @@ function campaign(cls,opts={}){
     }
   } catch(err){ problems.push('Fejl: '+(err&&err.message||err)); }
   finally { G.sim=false; G.state=prevState; setMuted(muted); SET.diff=prevDiff; $('deathScr').hidden=true; }
-  return {cls,done:!!G.flags.jotunDone,deaths,levelAtBoss:bossLvl,finalLevel:P.level,gear:Object.values(G.eq).filter(Boolean),
-    lindorm:!!G.flags.lindormDead,attempts,simMinutes:+(simTime/60).toFixed(1),ms:Math.round(performance.now()-t0),problems,log};
+  return {cls,done:!!G.flags.surtDone,act1:!!G.flags.jotunDone,deaths,levelAtBoss:bossLvl,finalLevel:P.level,gear:Object.values(G.eq).filter(Boolean),
+    lindorm:!!G.flags.lindormDead,attempts,simMinutes:+(simTime/60).toFixed(1),ms:Math.round(performance.now()-t0),problems,skipped,log};
 }
 
 // Developer handle, only with ?dev in the address.
-if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse,giveItem,travel,AU,CHESTS,openChest,simAll,simFight,campaign,ED,SIM_STAGES,bench:(n=30)=>{const gl=renderer.getContext();composer.render();gl.finish();const t=performance.now();for(let i=0;i<n;i++)composer.render();gl.finish();return +((performance.now()-t)/n).toFixed(1);},applyGfx,renderer,scene,camera,composer,moon};
+if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse,giveItem,travel,AU,CHESTS,openChest,simAll,simFight,campaign,ED,SIM_STAGES,bench:(n=30)=>{const gl=renderer.getContext();composer.render();gl.finish();const t=performance.now();for(let i=0;i<n;i++)composer.render();gl.finish();return +((performance.now()-t)/n).toFixed(1);},applyGfx,renderer,scene,camera,composer,moon,tp:(x,y)=>{P.x=x;P.y=y;snapCam();}};

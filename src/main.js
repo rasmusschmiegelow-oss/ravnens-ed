@@ -16,7 +16,7 @@ import {AU, audioInit, sfx, music, setMuted, setVolumes} from './audio.js';
 Object.assign(window, {THREE, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, ShaderPass, GTAOPass, BokehPass,
   mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted, setVolumes});
 
-const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "effects.js", "characters.js", "state.js", "player.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "talents.js", "progress.js", "tutorial.js", "input-camera.js", "gamepad.js", "sync-hud.js", "loop.js", "devtools.js", "start.js"];
+const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "world-act2.js", "effects.js", "characters.js", "state.js", "player.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "talents.js", "progress.js", "tutorial.js", "cinematic.js", "input-camera.js", "gamepad.js", "sync-hud.js", "loop.js", "devtools.js", "start.js"];
 for (const f of GAME_FILES) {
   await new Promise((resolve, reject) => {
     const s = document.createElement('script'); s.src = `src/game/${f}`;

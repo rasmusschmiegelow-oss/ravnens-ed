@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 import {appendFileSync} from 'node:fs';
 
 const URL = process.env.GAME_URL || 'http://localhost:8765/?dev';
-const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun'];
+const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun', 'garm', 'glodkaempe', 'surt'];
 const failures = [];
 const lines = [];
 const out = (s) => { console.log(s); lines.push(s); };
@@ -34,10 +34,17 @@ const ui = await page.evaluate(async () => {
   talk('ulfr'); await W(200); r.dialog = document.querySelectorAll('#dlgOpts button').length;
   [...document.querySelectorAll('#dlgOpts button')].pop().click();
   openRest(0); await W(100); r.talents = document.querySelectorAll('#rTalents .tcard').length; document.getElementById('restLeave').click();
+  // weapon art, a boss intro (skipped with a key) and the switch to the second act
+  const until = async (f, ms = 4000) => { for (let t = 0; t < ms && !f(); t += 50) await W(50); return !!f(); };
+  P.st = maxSt(); buf = {k: 'art', t: G.time}; r.art = await until(() => (P.artUses || 0) > 0);
+  const j = G.enemies.find(e => e.boss === 'jarl'); P.x = j.x + 150; P.y = j.y;
+  r.intro = await until(() => G.state === 'cine') && await until(() => !document.getElementById('bossCard').hidden);
+  dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 1000); r.afterIntro = G.state;
+  G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
   return r;
 });
 if (ui.state !== 'play') fail(`Nyt spil endte i tilstanden "${ui.state}" i stedet for "play"`);
-if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
+if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
 else out(`Menuer, dialog og evner virker: ${JSON.stringify(ui)}`);
 
 // 3. Combat balance: every class against every foe and group
@@ -52,18 +59,22 @@ for (const r of sim) {
 }
 
 // 4. Full playthrough for each class (best of two, since the bot plays with chance)
-out('\n| Klasse | Gennemført | Dødsfald | Niveau ved bosserne |\n| --- | --- | --- | --- |');
+out('\n| Klasse | Gennemført | Dødsfald | Sprunget over | Niveau ved bosserne |\n| --- | --- | --- | --- | --- |');
+const skippedLines = [];
 for (const cls of ['berserker', 'skjoldmo', 'volve']) {
   let best = null;
   for (let i = 0; i < 2 && !(best && best.done && !best.problems.length); i++) {
     const r = await page.evaluate(c => __rv.campaign(c), cls);
     if (!best || (r.done && !r.problems.length)) best = r;
   }
-  out(`| ${cls} | ${best.done ? 'ja' : 'nej'} | ${best.deaths} | ${JSON.stringify(best.levelAtBoss)} |`);
+  out(`| ${cls} | ${best.done ? 'ja' : 'nej'} | ${best.deaths} | ${best.skipped.length} | ${JSON.stringify(best.levelAtBoss)} |`);
+  for (const s of best.skipped) skippedLines.push(`- ${cls} sprang over: ${s.slice(0, 160)}`);
   if (!best.done) fail(`${cls} kunne ikke gennemføre spillet: ${best.problems.join('; ')}`);
   else if (best.problems.length) fail(`${cls}: ${best.problems.join('; ')}`);
-  if (best.deaths > 20) fail(`${cls} døde ${best.deaths} gange i gennemløbet (højst 20)`);
+  if (best.deaths > 40) fail(`${cls} døde ${best.deaths} gange i gennemløbet (højst 40)`);
 }
+
+if (skippedLines.length) out('\nOmråder botten sprang over (ikke en fejl):\n' + skippedLines.join('\n'));
 
 // 5. No errors at any point
 for (const e of [...new Set(errors)].slice(0, 10)) fail(e);

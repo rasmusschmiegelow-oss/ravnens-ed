@@ -49,8 +49,8 @@ function decal(tex,x,y,rot,w,l,col,life,op){
   d.m.position.set(x*S,groundY(x,y)+.03,y*S);d.m.rotation.y=rot;d.m.scale.set(w,1,l);d.m.visible=true;d.t=0;d.life=life;d.op=op;d.m.material.opacity=op;
 }
 function updDecals(dt){for(const d of DECALS){if(!d.m.visible)continue;d.t+=dt;const k=d.t/d.life;if(k>=1){d.m.visible=false;continue;}d.m.material.opacity=d.op*Math.min(1,(1-k)*3.5);}}
-const SPLAT_COL={bone:[.82,.78,.7],ice:[.6,.85,1],ichor:[.45,.15,.6],blood:[.32,.02,.03]};
-function splatType(t){return ['draugr','archer','minion','seidr','vogter','jarl'].includes(t)?'bone':['jotun','lindorm','frostvaette','lindyngel'].includes(t)?'ice':['gjenganger','gjenganger2','vaette','ildvaette','stenvaette','stenvaette2'].includes(t)?'ichor':'blood';}
+const SPLAT_COL={bone:[.82,.78,.7],ice:[.6,.85,1],ichor:[.45,.15,.6],blood:[.32,.02,.03],ash:[.12,.1,.09],ember:[1,.35,.08]};
+function splatType(t){return ['askedraugr','askeskytte','eldseidr'].includes(t)?'ash':['lavavaette','glodkaempe','surt'].includes(t)?'ember':['draugr','archer','minion','seidr','vogter','jarl'].includes(t)?'bone':['jotun','lindorm','frostvaette','lindyngel'].includes(t)?'ice':['gjenganger','gjenganger2','vaette','ildvaette','stenvaette','stenvaette2'].includes(t)?'ichor':'blood';}
 
 // Snowfall around the camera
 const SNOW_N=9000;
