@@ -89,6 +89,14 @@ function naturalHeight(key) {
   g.natH = Math.max(.01, box.max.y - box.min.y); g.minY = box.min.y;
   return g.natH;
 }
+/** Cool moonlit rim light so characters read clearly against the snow. */
+function addRim(m) {
+  m.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>',
+      'outgoingLight += vec3(.2,.27,.42) * pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0);\n#include <opaque_fragment>');
+  };
+  m.customProgramCacheKey = () => 'rim';
+}
 let iceMat = null;
 export function makeChar(role, {iceMaterial} = {}) {
   const L = LOOKS[role]; const src = SRC[L.file];
@@ -114,7 +122,7 @@ export function makeChar(role, {iceMaterial} = {}) {
         if (L.tint) m.color.multiply(new THREE.Color(L.tint)); if (L.emissive) { m.emissive = new THREE.Color(L.emissive); m.emissiveIntensity = 1; }
       }
       m.userData.baseEmissive = m.emissive ? m.emissive.clone() : new THREE.Color(0);
-      seen.set(m0, m); mats.push(m);
+      addRim(m); seen.set(m0, m); mats.push(m);
     }
     if (L.ice && o.name === '2H_Axe' && iceMaterial) o.material = iceMaterial; else o.material = m;
   });
