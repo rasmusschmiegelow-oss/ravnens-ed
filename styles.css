@@ -170,3 +170,5 @@ h2{font-size:32px;color:var(--gold2)} h3{font-size:21px}
 .invbtn.on{border-color:var(--gold2);box-shadow:inset 0 0 0 1px var(--gold)}
 .invbtn .tag{font-family:var(--display);font-size:13px;letter-spacing:.08em;color:var(--gold);white-space:nowrap}
 .invbtn:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+
+#hurtFx{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(150,10,5,.55) 100%)}

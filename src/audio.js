@@ -125,6 +125,10 @@ export function sfx(k) {
       case 'chest': sample('metalLatch', .9); sample('creak', .6, 1.2, .2); break;
       case 'pickup': sample('dropLeather', .8) || tone('sine', 880, 0, .2, .05); break;
       case 'page': sample('bookFlip', .5); break;
+      case 'dodge': noise(.35, 'bandpass', 2400, 600, .25); [880, 1320, 1760].forEach((f, i) => tone('sine', f, 0, .8, .04, i * .05)); break;
+      case 'parry': sample('impactMetal_medium', 1, 1.25); sample('impactBell_heavy', .55, 1.6); tone('square', 2100, 1400, .25, .05); break;
+      case 'warn': tone('sawtooth', 98, 70, .7, .16); tone('sawtooth', 147, 104, .7, .1); noise(.5, 'lowpass', 600, 150, .25); break;
+      case 'heart': tone('sine', 62, 40, .14, .45); tone('sine', 58, 38, .14, .35, .2); break;
       case 'step': sample('footstep_snow', .35) || noise(.06, 'lowpass', 500, 200, .05); break;
     }
   } catch (e) {}
