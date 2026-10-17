@@ -36,10 +36,11 @@ const ui = await page.evaluate(async () => {
   openRest(0); await W(100); r.talents = document.querySelectorAll('#rTalents .tcard').length; document.getElementById('restLeave').click();
   // weapon art, a boss intro (skipped with a key) and the switch to the second act
   const until = async (f, ms = 4000) => { for (let t = 0; t < ms && !f(); t += 50) await W(50); return !!f(); };
-  P.st = maxSt(); buf = {k: 'art', t: G.time}; r.art = await until(() => (P.artUses || 0) > 0);
+  P.st = maxSt(); buf = {k: 'art', t: G.time}; r.art = await until(() => (P.artUses || 0) > 0, 15000);
   const j = G.enemies.find(e => e.boss === 'jarl'); P.x = j.x + 150; P.y = j.y;
-  r.intro = await until(() => G.state === 'cine') && await until(() => !document.getElementById('bossCard').hidden);
-  dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 1000); r.afterIntro = G.state;
+  // the CI browser renders in software and runs at a few frames per second, so allow plenty of time
+  r.intro = await until(() => G.state === 'cine', 20000) && await until(() => !document.getElementById('bossCard').hidden, 20000);
+  dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 10000); r.afterIntro = G.state;
   G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
   return r;
 });
