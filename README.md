@@ -42,14 +42,39 @@ python3 tools/serve.py
 
 ## Opbygning
 
-- `index.html` – sidens opmærkning, HUD og menuer
-- `styles.css` – al styling
-- `src/main.js` – verden, kamp, dialog, udstyr og spilforløb (Three.js 0.160 via CDN)
-- `src/models.js` – indlæsning af figurer, bygninger og animationer
-- `src/audio.js` – musik, lydeffekter og syntetiseret vind
-- `tools/` – lokal testserver og hjælpere til at hente CC0-aktiver (itch.io, Poly Pizza, Google Drive)
-- `assets/` – figurer, bygninger, musik, lyd og teksturer (se `assets/CREDITS.md`)
-- Tilføj `?dev` til adressen for et udviklerhåndtag (`window.__rv`)
+- `index.html` – sidens opmærkning, HUD og menuer · `styles.css` – al styling
+- `src/main.js` – opstart: indlæser Three.js (0.160 via CDN) og modulerne og kører derefter spilfilerne i rækkefølge
+- `src/models.js` – figurer, bygninger og animationer (ES-modul)
+- `src/audio.js` – musik, lydeffekter og syntetiseret vind (ES-modul)
+- `src/game/` – selve spillet, delt efter emne. Filerne deler ét globalt scope (fx `G`, `P`, `scene`) og indlæses i denne rækkefølge:
+
+| Fil | Indhold |
+| --- | --- |
+| `util-world.js` | hjælpefunktioner, verdenskort, højdekort, kollisionsobjekter, kister |
+| `render.js` | renderer, efterbehandling, grafikindstillinger, himmel, lys, materialer, terræn |
+| `world-build.js` | træer, sten, græs, bygninger, runesten, krypten |
+| `effects.js` | partikler, spor på jorden, snefald |
+| `characters.js` | figurbygning og animationstabeller |
+| `state.js` | klasser, fjender, udstyr, spawn-steder, kollision, beskeder |
+| `player.js` | spillerens handlinger, skade, parade, ledsageren |
+| `enemies.js` | fjende-AI, bosser, angrebsvarsler, projektiler |
+| `world-life.js` | interaktion, dyr og landsbyfolk, låsning, kister, rejser |
+| `dialogue.js` | samtaler og terningeslag |
+| `progress.js` | hvil, niveauer, gem/indlæs, spilforløb, karakteroprettelse |
+| `input-camera.js` | tastatur, mus og kamera |
+| `sync-hud.js` | animation af figurer, HUD, minikort, musikskift |
+| `loop.js` | hovedløkken og titelskærmen |
+| `devtools.js` | spiltest-bot og udviklerhåndtag (kun med `?dev`) |
+| `start.js` | starter løkken og indlæser aktiver |
+
+## Spiltest
+
+Åbn spillet med `?dev` i adressen og kør i konsollen:
+
+```js
+__rv.simAll(6)   // alle klasser mod alle fjender og grupper, 6 kampe hver
+__rv.bench(30)   // gennemsnitlig tid pr. billede i ms
+```
 
 ## Udgivelse
 
