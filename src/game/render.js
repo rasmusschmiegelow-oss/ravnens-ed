@@ -52,10 +52,10 @@ function applyGfx(q){
 addEventListener('resize',onResize);
 
 // --- Sky with aurora, stars and moon
-const skyUniforms={uTime:{value:0},uAsh:{value:0}};
+const skyUniforms={uTime:{value:0},uAsh:{value:0},uAur:{value:.8}};
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyUniforms,
   vertexShader:`varying vec3 vDir;void main(){vDir=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;}`,
-  fragmentShader:`uniform float uTime;uniform float uAsh;varying vec3 vDir;
+  fragmentShader:`uniform float uTime;uniform float uAsh;uniform float uAur;varying vec3 vDir;
   float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
@@ -67,7 +67,7 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
     if(y>0.){vec2 uv=d.xz/(y+.18);float a=0.;
       for(int i=0;i<3;i++){float fi=float(i);float wav=uv.y+.35*sin(uv.x*1.3+uTime*.07+fi*2.)+.15*sin(uv.x*3.1-uTime*.11)-.5+fi*.45;
         float band=exp(-wav*wav*5.);float cur=fbm(vec2(uv.x*2.2+fi*7.,uTime*.05+fi))*.8+.2;float rays=.6+.4*n2(vec2(uv.x*16.+uTime*.3,fi));a+=band*cur*rays;}
-      vec3 ac=mix(vec3(.15,1.,.62),vec3(.55,.3,1.),smoothstep(.15,.65,y));col+=ac*a*.55*smoothstep(.0,.22,y);}
+      vec3 ac=mix(vec3(.15,1.,.62),vec3(.55,.3,1.),smoothstep(.15,.65,y));col+=ac*a*.55*smoothstep(.0,.22,y)*(uAur/.8);}
     vec3 md=normalize(vec3(-.35,.42,-.84));float m=dot(d,md);col+=vec3(1.,.98,.92)*1.6*smoothstep(.99935,.99965,m)+vec3(.35,.45,.7)*pow(max(m,0.),300.)*.5+vec3(.2,.25,.4)*pow(max(m,0.),20.)*.12;
     if(uAsh>0.){ // Askefjorden: a sky of smoke lit red from below, with drifting embers instead of an aurora
       vec2 su=d.xz/(abs(y)+.25);float sm=fbm(su*1.3+vec2(uTime*.02,uTime*.013));

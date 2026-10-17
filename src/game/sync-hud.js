@@ -163,7 +163,7 @@ scene.background=scene.fog.color;
 function ambientFX(dt){
   const inC=!!P&&inCrypt(P.x,P.y); G.cryptK=lerp(G.cryptK||0,inC?1:0,Math.min(1,dt*(inC?6:2))); const ck=G.cryptK;
   const ak=ashK(P?P.x:G.camLook.x/S); G.ashK=lerp(G.ashK??ak,ak,Math.min(1,dt*1.5)); const aK=G.ashK; skyUniforms.uAsh.value=aK;
-  hemi.intensity=lerp(lerp(.62,.6,aK),.2,ck); moon.intensity=lerp(lerp(1.45,1.1,aK),.03,ck); scene.fog.density=lerp(lerp(.0135,.017,aK),.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
+  hemi.intensity=lerp(lerp(.62,.6,aK),.2,ck); moon.intensity=lerp(lerp(1.45,1.1,aK),.03,ck); scene.fog.density=lerp(lerp(.0135,.017,aK)*WXK.fog,.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
   hemi.color.copy(ASHC.hemi0).lerp(ASHC.hemi,aK); hemi.groundColor.copy(ASHC.hemiG0).lerp(ASHC.hemiG,aK); moon.color.copy(ASHC.moon0).lerp(ASHC.moon,aK);
   snow.material.color.copy(ASHC.snow0).lerp(ASHC.snow,aK); snow.material.opacity=.85-aK*.3;
   scene.fog.color.copy(NIGHT_FOG).lerp(ASHC.fog,aK).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>{m.m.visible=ck<.5;m.m.material.color.copy(ASHC.mist0).lerp(ASHC.mist,aK);});
@@ -243,6 +243,7 @@ function drawMini(){
   mctx.fillStyle='#d4ae55';mctx.font='22px "IM Fell English SC", Georgia';mctx.textAlign='center';mctx.fillText('N',W/2,24);
 }
 function objective(){const f=G.flags;
+  if(G.mode==='valhalla') return ['Valhalla · bølge '+VH.wave,VH.active?'Fjender tilbage: '+G.enemies.filter(e=>!e.dead).length:'Vælg en gave fra guderne'];
   if(f.jotunDone&&!f.act2) return ['Fimbulvinteren er brudt',''];
   if(f.act2){
     const n=Object.keys(f.beacons||{}).length, opt=f.q_varder&&!f.vardeDone?(n<3?`Valgfrit: Tænd varderne (${n} af 3)`:'Valgfrit: Fortæl Ragna, at varderne brænder'):f.q_sindri&&!f.sindriDone?(f.muspelsten?'Valgfrit: Bring Muspelstenen til Sindri':'Valgfrit: Find Muspelstenen ved lavasøen mod sydøst'):'';
@@ -289,6 +290,7 @@ function updMusic(dt){
   if(!P||P.dead) return;
   const b=G.boss&&!G.boss.dead?G.boss:null;
   if(b) return music(b.phase2?'boss2':b.t==='jotun'||b.t==='surt'?'jotun':'jarl');
+  if(G.mode==='valhalla') return music(VH.wave>=10?'boss2':'jarl');
   if(inAsh(P.x)) return music(Math.hypot(P.x-4350,P.y-2380)<330?'village':'ash');
   const home=Math.hypot(P.x-1800,P.y-2380)<620||Math.hypot(P.x-1450,P.y-1850)<260;
   music(home?'village':'wild');

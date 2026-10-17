@@ -9,6 +9,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=IM+Fell+English+SC&family=Noto+Sans+Runic&display=swap">
 <link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0f14">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -26,7 +31,7 @@
   </div>
   <div class="hud-tr">
     <canvas id="mini" width="340" height="340"></canvas>
-    <div class="obj"><div class="eyebrow">Mål</div><div id="hObj"></div><div class="mute small" id="hOpt"></div></div>
+    <div class="obj"><div class="eyebrow">Mål</div><div id="hObj"></div><div class="mute small" id="hOpt"></div><div class="mute small wx" id="hWx"></div></div>
   </div>
   <div class="hud-bl">
     <div class="slot" id="slFlask">
@@ -40,9 +45,24 @@
   <div class="boss" id="hBoss" hidden><div id="bossName"></div><div class="bar boss"><i class="lag" id="bossLag"></i><i class="fill" id="bossFill"></i></div><div class="bar poise" id="bossPoiseBar"><i class="fill" id="bossPoise"></i></div></div>
 </div>
 <div id="prompt" hidden></div>
+<div id="touchUI" hidden>
+  <div id="tStick"><i id="tKnob"></i></div>
+  <div id="tBtns">
+    <button type="button" class="tb big" data-a="lmb" aria-label="Let angreb">ᛏ</button>
+    <button type="button" class="tb" data-a="rmb" aria-label="Tungt angreb eller blok">ᛒ</button>
+    <button type="button" class="tb" data-a="roll" aria-label="Rul">Rul</button>
+    <button type="button" class="tb" data-a="heal" aria-label="Drik mjød">Mjød</button>
+    <button type="button" class="tb" data-a="special" aria-label="Klasse-evne">Evne</button>
+    <button type="button" class="tb" data-a="art" aria-label="Våbenkunst">Kunst</button>
+    <button type="button" class="tb" data-a="interact" aria-label="Interagér">E</button>
+    <button type="button" class="tb" data-a="lock" aria-label="Lås på fjende">Lås</button>
+  </div>
+  <div id="tTop"><button type="button" class="tb sm" data-a="journal" aria-label="Dagbog">ᛃ</button><button type="button" class="tb sm" data-a="pause" aria-label="Pause">II</button></div>
+</div>
 <div id="toasts"></div>
 <div id="banner" hidden><div id="bannerT"></div><div id="bannerS"></div></div>
 <div id="fade"></div>
+<div id="flash"></div>
 <div id="hurtFx"></div>
 <div id="deathScr" hidden><div>DU ER FALDET</div></div>
 <div id="bossCard" hidden><div class="bc-line"></div><div id="bcName"></div><div id="bcSub"></div><div class="bc-line"></div><div id="bcQuote"></div></div>
@@ -61,6 +81,7 @@
     <div class="t-btns">
       <button class="btn" id="bNew">Nyt eventyr</button>
       <button class="btn" id="bCont" hidden>Fortsæt</button>
+      <button class="btn ghost" id="bValhalla">Valhalla</button>
       <button class="btn ghost" id="bSet">Indstillinger</button>
     </div>
     <div class="t-foot" id="touchNote" hidden>Spillet styres med tastatur og mus. Brug en computer for at spille.</div>
@@ -177,13 +198,40 @@
   </div>
 </section>
 
+<section id="vhMenu" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Valhalla</div><h2>Kæmp blandt de faldne</h2></div>
+    <p class="mute" style="margin:0">Bølge efter bølge af fjender i Jötunarenaen. Hver femte bølge træder en helt frem fra de ni verdener. Mellem bølgerne giver guderne dig en gave. Du starter som en erfaren kriger på niveau 10.</p>
+    <div class="mute small" id="vhBest"></div>
+    <div class="cards" id="vhCls"></div>
+    <div><button class="btn ghost" id="vhBack">Tilbage</button></div>
+  </div>
+</section>
+
+<section id="boon" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow" id="boonWave"></div><h2>Vælg en gave fra guderne</h2></div>
+    <div class="cards" id="boonOpts"></div>
+  </div>
+</section>
+
+<section id="vhEnd" class="ov" hidden>
+  <div class="panel end">
+    <div class="eyebrow">Valhalla</div>
+    <h2 id="vhResult"></h2>
+    <div class="kv" id="vhStats" style="justify-content:center"></div>
+    <div class="end-btns"><button class="btn" id="vhAgain">Prøv igen</button><button class="btn ghost" id="vhQuit">Til titelskærmen</button></div>
+  </div>
+</section>
+
 <section id="end" class="ov" hidden>
   <div class="panel end">
     <div class="eyebrow" id="endEy"></div>
     <h2 id="endT"></h2>
     <p id="endP"></p>
     <div class="kv" id="endStats" style="justify-content:center"></div>
-    <button class="btn" id="endGo">Til titelskærmen</button>
+    <div class="end-btns"><button class="btn" id="endNG">Ny runde+</button><button class="btn ghost" id="endGo">Til titelskærmen</button></div>
+    <p class="mute small" id="endNGTxt">Ny runde+ starter forfra med dit niveau, dine evner og dit udstyr. Fjenderne har mere liv og slår hårdere, bosserne skifter tidligere til anden fase, og runerne er flere.</p>
   </div>
 </section>
 

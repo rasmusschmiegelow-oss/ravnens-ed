@@ -50,7 +50,7 @@ jobs:
       - name: Pak siden (uden test- og værktøjsfiler)
         run: |
           mkdir _site
-          cp -r index.html styles.css src assets .nojekyll _site/
+          cp -r index.html styles.css manifest.webmanifest sw.js icons src assets .nojekyll _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

@@ -29,7 +29,7 @@ const ARTS={
   galdrestav:{name:'Seiðstråle',cd:10,st:30,anim:'1H_Ranged_Shooting',desc:'En stråle af seiðr, der brænder alt på en lige linje.'},
 };
 const artKey=()=>G.eq&&G.eq.arm&&ARTS[G.eq.arm]?G.eq.arm:P.cls;
-const artCd=()=>ARTS[artKey()].cd*(eqHas('garmtand')?.7:1);
+const artCd=()=>ARTS[artKey()].cd*(eqHas('garmtand')?.7:1)*G.vb.cd;
 const FATAL={berserker:['2H_Melee_Attack_Stab',30],tvilling:['Dualwield_Melee_Attack_Stab',24],skjoldmo:['1H_Melee_Attack_Stab',27],langsvaerd:['2H_Melee_Attack_Stab',34],volve:['2H_Melee_Attack_Stab',24],galdrestav:['1H_Melee_Attack_Stab',22]};
 const RUNEB=[];
 const BEAM=new THREE.Mesh(new THREE.BoxGeometry(1,.14,.14),glowMat(new THREE.Color(1.2,2.6,4.2))); BEAM.visible=false; scene.add(BEAM);
@@ -48,7 +48,7 @@ function weaponArt(){
   const p=P,k=artKey(),A0=ARTS[k],fx=Math.cos(p.face),fy=Math.sin(p.face);
   if(p.artT>0){toast(A0.name+' er ikke klar endnu.');return true;}
   if(p.st<A0.st*.5) return false;
-  spend(A0.st); p.artT=artCd(); p.artUses=(p.artUses||0)+1;
+  spend(A0.st); p.artT=artCd(); p.artUses=(p.artUses||0)+1; metaInc('arts');
   const act={kind:'art',anim:A0.anim,t:0,move:0};
   if(k==='berserker'){p.dash={dx:fx,dy:fy,sp:300,t:.36};p.iframes=Math.max(p.iframes,.3);
     Object.assign(act,{dur:.8,hit:.42,fit:.8,fn:()=>{const cx=p.x+fx*28,cy=p.y+fy*28;swipe(cx,cy,0,TAU,96,0xffc080,.3,.3);
@@ -86,7 +86,7 @@ function beamTick(){
 function tryAction(k,ix,iy){
   const p=P;
   if(k==='art') return weaponArt();
-  if(k==='roll'){ if(p.st<=0) return false; spend((eqHas('ravnefjer')?12:20)*(T('b_storm')?.7:1)); if(T('b_storm'))p.stormT=1.2; let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollStart=G.time;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
+  if(k==='roll'){ if(p.st<=0) return false; spend((eqHas('ravnefjer')?12:20)*(T('b_storm')?.7:1)*G.vb.roll); if(T('b_storm'))p.stormT=1.2; let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollStart=G.time;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
     const gy=groundY(p.x,p.y); burst(p.x*S,gy+.1,p.y*S,14,2.2,.7,.5,.85,.9,1,{sys:FXN,up:.5,grav:1,drag:3,alpha:.5,grow:2}); return true;}
   if(k==='heal'){ if(p.flasks<=0){toast('Mjødhornet er tomt. Hvil ved en runesten.');return true;}
     p.act={kind:'heal',t:0,dur:1,hit:.6,move:.35,fn:()=>{p.flasks--;G.tutHealed=true;const h=Math.round(maxHp()*(eqHas('vardeflamme')?.55:.45));p.hp=Math.min(maxHp(),p.hp+h);num(p.x,p.y,'+'+h,'heal');sfx('drink');
@@ -161,12 +161,12 @@ function hurt(tg,dmg,fx,fy,src=null,unblock=false,soft=false){ if(tg===P) hurtPl
 function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
   const p=P; if(p.dead||G.state!=='play') return;
   // perfect dodge: the blow lands in the first moments of a roll
-  if(p.iframes>0){ if(p.roll>0&&G.time-(p.rollStart||0)<.2&&!p.perfectT){p.perfectT=.6;G.slowmo=.45;p.st=Math.min(maxSt(),p.st+25);num(p.x,p.y,'Undveget','heal');sfx('dodge');burst(p.x*S,groundY(p.x,p.y)+1,p.y*S,26,3,.6,.25,.8,1.4,2.4,{grav:-1});} return; }
+  if(p.iframes>0){ if(p.roll>0&&G.time-(p.rollStart||0)<.2&&!p.perfectT){p.perfectT=.6;G.slowmo=.45;metaInc('dodges');p.st=Math.min(maxSt(),p.st+25);num(p.x,p.y,'Undveget','heal');sfx('dodge');burst(p.x*S,groundY(p.x,p.y)+1,p.y*S,26,3,.6,.25,.8,1.4,2.4,{grav:-1});} return; }
   const facing=Math.abs(angDiff(Math.atan2(fy-p.y,fx-p.x),p.face))<1.35;
   // parry: block pressed just before the hit
   if(p.cls==='skjoldmo'&&p.blocking&&facing&&!unblock&&!soft&&(G.time-(p.blockStart||-9)<(T('s_vindue')?.33:.22)||p.parryOpenT>0)){
     if(T('s_sang')){const h=Math.round(maxHp()*.06);p.hp=Math.min(maxHp(),p.hp+h);}
-    sfx('parry');G.slowmo=.35;G.shake=.25;num(p.x,p.y,'Parade!','crit');
+    sfx('parry');G.slowmo=.35;G.shake=.25;num(p.x,p.y,'Parade!','crit');metaInc('parries');
     burst((p.x+Math.cos(p.face)*16)*S,groundY(p.x,p.y)+1.1,(p.y+Math.sin(p.face)*16)*S,40,6,.5,.2,3,2.4,1.2,{grav:6});
     if(src&&!src.dead&&!src.boss){cancelAttacks(src);src.stun=1.6;src.parried=1.6;src.broken=1.6;src.stunId=(src.stunId||0)+1;}
     else if(src&&!src.dead){src.parried=.9;src.stun=Math.max(src.stun,.35);}
@@ -178,10 +178,11 @@ function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
       p.st-=dmg*.95*(T('s_jern')?.6:1);sfx('block');burst((p.x+Math.cos(p.face)*14)*S,groundY(p.x,p.y)+1,(p.y+Math.sin(p.face)*14)*S,18,4,.35,.15,3,2.4,1.2,{grav:9});
       if(p.st<=0){p.st=0;p.stagger=.7;dmg*=.5;toast('Din garde er brudt');}else{dmg*=.12;}
       p.stDelay=.6;}}
-  dmg*=DIFF[SET.diff].dmg;
+  dmg*=DIFF[SET.diff].dmg*(1+.35*(G.ng||0))*(G.mode==='valhalla'?G.vScaleD||1:1);
   if(eqHas('brynje')) dmg*=.85;
   if(eqHas('lindskael')) dmg*=.8;
   if(eqHas('askebrynje')) dmg*=.75;
+  dmg*=G.vb.def;
   dmg=Math.round(dmg); if(dmg<=0) return;
   p.hp-=dmg; p.iframes=.22; p.hitId=(p.hitId||0)+1; num(p.x,p.y,dmg,'hurt');
   if(dmg>6&&!soft&&!(p.act&&p.act.armor)){p.stagger=Math.max(p.stagger,.2);if(p.act&&p.act.kind!=='heavy'&&p.act.kind!=='crit')p.act=null;}

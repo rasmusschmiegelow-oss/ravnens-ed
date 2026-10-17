@@ -14,6 +14,7 @@ const SIM_STAGES={
   H:{lvl:18,wpn:6,gear:['vardeflamme','askebrynje','garmtand','tyrsrune'],foes:['surt']},
 };
 function simSetup(cls,st){
+  G.ng=0; G.mode=null; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
   newPlayer(cls,{...CLASSES[cls].base},'Bot'); P.level=st.lvl;
   const main=cls==='berserker'?'sty':cls==='volve'?'vil':'smi';
   for(let i=1;i<st.lvl;i++){ if(i%3===0) P.stats.smi++; else if(cls==='skjoldmo'&&i%2) P.stats.sty++; else P.stats[main]++; }
@@ -188,7 +189,7 @@ function campaign(cls,opts={}){
     return false;
   };
   try{
-    newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.hp=maxHp();P.st=maxSt();P.flasks=maxFlasks(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
+    G.ng=0; G.mode=null; newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.hp=maxHp();P.st=maxSt();P.flasks=maxFlasks(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
     for(const s of ROUTE){
       const where=JSON.stringify(s);
       if(s.talk){D[s.talk]();

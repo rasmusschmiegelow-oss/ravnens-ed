@@ -24,7 +24,7 @@ let tutLast=null;
 function updTutorial(){
   if(!P||G.sim) return;
   if(tutLast) G.tutMoved=(G.tutMoved||0)+Math.hypot(P.x-tutLast.x,P.y-tutLast.y); tutLast={x:P.x,y:P.y};
-  if(G.state!=='play'||!SET.hints||P.dead){hideHint();return;}
+  if(G.state!=='play'||!SET.hints||P.dead||G.mode==='valhalla'){hideHint();return;}
   const done=G.flags.tut=G.flags.tut||{};
   for(const s of TUT){ if(!done[s.id]&&s.done()){done[s.id]=true;if(hintId===s.id)hideHint();} }
   const next=TUT.find(s=>!done[s.id]&&(!s.when||s.when()));

@@ -31,8 +31,8 @@ function renderRest(){
 }
 $('restLeave').addEventListener('click',()=>{$('rest').hidden=true;G.state='play';});
 const SAVE_KEY='ravnensEd.v1';
-function makeSave(){return{name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq,talents:P.talents||[]};}
-function saveGame(){if(G.sim)return;if(!P||G.flags.surtDone)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSave()));}catch(e){}}
+function makeSave(){return{ng:G.ng||0,name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq,talents:P.talents||[]};}
+function saveGame(){if(G.sim)return;saveMeta();if(G.mode==='valhalla')return;if(!P||G.flags.surtDone)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSave()));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 
@@ -44,11 +44,11 @@ function resetRun(){
   for(const id in CHEST_M){const m=CHEST_M[id];m.opening=false;m.open=0;if(m.lid)m.lid.rotation.x=0;}
   RUNESTONES.forEach(r=>{r.lit=r.id===0;RS_MESH[r.id].mat.emissiveIntensity=r.lit?2.6:0;RS_MESH[r.id].light.intensity=r.lit?22:0;});
   GATE.gone=false;G.gateAnim=null;gateDoors.forEach(d=>d.hinge.rotation.y=0);
-  setIceWall(false,true); setFireGate(false,true); resetBeacons();
+  setIceWall(false,true); setFireGate(false,true); resetBeacons(); G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
   if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true;
 }
 function beginGame(fromSave){
-  resetRun();
+  resetRun(); G.ng=fromSave&&fromSave.ng||0; G.mode=null;
   if(fromSave){const s=fromSave;newPlayer(s.cls,s.stats,s.name);P.level=s.level;P.runes=s.runes;Object.assign(G.flags,s.flags||{});G.weaponLvl=s.weaponLvl||0;G.extraFlasks=s.extraFlasks||0;G.discount=s.discount||1;G.lastRS=s.lastRS||0;G.stain=s.stain||null;G.deaths=s.deaths||0;G.play=s.play||0;G.inv=s.inv||[];G.eq=s.eq||{weapon:null,armor:null,t1:null,t2:null};
     (s.lit||[]).forEach((l,i)=>{RUNESTONES[i].lit=l;RS_MESH[i].mat.emissiveIntensity=l?2.6:0;RS_MESH[i].light.intensity=l?22:0;});
     for(const id in (G.flags.chests||{})){const m=CHEST_M[id];if(m){m.open=1;if(m.lid)m.lid.rotation.x=-1.9;}}
@@ -61,14 +61,16 @@ function beginGame(fromSave){
   if(!fromSave){P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();}
   resetWorld();
   $('title').hidden=true;$('create').hidden=true;$('hud').hidden=false;
-  $('hName').textContent=P.name;$('specName').textContent=CLASSES[P.cls].special;$('specIco').innerHTML=CLASSES[P.cls].ico;
+  $('hName').textContent=P.name+(G.ng?` · Ny runde+${G.ng>1?' '+G.ng:''}`:'');$('specName').textContent=CLASSES[P.cls].special;$('specIco').innerHTML=CLASSES[P.cls].ico;
   G.state='play';snapCam();audioInit();
   if(!fromSave){banner('RAVNSHOLM','Midgard · det tredje år af Fimbulvinteren');setTimeout(()=>toast('Tal med Gamle Ulfr ved runestenen (E)'),3600);}
+  else if(fromSave.ngStart){banner('NY RUNDE+'+(G.ng>1?' '+G.ng:''),'Fjenderne er stærkere. Det er du også.');setTimeout(()=>toast('Tal med Gamle Ulfr ved runestenen (E)'),3600);}
   else toast('Velkommen tilbage, '+P.name);
   applyWeaponLook();
 }
 function toTitle(){
   $('pause').hidden=true;$('end').hidden=true;$('hud').hidden=true;$('rest').hidden=true;$('deathScr').hidden=true;$('prompt').hidden=true;dlgEl.hidden=true;$('letterbox').classList.remove('on');
+  G.mode=null; G.ng=0; ['boon','vhMenu','vhEnd'].forEach(id=>$(id).hidden=true);
   clearEnemies(); if(PM){scene.remove(PM.root);PM=null;} if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true; P=null;
   G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!loadSave();
   for(const n of NUMS)n.el.remove();NUMS.length=0;
@@ -102,6 +104,14 @@ function showEnd(){
   $('end').hidden=false;$('endGo').focus({preventScroll:true});
 }
 $('endGo').addEventListener('click',toTitle);
+/** New Game+: the same hero, level, talents and gear, a fresh world with stronger foes. */
+function startNGPlus(){
+  const intros={}; for(const k in G.flags) if(k.startsWith('intro_')) intros[k]=true;
+  const s={ngStart:true,ng:(G.ng||0)+1,name:P.name,cls:P.cls,stats:{...P.stats},level:P.level,runes:0,flags:intros,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:1,lastRS:0,
+    lit:RUNESTONES.map(r=>r.id===0),stain:null,deaths:0,play:0,inv:[...(G.inv||[])],eq:{...G.eq},talents:[...(P.talents||[])]};
+  $('end').hidden=true; metaInc('ngStarts'); beginGame(s); saveGame();
+}
+$('endNG').addEventListener('click',startNGPlus);
 
 /* --- Character creation */
 let crCls='berserker', crPts=3, crStats={};

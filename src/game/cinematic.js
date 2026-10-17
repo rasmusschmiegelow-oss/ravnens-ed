@@ -56,7 +56,7 @@ function cineCam(dt){
 }
 /** A boss that has just joined the fight gets its intro (once per playthrough). */
 function checkIntros(){
-  if(G.sim||G.state!=='play'||!P||P.dead) return;
+  if(G.sim||G.state!=='play'||!P||P.dead||G.mode==='valhalla') return;
   for(const e of G.enemies){ if(!e.boss||e.dead||e.dormant||!e.aggro||!INTRO[e.boss]||G.flags['intro_'+e.boss]) continue;
     if(Math.hypot(e.x-P.x,e.y-P.y)<760){startIntro(e);return;} }
 }

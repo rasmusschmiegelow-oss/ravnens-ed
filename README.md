@@ -23,6 +23,11 @@ python3 tools/serve.py
 - Balance og brud: slag tærer på fjendens balance, og en fjende med brudt balance kan få et kritisk stød. Rygstød på intetanende fjender
 - Våbenkunst (Q): hvert våben har sin egen, fx Jordkløver, Valkyriestød og Seiðstråle
 - En slutning, der husker dine valg fra begge akter
+- Ny runde+: spil igen med dit niveau og udstyr mod stærkere fjender, hvor bosserne skifter tidligere til anden fase
+- Valhalla-arenaen: bølger af fjender og helte, gaver fra guderne mellem bølgerne og en rekord at slå
+- Levende vejr: klare nordlysnætter, snefald og snestorme i Midgard (fjender ser dig dårligere i stormen), askeregn og askestorme med lyn i Askefjorden
+- 20 bedrifter og et bestiarium i dagbogen, gemt på tværs af gennemløb
+- Touch-styring på mobil og tablet, og spillet kan installeres som app og spilles uden net
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
 - Træer bliver gennemsigtige, når de står mellem kameraet og spilleren
 - Gravkrypten under højen, kister med udstyr og et udstyrsvindue (I)
@@ -86,6 +91,10 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, LB våbenkunst, B rul, 
 | `tutorial.js` | tips de første minutter |
 | `cinematic.js` | bossernes indledninger |
 | `gamepad.js` | controller |
+| `weather.js` | vejr, nordlys, storme og lyn |
+| `achievements.js` | bedrifter og bestiarium |
+| `valhalla.js` | Valhalla-arenaen |
+| `touch.js` | touch-styring |
 | `devtools.js` | spiltest-bot og udviklerhåndtag (kun med `?dev`) |
 | `start.js` | starter løkken og indlæser aktiver |
 

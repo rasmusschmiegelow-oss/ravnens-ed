@@ -27,7 +27,7 @@ const ED={
   lindyngel:{name:'Lindyngel',hp:110,r:13,spd:140,dmg:16,reach:160,runes:60},
   vaette:{name:'Lysvætte',hp:126,r:13,spd:70,dmg:19,reach:380,runes:90},
   lindorm:{name:'Lindormen fra Isfjorden',hp:1725,r:32,spd:96,dmg:40,reach:120,runes:2600,aggro:220},
-  vogter:{name:'Gravvogteren',hp:920,r:22,spd:86,dmg:32,reach:92,runes:1300,aggro:140},
+  vogter:{name:'Gravvogteren',hp:1000,r:22,spd:86,dmg:36,reach:92,runes:1300,aggro:140},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:3600,r:46,spd:64,dmg:54,reach:170,runes:6000},
   // Askefjorden
   askedraugr:{name:'Askedraugr',hp:620,r:15,spd:84,dmg:50,reach:48,runes:300},
@@ -111,17 +111,17 @@ const NPCS=[
   {id:'logi',name:'Logi, Surts herold',x:4880,y:1190,face:Math.PI/2,showIf:()=>G.flags.act2&&!G.flags.logiGone,tall:1},
 ];
 
-const G={state:'loading',flags:{},weaponLvl:0,extraFlasks:0,discount:1,lastRS:0,stain:null,enemies:[],hazards:[],projs:[],fx:[],boss:null,shake:0,time:0,play:0,deaths:0,deadT:0,hitStop:0,slowmo:0,zoom:.35,camPos:new THREE.Vector3(),camLook:new THREE.Vector3(),dlgTarget:null,endT:0};
+const G={state:'loading',flags:{},vb:{dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0},weaponLvl:0,extraFlasks:0,discount:1,lastRS:0,stain:null,enemies:[],hazards:[],projs:[],fx:[],boss:null,shake:0,time:0,play:0,deaths:0,deadT:0,hitStop:0,slowmo:0,zoom:.35,camPos:new THREE.Vector3(),camLook:new THREE.Vector3(),dlgTarget:null,endT:0};
 let P=null, C=null, PM=null, CM=null;
 let buf=null;
 const keys={}, mouse={x:innerWidth/2,y:innerHeight/2,l:false,r:false};
 const mouseW={x:0,y:0};
 
-const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1)*(T('b_hud')?1.15:1)*(eqHas('vardeflamme')?1.15:1));
-const maxSt=()=>Math.round(72+P.stats.smi*4+(eqHas('hrafnring')?10:0));
-const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0);
-const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1);
-function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1)*(eqHas('tyrsrune')?1.3:1)*(eqHas('garmtand')?1.1:1);}
+const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1)*(T('b_hud')?1.15:1)*(eqHas('vardeflamme')?1.15:1)*G.vb.hp);
+const maxSt=()=>Math.round((72+P.stats.smi*4+(eqHas('hrafnring')?10:0))*G.vb.st);
+const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0)+G.vb.flask;
+const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1)*G.vb.cd;
+function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1)*(eqHas('tyrsrune')?1.3:1)*(eqHas('garmtand')?1.1:1)*G.vb.dmg;}
 const lvlCost=L=>Math.floor(130*Math.pow(1.32,L-1));
 
 function newPlayer(cls,stats,name){
@@ -135,7 +135,7 @@ const NPCM={};
 function initNPCs(){NPCS.forEach(n=>{const m=buildNPC(n.id);NPCM[n.id]=m;m.root.position.set(n.x*S,(n.head?ICE_Y+.55:hgt(n.x,n.y)),n.y*S);m.root.rotation.y=-n.face;n.anim={phase:0,move:0,t:Math.random()*5};});}
 
 function spawnEnemy(t,x,y,extra={}){
-  const d=ED[t];const hp0=Math.round(d.hp*DIFF[SET.diff].hp);const e={t,def:d,x,y,home:{x,y},r:d.r,hp:hp0,maxHp:hp0,aggro:false,busy:0,cd:Math.random(),sched:[],face:Math.PI/2,flash:0,stun:0,slow:0,dash:null,dead:false,phase:0,move:0,t0:Math.random()*9,anim:{},...extra};
+  const d=ED[t];const hp0=Math.round(d.hp*DIFF[SET.diff].hp*(1+.6*(G.ng||0))*(G.mode==='valhalla'?G.vScale||1:1));const e={t,def:d,x,y,home:{x,y},r:d.r,hp:hp0,maxHp:hp0,aggro:false,busy:0,cd:Math.random(),sched:[],face:Math.PI/2,flash:0,stun:0,slow:0,dash:null,dead:false,phase:0,move:0,t0:Math.random()*9,anim:{},...extra};
   e.maxPoise=e.poise=Math.round(d.poise||hp0*(e.boss?.6:.75)); e.poiseT=0; e.broken=0;
   e.model=buildEnemyModel(t); G.enemies.push(e); return e;
 }

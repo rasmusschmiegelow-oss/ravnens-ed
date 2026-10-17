@@ -65,6 +65,11 @@ function approve(n,why){
 function openJournal(){
   if(!P) return; G.tutJournal=true; G.state='journal';
   const f=G.flags, el=$('jrBody'); el.innerHTML='';
+  // tabs: quests and notes, achievements, bestiary
+  const tabs=document.createElement('div');tabs.className='segs jtabs';
+  for(const [k,l] of [['q','Opgaver'],['a','Bedrifter'],['b','Bestiarium']]){const b=document.createElement('button');b.type='button';b.className='seg'+((G.jrTab||'q')===k?' on':'');b.textContent=l;b.addEventListener('click',()=>{G.jrTab=k;openJournal();});tabs.appendChild(b);}
+  el.appendChild(tabs);
+  if(G.jrTab==='a'||G.jrTab==='b'){el.insertAdjacentHTML('beforeend',G.jrTab==='a'?achHTML():bestiaryHTML());$('journal').hidden=false;$('jrGo').focus({preventScroll:true});return;}
   const sec=t=>{const h=document.createElement('div');h.className='eyebrow';h.style.marginTop='4px';h.textContent=t;el.appendChild(h);};
   const card=(q)=>{const st=questState(q);const d=document.createElement('div');d.className='jq'+(st.done?' done':'');
     d.innerHTML=`<h3>${q.title}${st.done?' <span class="mute small">· fuldført</span>':''}</h3>`+st.steps.map(s=>`<p class="${s.done(f)?'sd':''}">${typeof s.t==='function'?s.t(f):s.t}</p>`).join('')+(q.end&&q.end(f)?`<p class="mute small">${q.end(f)}</p>`:'');el.appendChild(d);};

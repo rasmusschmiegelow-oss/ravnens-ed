@@ -66,7 +66,7 @@ const nearSnow=new THREE.Points(nearGeo,new THREE.PointsMaterial({size:.32,map:s
 nearSnow.frustumCulled=false; scene.add(nearSnow);
 let wind=0;
 function updateSnow(dt,center,t){
-  wind=Math.sin(t*.13)*2.2+Math.sin(t*.41)*1.2;
+  wind=(Math.sin(t*.13)*2.2+Math.sin(t*.41)*1.2)*WXK.wind+WXK.big*3.5;
   for(let i=0;i<SNOW_N;i++){const s=snowSeed[i];let x=snowPos[i*3],y=snowPos[i*3+1],z=snowPos[i*3+2];
     y-=dt*(1.1+s*1.3); x+=dt*(wind+Math.sin(t*1.3+s*40)*.4); z+=dt*(Math.cos(t*.9+s*30)*.3+.4);
     if(y<0){y+=26;} const dx=x-center.x,dz=z-center.z; if(dx>40)x-=80;else if(dx<-40)x+=80; if(dz>40)z-=80;else if(dz<-40)z+=80;

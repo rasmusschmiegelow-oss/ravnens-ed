@@ -22,8 +22,8 @@ function damageEnemy(e,dmg,o={}){
   dmg*=(.9+Math.random()*.2)*(e.vuln||1);
   // critical hits: a fatal blow on a broken foe, a stab in the back of one that has not seen you, or any blow on a stunned foe
   let crit=false, label='';
-  if(o.fatal){G.fatals=(G.fatals||0)+1;dmg*=(e.boss?2.6:3.6)+(e.parried>0&&T('s_haevn')?1:0);crit=true;label='Kritisk stød';e.broken=0;e.parried=0;e.stun=Math.min(e.stun,.4);}
-  else if(o.back){dmg*=2.5;crit=true;label='Rygstød';}
+  if(o.fatal){G.fatals=(G.fatals||0)+1;metaInc('fatals');dmg*=(e.boss?2.6:3.6)+(e.parried>0&&T('s_haevn')?1:0);crit=true;label='Kritisk stød';e.broken=0;e.parried=0;e.stun=Math.min(e.stun,.4);}
+  else if(o.back){metaInc('backs');dmg*=2.5;crit=true;label='Rygstød';}
   else if(e.stun>0&&!o.stun){crit=true;dmg*=e.parried>0?(T('s_haevn')?3.5:2.5):1.5;if(e.parried>0){e.parried=0;G.hitStop=.12;sfx('heavy');}}
   dmg=Math.round(dmg);
   e.hp-=dmg;e.flash=.13;e.aggro=true;{const st=splatType(e.t);decal(TEX_SPLAT,e.x+rand(-10,10),e.y+rand(-10,10),Math.random()*TAU,.6+Math.random()*.7*(e.r/16),.6+Math.random()*.7*(e.r/16),SPLAT_COL[st],30,st==='blood'?.75:.55);}sfx(e.t==='jotun'||e.t==='lindorm'||e.t==='frostvaette'?'icehit':e.model&&e.model.skel?'bonehit':'hit');
@@ -33,6 +33,7 @@ function damageEnemy(e,dmg,o={}){
   const gy=groundY(e.x,e.y)+(e.boss==='jotun'?4:1);
   burst(e.x*S,gy,e.y*S,10,3,.45,.2,e.t==='jotun'?.6:.3,e.t==='jotun'?1.6:.06,e.t==='jotun'?2.2:.05,{sys:e.t==='jotun'?FXA:FXN,grav:8,alpha:.9});
   burst(e.x*S,gy,e.y*S,6,4,.25,.12,2.5,2,1.2,{grav:10});
+  if(G.vb.leech&&!G.sim) P.hp=Math.min(maxHp(),P.hp+dmg*G.vb.leech);
   if(P.rage>0||T('b_blod')){const h=Math.round(dmg*((P.rage>0?.1:0)+(T('b_blod')?.04:0)));P.hp=Math.min(maxHp(),P.hp+h);}
   if(o.stun){e.stunId=(e.stunId||0)+1;e.stun=Math.max(e.stun,o.stun);cancelAttacks(e);e.busy=0;}
   else if(o.stagger&&!e.boss){cancelAttacks(e);e.busy=.4;e.stunId=(e.stunId||0)+1;}
@@ -52,6 +53,8 @@ function enterPhase2(e,title,sub,cls,glow){
   const gy=groundY(e.x,e.y), c=glow?glow.map(v=>.5+v*5):[2,1,.4];
   for(let i=0;i<120;i++){const a=Math.random()*TAU,s=rand(3,9);FXA.emit(e.x*S,gy+rand(.3,3),e.y*S,Math.cos(a)*s,rand(1,4),Math.sin(a)*s,rand(.6,1.2),rand(.25,.5),c[0],c[1],c[2],1,2,1.5,1);}
 }
+/** New Game+ brings the second phase on earlier. */
+const p2At=()=>G.ng?.62:.5;
 function resetPhase(e){e.phase2=false;if(e.model)for(const m of e.model.mats)if(m.userData.glow0)m.userData.baseEmissive.copy(m.userData.glow0);}
 /** Burning ground that hurts whoever stands in it. */
 function burnAt(x,y,r,life,dps){
@@ -62,13 +65,15 @@ function burnAt(x,y,r,life,dps){
 }
 function fireFx(x,y,n=24){const gy=groundY(x,y);for(let i=0;i<n;i++)FXA.emit(x*S+rand(-.6,.6),gy+rand(0,.6),y*S+rand(-.6,.6),rand(-1.5,1.5),rand(2,6),rand(-1.5,1.5),rand(.4,.9),rand(.25,.55),3,1.1,.25,1,-1,1.2,1);G.shake=Math.max(G.shake,.12);}
 function killEnemy(e){
-  e.dead=true;cancelAttacks(e);P.runes+=e.def.runes;sfx('coins');G.kills=(G.kills||0)+1;
+  e.dead=true;cancelAttacks(e);if(!G.sim)META.kills[e.t]=(META.kills[e.t]||0)+1;P.runes+=Math.round(e.def.runes*(1+.5*(G.ng||0)));sfx('coins');G.kills=(G.kills||0)+1;
   if(e.t==='rimtrold'&&G.flags.q_astrid&&!G.flags.astridRevenge){G.flags.astridRevenge=true;
     if(C&&C.kind==='astrid'&&!C.down&&dist(C,e)<700){G.flags.astridWitnessed=true;approve(2);toast('Astrid: «Far… den er død.» Hun sænker buen længe.');}else{approve(-1);toast('Ny note: Astrid vil gerne høre, at rimtrolden er død.');}}
   const gy=groundY(e.x,e.y);
   for(let i=0;i<(e.boss?160:30);i++)FXA.emit(e.x*S+rand(-.5,.5),gy+rand(.2,e.boss?6:1.6),e.y*S+rand(-.5,.5),rand(-.6,.6),rand(.5,2.5),rand(-.6,.6),rand(1,2.2),rand(.15,.35),2.2,1.6,.6,1,-.4,.6,0);
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
+  if(G.mode==='valhalla'){if(e.boss){G.boss=null;banner('FJENDE FÆLDET',e.def.name);sfx('boom');G.slowmo=1;}}
+  else{
   if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.flags.ring=true;setTimeout(()=>toast('Du fandt en sølvring på jarlens hånd: Hrafnkels ring'),3200);G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
   if(e.boss==='lindorm'){G.flags.lindormDead=true;G.boss=null;banner('FJENDE FÆLDET','Lindormen fra Isfjorden');setTimeout(()=>toast(G.flags.lindormQuest?'Bring nyheden til Jarl Thorgrim i Ravnsholm':'Jarl Thorgrim i Ravnsholm vil gerne høre om dette'),1600);sfx('boom');G.slowmo=1.3;saveGame();}
   if(e.boss==='vogter'){G.flags.vogterDead=true;G.boss=null;banner('FJENDE FÆLDET','Gravvogteren');setTimeout(()=>toast('Vogterens nøgle passer til guldkisten'),1600);sfx('boom');G.slowmo=1.2;saveGame();}
@@ -76,6 +81,7 @@ function killEnemy(e){
   if(e.boss==='glodkaempe'){G.flags.glodDead=true;G.flags.muspelsten=true;G.boss=null;banner('FJENDE FÆLDET','Glødkæmpen');sfx('boom');G.slowmo=1.2;setTimeout(()=>toast('Du fandt Muspelstenen. Sindri i Skjoldvik vil gerne se den.'),1800);saveGame();}
   if(e.boss==='surt'){G.flags.surtDone=true;G.boss=null;banner('SURT ER FÆLDET','Muspelheims ild slukker');sfx('boom');G.slowmo=2.4;G.endT=6;}
   if(e.boss==='jotun'){G.flags.jotunDone=true;G.boss=null;banner('RIMTURSEN ER FÆLDET','Hrimgrimr, Ymirs æt');sfx('boom');G.slowmo=2.2;G.endT=5.5;G.ending='sword';}
+  }
   setTimeout(()=>{scene.remove(e.model.root);},e.boss?4200:2400);
   e.deathT=0;
 }
@@ -93,7 +99,7 @@ function updEnemy(e,dt){
   if(e.dormant) return;
   const dP=dist(e,P);
   if(!e.aggro){
-    if(!P.dead&&dP<(e.def.aggro||(e.boss?340:280))){e.aggro=true;e.returning=false;if(e.t==='wolf')sfx('howl');if(e.model.skel&&!e.awoke&&!e.boss){e.awoke=true;e.busy=1.1;e.cd=Math.max(e.cd,.3);}}
+    if(!P.dead&&dP<(e.def.aggro||(e.boss?340:280))*(e.boss||G.sim?1:WXK.stealth)){e.aggro=true;e.returning=false;if(e.t==='wolf')sfx('howl');if(e.model.skel&&!e.awoke&&!e.boss){e.awoke=true;e.busy=1.1;e.cd=Math.max(e.cd,.3);}}
     else{
       if(e.returning){const a=Math.atan2(e.home.y-e.y,e.home.x-e.x);e.x+=Math.cos(a)*e.def.spd*dt;e.y+=Math.sin(a)*e.def.spd*dt;e.face=a;e.move=1;e.phase+=dt*e.def.spd*.055;e.hp=Math.min(e.maxHp,e.hp+e.maxHp*.2*dt);if(dist(e,e.home)<12)e.returning=false;collide(e);}
       else{e.move=lerp(e.move,0,dt*4);}
@@ -155,7 +161,7 @@ function updEnemy(e,dt){
   for(const o of G.enemies){if(o===e||o.dead)continue;const dx=e.x-o.x,dy=e.y-o.y,m=e.r+o.r;const d2=dx*dx+dy*dy;if(d2<m*m&&d2>.01){const dd=Math.sqrt(d2),push=(m-dd)*.5;e.x+=dx/dd*push;e.y+=dy/dd*push;}}
 }
 function lindormAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*.5){e.phase2=true;e.busy=1.3;banner('Lindormen skriger','Ynglen vågner i isen','frost');sfx('howl');
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Lindormen skriger','Ynglen vågner i isen','frost',[.04,.18,.32]);sfx('howl');
     for(const sg of [-1,1]){const x=e.x+Math.cos(a+sg*1.4)*120,y=e.y+Math.sin(a+sg*1.4)*120;spawnEnemy('lindyngel',x,y,{aggro:true});burst(x*S,groundY(x,y)+1,y*S,40,3,1,.4,.6,1.6,2.4,{grav:1});}
     return;}
   if(e.cd>0){if(d>150)step(a);else step(a+Math.PI/2,.6);return;}
@@ -173,7 +179,7 @@ function lindormAI(e,tg,d,a,step,dm){
 // Brutes: the barrow jarl, the crypt guardian and the ember giant. Sweeps close in, a leaping slam at range,
 // and in the second phase a whirling double spin plus a move of their own.
 function jarlAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*.5){
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){
     if(e.t==='jarl'){enterPhase2(e,'Hrafnkel kalder på sine huskarle','Gravens kulde omslutter ham','frost',[.04,.22,.36]);sfx('horn');
       for(const s of [-1,1]){const x=e.x+Math.cos(a+s*1.6)*90,y=e.y+Math.sin(a+s*1.6)*90;const m=spawnEnemy('minion',x,y,{aggro:true});m.home={x:e.home.x,y:e.home.y};burst(x*S,groundY(x,y)+.5,y*S,40,3,1,.4,.4,1.6,2.4,{grav:1});}}
     else if(e.t==='vogter') enterPhase2(e,'Gravvogteren vågner helt','Sjælene i krypten svarer hans kald','red',[.3,.06,.02]);
@@ -207,7 +213,7 @@ function jarlAI(e,tg,d,a,step,dm){
   } else step(a);
 }
 function jotunAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*.5){e.phase2=true;e.busy=1.4;banner('Rimtursen raser','Isen selv vender sig mod dig','frost');sfx('boom');G.shake=.8;frostRain(e,dm);return;}
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Rimtursen raser','Isen selv vender sig mod dig','frost',[.06,.22,.4]);frostRain(e,dm);return;}
   if(e.cd>0){if(d>150)step(a);return;}
   const r=Math.random(), D=e.def.dmg*dm;
   if(d<210){
@@ -221,7 +227,7 @@ function jotunAI(e,tg,d,a,step,dm){
 }
 /* Garm: a hound the size of a house. Snapping combos, a charging lunge, a tail sweep, and hellfire in phase two. */
 function garmAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*.5){enterPhase2(e,'Garm hyler mod himlen','Helilden vågner i hans strube','red',[.5,.08,.02]);sfx('howl');
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Garm hyler mod himlen','Helilden vågner i hans strube','red',[.5,.08,.02]);sfx('howl');
     {const x=e.x+Math.cos(a+1.5)*110,y=e.y+Math.sin(a+1.5)*110;const w=spawnEnemy('glodulv',x,y,{aggro:true});w.home={x:e.home.x,y:e.home.y};fireFx(x,y,40);}
     return;}
   if(e.cd>0){if(d>210)step(a);else step(a+Math.PI/2*(e.side||1),.7);return;}
@@ -240,7 +246,7 @@ function garmAI(e,tg,d,a,step,dm){
 }
 /* Surt: the fire giant. A burning sword, a slam that sets the ground alight, lines of fire, a leap, and falling fire in phase two. */
 function surtAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*.5){enterPhase2(e,'Surt løfter Ragnaroks flamme','Hele Muspelheim brænder i hans sværd','red',[.55,.18,.02]);
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Surt løfter Ragnaroks flamme','Hele Muspelheim brænder i hans sværd','red',[.55,.18,.02]);
     for(let i=0;i<10;i++){const aa=i/10*TAU;burnAt(e.home.x+Math.cos(aa)*290,e.home.y+Math.sin(aa)*230,60,14,18);}
     return;}
   if(e.cd>0){if(d>170)step(a);return;}

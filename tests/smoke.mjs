@@ -42,10 +42,20 @@ const ui = await page.evaluate(async () => {
   r.intro = await until(() => G.state === 'cine', 20000) && await until(() => !document.getElementById('bossCard').hidden, 20000);
   dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 10000); r.afterIntro = G.state;
   G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
+  // journal tabs, achievements, New Game+ and the Valhalla arena
+  G.jrTab = 'a'; openJournal(); r.ach = document.querySelectorAll('.achrow').length; G.jrTab = 'q'; closeJournal();
+  G.flags.surtDone = true; showEnd(); document.getElementById('endNG').click(); await W(300); r.ng = G.ng === 1 && G.state === 'play';
+  toTitle(); document.getElementById('bValhalla').click(); await W(100); document.querySelector('#vhCls button').click();
+  r.vh = await until(() => VH.wave === 1 && G.enemies.some(e => !e.dead), 20000);
+  for (const e of G.enemies) if (!e.dead) killEnemy(e);
+  r.boon = await until(() => !document.getElementById('boon').hidden, 20000);
+  document.querySelector('#boonOpts button').click(); r.vh2 = await until(() => VH.wave === 2, 20000);
+  toTitle();
+  r.manifest = (await fetch('manifest.webmanifest')).ok && (await fetch('sw.js')).ok;
   return r;
 });
 if (ui.state !== 'play') fail(`Nyt spil endte i tilstanden "${ui.state}" i stedet for "play"`);
-if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
+if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
 else out(`Menuer, dialog og evner virker: ${JSON.stringify(ui)}`);
 
 // 3. Combat balance: every class against every foe and group
