@@ -24,7 +24,7 @@ function updTrail(dt){
   trailGeo.attributes.position.needsUpdate=true; trailGeo.attributes.color.needsUpdate=true; trail.visible=n>1;
 }
 function syncPlayer(dt){
-  if(!P||!PM) return; const p=P, an=PANIM[p.cls];
+  if(!P||!PM) return; const p=P, an=PANIM_ALT[G.eq&&G.eq.arm]||PANIM[p.cls];
   const gy=groundY(p.x,p.y);
   PM.root.position.set(p.x*S,gy,p.y*S);
   PM.root.rotation.y=lerpAng(PM.root.rotation.y,-p.face,Math.min(1,dt*18));
@@ -130,7 +130,7 @@ function syncEnemies(dt){
   G.enemies=G.enemies.filter(e=>!(e.dead&&e.deathT>(e.boss?4:2.2)));
 }
 function syncNPCs(dt){
-  for(const n of NPCS){const m=NPCM[n.id];if(!m)continue;if(n.id==='astrid'&&C)continue;m.root.visible=Math.hypot(n.x-G.camLook.x/S,n.y-G.camLook.z/S)<1500;if(!m.root.visible)continue;n.anim.t+=dt;
+  for(const n of NPCS){const m=NPCM[n.id];if(!m)continue;if(C&&C.kind===n.id){m.root.visible=false;continue;}m.root.visible=Math.hypot(n.x-G.camLook.x/S,n.y-G.camLook.z/S)<1500&&(!n.showIf||!!n.showIf());if(!m.root.visible)continue;n.anim.t+=dt;
     if(!n.head){
       if(P&&dist(P,n)<170){const a=Math.atan2(P.y-n.y,P.x-n.x);m.root.rotation.y=lerpAng(m.root.rotation.y,-a,dt*3);}
     } else {m.root.position.y=ICE_Y+.55+Math.sin(n.anim.t*1.2)*.04;if(P){const a=Math.atan2(P.y-n.y,P.x-n.x);m.root.rotation.y=lerpAng(m.root.rotation.y,-a,dt*2);}}
@@ -139,7 +139,7 @@ function syncNPCs(dt){
   }
   if(C&&CM){
     const gy=groundY(C.x,C.y);CM.root.position.set(C.x*S,gy,C.y*S);CM.root.rotation.y=lerpAng(CM.root.rotation.y,-C.face,Math.min(1,dt*10));
-    let w; if(C.down) w={n:'Death_B',key:'down'+C.downId}; else if(C.cd>.75) w={n:'2H_Ranged_Shoot',key:'sh'+C.shotId,fit:.5}; else if(C.move>.15) w={n:'Running_A',speed:lerp(.8,1.1,C.move)}; else w={n:'Idle'};
+    let w; if(C.down) w={n:'Death_B',key:'down'+C.downId}; else if(C.healT>1.3) w={n:'Spellcast_Long',key:'hl'+C.healId,fit:1}; else if(C.cd>.75) w={n:C.kind==='eir'?'Spellcast_Shoot':'2H_Ranged_Shoot',key:'sh'+C.shotId,fit:.5}; else if(C.move>.15) w={n:'Running_A',speed:lerp(.8,1.1,C.move)}; else w={n:'Idle'};
     drive(CM,w);
   }
   for(const id in NPCM){const m=NPCM[id]; if(m.anim&&m.root.visible) m.anim.update(dt);} if(CM) CM.anim.update(dt);
@@ -236,7 +236,7 @@ function updHUD(dt){
   shownRunes+= (P.runes-shownRunes)*Math.min(1,dt*8); if(Math.abs(P.runes-shownRunes)<1)shownRunes=P.runes;
   const rr=Math.round(shownRunes); if(rr!==lastRunes){$('hRunes').textContent=rr.toLocaleString('da-DK');lastRunes=rr;}
   const [o1,o2]=objective();$('hObj').textContent=o1;$('hOpt').textContent=o2;
-  $('hComp').hidden=!C; if(C)$('cFill').style.width=(C.hp/C.maxHp*100)+'%';
+  $('hComp').hidden=!C; if(C){$('cFill').style.width=(C.hp/C.maxHp*100)+'%';$('hCompName').textContent=compName();}
   const b=G.boss; $('hBoss').hidden=!b||b.dead;
   if(b&&!b.dead){$('bossName').textContent=b.def.name;b.lag=b.lag==null?b.hp:b.lag+(b.hp-b.lag)*Math.min(1,dt*(b.lag>b.hp?1.2:10));$('bossFill').style.width=(b.hp/b.maxHp*100)+'%';$('bossLag').style.width=(b.lag/b.maxHp*100)+'%';}
   const it=G.state==='play'?interactTarget():null; const pe=$('prompt');

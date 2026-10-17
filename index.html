@@ -22,7 +22,7 @@
     <div class="hud-name"><span id="hName"></span> <span class="mute" id="hLvl"></span></div>
     <div class="bar hp" id="hpBar"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div>
     <div class="bar st" id="stBar"><i class="fill" id="stFill"></i></div>
-    <div class="comp" id="hComp" hidden><span>Astrid</span><div class="bar mini"><i class="fill" id="cFill"></i></div></div>
+    <div class="comp" id="hComp" hidden><span id="hCompName">Astrid</span><div class="bar mini"><i class="fill" id="cFill"></i></div></div>
   </div>
   <div class="hud-tr">
     <canvas id="mini" width="340" height="340"></canvas>
@@ -58,6 +58,7 @@
     <div class="t-btns">
       <button class="btn" id="bNew">Nyt eventyr</button>
       <button class="btn" id="bCont" hidden>Fortsæt</button>
+      <button class="btn ghost" id="bSet">Indstillinger</button>
     </div>
     <div class="t-foot" id="touchNote" hidden>Spillet styres med tastatur og mus. Brug en computer for at spille.</div>
     <div class="t-foot">Tastatur og mus · lyd anbefales · <kbd>M</kbd> slår lyden fra</div>
@@ -88,6 +89,7 @@
           <kbd>F</kbd><span>Klasse-evne</span>
           <kbd>E</kbd><span>Tal, hvil, åbn kister, interagér</span>
           <kbd>I</kbd><span>Udstyr</span>
+          <kbd>J</kbd><span>Dagbog med opgaver</span>
           <kbd>Tab / midterknap</kbd><span>Lås fast på en fjende (tryk igen for at skifte)</span>
           <kbd>Hjul</kbd><span>Zoom kameraet</span>
           <kbd>Esc</kbd><span>Pause og karakterark</span>
@@ -127,6 +129,7 @@
     <p class="mute" style="margin:0">Du hviler. Liv, udholdenhed og mjød er fyldt op, og spillet er gemt. De faldne fjender rejser sig igen.</p>
     <div class="stats" id="rStats"></div>
     <div class="kv" id="rDerived"></div>
+    <div id="rTalents"></div>
     <div><div class="eyebrow" style="margin-bottom:6px">Rejs til en tændt runesten</div><div class="travel" id="rTravel"></div></div>
     <div><button class="btn" id="restLeave">Rejs dig</button></div>
   </div>
@@ -141,6 +144,22 @@
   </div>
 </section>
 
+<section id="journal" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Dagbog</div><h2>Hvad du ved</h2></div>
+    <div class="jbody" id="jrBody"></div>
+    <div><button class="btn" id="jrGo">Luk</button></div>
+  </div>
+</section>
+
+<section id="settings" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Indstillinger</div><h2>Lyd, spil og taster</h2></div>
+    <div class="setbody" id="setBody"></div>
+    <div><button class="btn" id="setGo">Tilbage</button></div>
+  </div>
+</section>
+
 <section id="pause" class="ov" hidden>
   <div class="panel pz">
     <div><div class="eyebrow">Pause</div><h2 id="pzName"></h2><div class="mute" id="pzClass"></div></div>
@@ -150,7 +169,7 @@
       <kbd>Venstreklik</kbd><span>Let angreb</span><kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova</span>
       <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / E</kbd><span>Mjød · evne · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Grafik: Høj</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
   </div>
 </section>
 

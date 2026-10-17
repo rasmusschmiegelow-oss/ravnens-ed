@@ -20,25 +20,27 @@ function cancelAttacks(e){e.sched=[];e.dash=null;e.aim=null;e.air=0;e.airT=0;for
 function damageEnemy(e,dmg,o={}){
   if(e.dead) return;
   if(e.dormant) return;
-  dmg=Math.round(dmg*(.9+Math.random()*.2)); const crit=e.stun>0&&!o.stun; if(crit)dmg=Math.round(dmg*(e.parried>0?2.5:1.5)); if(crit&&e.parried>0){e.parried=0;G.hitStop=.12;sfx('heavy');}
+  dmg=Math.round(dmg*(.9+Math.random()*.2)); const crit=e.stun>0&&!o.stun; if(crit)dmg=Math.round(dmg*(e.parried>0?(T('s_haevn')?3.5:2.5):1.5)); if(crit&&e.parried>0){e.parried=0;G.hitStop=.12;sfx('heavy');}
   e.hp-=dmg;e.flash=.13;e.aggro=true;{const st=splatType(e.t);decal(TEX_SPLAT,e.x+rand(-10,10),e.y+rand(-10,10),Math.random()*TAU,.6+Math.random()*.7*(e.r/16),.6+Math.random()*.7*(e.r/16),SPLAT_COL[st],30,st==='blood'?.75:.55);}sfx(e.t==='jotun'||e.t==='lindorm'||e.t==='frostvaette'?'icehit':e.model&&e.model.skel?'bonehit':'hit');
   num(e.x,e.y,dmg,crit?'crit':'');
   const gy=groundY(e.x,e.y)+(e.boss==='jotun'?4:1);
   burst(e.x*S,gy,e.y*S,10,3,.45,.2,e.t==='jotun'?.6:.3,e.t==='jotun'?1.6:.06,e.t==='jotun'?2.2:.05,{sys:e.t==='jotun'?FXA:FXN,grav:8,alpha:.9});
   burst(e.x*S,gy,e.y*S,6,4,.25,.12,2.5,2,1.2,{grav:10});
-  if(P.rage>0){const h=Math.round(dmg*.1);P.hp=Math.min(maxHp(),P.hp+h);}
+  if(P.rage>0||T('b_blod')){const h=Math.round(dmg*((P.rage>0?.1:0)+(T('b_blod')?.04:0)));P.hp=Math.min(maxHp(),P.hp+h);}
   if(o.stun){e.stunId=(e.stunId||0)+1;e.stun=Math.max(e.stun,o.stun);cancelAttacks(e);e.busy=0;}
   else if(o.stagger&&!e.boss){cancelAttacks(e);e.busy=.4;e.stunId=(e.stunId||0)+1;}
   if(o.kb&&!e.boss){const a=Math.atan2(e.y-P.y,e.x-P.x);e.x+=Math.cos(a)*o.kb;e.y+=Math.sin(a)*o.kb;collide(e);}
   if(e.hp<=0) killEnemy(e);
 }
 function killEnemy(e){
-  e.dead=true;cancelAttacks(e);P.runes+=e.def.runes;sfx('coins');
+  e.dead=true;cancelAttacks(e);P.runes+=e.def.runes;sfx('coins');G.kills=(G.kills||0)+1;
+  if(e.t==='rimtrold'&&G.flags.q_astrid&&!G.flags.astridRevenge){G.flags.astridRevenge=true;
+    if(C&&C.kind==='astrid'&&!C.down&&dist(C,e)<700){G.flags.astridWitnessed=true;approve(2);toast('Astrid: «Far… den er død.» Hun sænker buen længe.');}else{approve(-1);toast('Ny note: Astrid vil gerne høre, at rimtrolden er død.');}}
   const gy=groundY(e.x,e.y);
   for(let i=0;i<(e.boss?160:30);i++)FXA.emit(e.x*S+rand(-.5,.5),gy+rand(.2,e.boss?6:1.6),e.y*S+rand(-.5,.5),rand(-.6,.6),rand(.5,2.5),rand(-.6,.6),rand(1,2.2),rand(.15,.35),2.2,1.6,.6,1,-.4,.6,0);
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
-  if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
+  if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.flags.ring=true;setTimeout(()=>toast('Du fandt en sølvring på jarlens hånd: Hrafnkels ring'),3200);G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
   if(e.boss==='lindorm'){G.flags.lindormDead=true;G.boss=null;banner('FJENDE FÆLDET','Lindormen fra Isfjorden');setTimeout(()=>toast(G.flags.lindormQuest?'Bring nyheden til Jarl Thorgrim i Ravnsholm':'Jarl Thorgrim i Ravnsholm vil gerne høre om dette'),1600);sfx('boom');G.slowmo=1.3;saveGame();}
   if(e.boss==='vogter'){G.flags.vogterDead=true;G.boss=null;banner('FJENDE FÆLDET','Gravvogteren');setTimeout(()=>toast('Vogterens nøgle passer til guldkisten'),1600);sfx('boom');G.slowmo=1.2;saveGame();}
   if(e.boss==='jotun'){G.flags.jotunDone=true;G.boss=null;banner('RIMTURSEN ER FÆLDET','Hrimgrimr, Ymirs æt');sfx('boom');G.slowmo=2.2;G.endT=5.5;G.ending='sword';}
@@ -186,7 +188,7 @@ function updProjs(dt){
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     let dead=p.life<=0||blockedPt(p.x,p.y);
     if(!dead){
-      if(p.friendly){for(const e of G.enemies){if(e.dead||e.dormant)continue;if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r){damageEnemy(e,p.dmg,{});dead=true;break;}}}
+      if(p.friendly){for(const e of G.enemies){if(e.dead||e.dormant||(p.hitSet&&p.hitSet.includes(e)))continue;if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r){damageEnemy(e,p.dmg,{});if(p.pierce>0){p.pierce--;(p.hitSet=p.hitSet||[]).push(e);}else dead=true;break;}}}
       else{for(const tg of targets()){if(Math.hypot(tg.x-p.x,tg.y-p.y)<tg.r+p.r){hurt(tg,p.dmg,p.x-p.vx*.1,p.y-p.vy*.1);dead=true;break;}}}
     }
     const gy=groundY(p.x,p.y)+p.h;

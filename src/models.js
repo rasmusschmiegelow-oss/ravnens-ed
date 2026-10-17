@@ -47,6 +47,8 @@ export const LOOKS = {
   stenvaette: {file: 'qGoleling', h: 1.7, qt: true}, stenvaette2: {file: 'qGoleling_Evolved', h: 2.6, qt: true},
   lindyngel: {file: 'qDragon', h: 1.7, qt: true}, lindorm: {file: 'qDragon_Evolved', h: 6.5, qt: true, emissive: 0x081420},
   vaette: {file: 'qTribal', h: 1.7, qt: true, emissive: 0x2a2008},
+  eir: {file: 'Mage', h: 1.74, hide: ['Spellbook', 'Spellbook_open', '1H_Wand', 'Mage_Hat'], tint: 0xf2f0ea},
+  bjorn: {file: 'qHooded_Adventurer', h: 1.8, qt: true, tint: 0xd8c0a0},
   thorgrim: {file: 'qKing', h: 1.9, qt: true}, farmer: {file: 'qFarmer', h: 1.75, qt: true}, worker: {file: 'qWorker', h: 1.75, qt: true},
   guard: {file: 'qAdventurer', h: 1.8, qt: true}, hguard: {file: 'qHooded_Adventurer', h: 1.8, qt: true},
   jotun: {file: 'Barbarian', h: 8.2, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '1H_Axe', 'Mug'], tint: 0xd8f0ff, emissive: 0x1d4f6e, ice: true},

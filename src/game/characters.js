@@ -43,6 +43,11 @@ function drive(m,w){
   if(w.key!==undefined){ if(w.key!==m.lastKey){m.lastKey=w.key;m.anim.play(w.n,{loop:false,fit:w.fit||0,speed:w.speed||1,restart:true,fade:w.fade??.1});} return; }
   m.lastKey=undefined; m.anim.play(w.n,{speed:w.speed||1,fade:w.fade??.2});
 }
+const PANIM_ALT={
+  tvilling:{idle:'Idle',run:'Running_A',atk:['Dualwield_Melee_Attack_Slice','Dualwield_Melee_Attack_Chop'],heavy:'2H_Melee_Attack_Spin',roar:'Cheer',heal:'Use_Item'},
+  langsvaerd:{idle:'2H_Melee_Idle',run:'Running_A',atk:['2H_Melee_Attack_Slice','2H_Melee_Attack_Chop'],heavy:'2H_Melee_Attack_Chop',bash:'Block_Attack',heal:'Use_Item'},
+  galdrestav:{idle:'Idle',run:'Running_B',cast:'1H_Ranged_Shoot',nova:'Spellcast_Long',special:'Spellcast_Raise',heal:'Use_Item'},
+};
 const PANIM={
   berserker:{idle:'2H_Melee_Idle',run:'Running_A',atk:['2H_Melee_Attack_Slice','2H_Melee_Attack_Chop'],heavy:'2H_Melee_Attack_Spin',roar:'Cheer',heal:'Use_Item'},
   skjoldmo:{idle:'Idle',run:'Running_A',atk:['1H_Melee_Attack_Slice_Horizontal','1H_Melee_Attack_Slice_Diagonal'],bash:'Block_Attack',heal:'Use_Item'},

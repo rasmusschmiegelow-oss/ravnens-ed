@@ -21,6 +21,11 @@ python3 tools/serve.py
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
 - Træer bliver gennemsigtige, når de står mellem kameraet og spilleren
 - Gravkrypten under højen, kister med udstyr og et udstyrsvindue (I)
+- Evnetræer for hver klasse og alternative våben med egne angreb (Dvalin smeder dem)
+- Dagbog (J) med hovedopgave, fire sideopgaver med valg og noter
+- To ledsagere: Astrid, der holder øje med dine valg, og helbrederen Eir
+- Indstillinger: lydstyrke, sværhedsgrad (Fortælling/Normal/Hård), skærmrystelse, tips, grafik og egne taster
+- Controller-understøttelse og en kort introduktion med tips undervejs
 - Musik der skifter med område og bosskamp, optagede lydeffekter
 
 ## Styring
@@ -36,6 +41,10 @@ python3 tools/serve.py
 | F | Klasse-evne |
 | E | Tal, hvil, åbn kister, interagér |
 | I | Udstyr |
+| J | Dagbog |
+| Tab | Lås på fjende |
+
+Med controller: RB let angreb, RT tungt angreb, LT blok, B rul, X mjød, Y evne, A interagér, R3 lås, Start pause.
 | Hjul | Zoom |
 | Esc | Pause |
 | M | Lyd til og fra |
@@ -64,6 +73,11 @@ python3 tools/serve.py
 | `input-camera.js` | tastatur, mus og kamera |
 | `sync-hud.js` | animation af figurer, HUD, minikort, musikskift |
 | `loop.js` | hovedløkken og titelskærmen |
+| `settings.js` | lydstyrke, sværhedsgrad, tastebindinger |
+| `journal.js` | dagbog, sideopgaver, Astrids holdning |
+| `talents.js` | evnetræer |
+| `tutorial.js` | tips de første minutter |
+| `gamepad.js` | controller |
 | `devtools.js` | spiltest-bot og udviklerhåndtag (kun med `?dev`) |
 | `start.js` | starter løkken og indlæser aktiver |
 
@@ -75,6 +89,8 @@ python3 tools/serve.py
 __rv.simAll(6)   // alle klasser mod alle fjender og grupper, 6 kampe hver
 __rv.bench(30)   // gennemsnitlig tid pr. billede i ms
 ```
+
+Filerne i `src/game/` deler ét globalt scope, så hvert navn må kun erklæres ét sted. Tjek det med `python3 tools/check_globals.py`.
 
 ## Udgivelse
 

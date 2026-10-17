@@ -58,19 +58,25 @@ const ITEMS={
   ulfberht:{name:'Ulfberht-runen',slot:'weapon',desc:'+20 % skade med dit våben.'},
   brynje:{name:'Jarnhud-brynje',slot:'armor',desc:'Du tager 15 % mindre skade.'},
   lindskael:{name:'Lindormskæl',slot:'armor',desc:'Du tager 20 % mindre skade.'},
+  tvilling:{name:'Tvillingøkser',slot:'arm',cls:'berserker',desc:'To økser: hurtige, kortere hug der koster mindre udholdenhed.'},
+  langsvaerd:{name:'Langsværd',slot:'arm',cls:'skjoldmo',desc:'Tohåndssværd: brede, tunge hug. Højreklik er et knusende hug i stedet for blok, så du kan ikke parere.'},
+  galdrestav:{name:'Galdrestav',slot:'arm',cls:'volve',desc:'Kort tryllestav: hurtige, svagere bolte der søger mod fjenden.'},
+  hrafnring:{name:'Hrafnkels ring',slot:'talisman',desc:'+10 % skade og +10 udholdenhed. Den føles kold.'},
   ulvepels:{name:'Ulvepels',slot:'armor',desc:'Udholdenhed vender 30 % hurtigere tilbage.'},
   ravnefjer:{name:'Ravnefjer',slot:'talisman',desc:'Rul koster 40 % mindre udholdenhed.'},
   mjolnir:{name:'Mjølnirs ekko',slot:'talisman',desc:'Din klasse-evne lader 30 % hurtigere op.'},
   idunn:{name:'Idunns æble',slot:'talisman',desc:'+1 mjødhorn.'},
   fenrir:{name:'Fenrirs tand',slot:'talisman',desc:'+15 % skade, men 10 % mindre liv.'},
 };
-const SLOTN={weapon:'Våbenrune',armor:'Rustning',t1:'Talisman I',t2:'Talisman II'};
+const SLOTN={arm:'Våben',weapon:'Våbenrune',armor:'Rustning',t1:'Talisman I',t2:'Talisman II'};
 const eqHas=id=>!!G.eq&&Object.values(G.eq).includes(id);
 const NPCS=[
   {id:'ulfr',name:'Gamle Ulfr',x:1748,y:2272,face:Math.PI*.4},
   {id:'dvalin',name:'Dvalin',x:1650,y:2352,face:-Math.PI/2},
   {id:'astrid',name:'Astrid',x:1440,y:1838,face:Math.PI*.25},
+  {id:'eir',name:'Eir, helbrederske',x:1585,y:2282,face:0},
   {id:'thorgrim',name:'Jarl Thorgrim',x:1880,y:2365,face:-Math.PI/2},
+  {id:'bjorn',name:'Bjørn, såret jæger',x:2425,y:2125,face:Math.PI,showIf:()=>G.flags.q_bjorn&&!G.flags.bjornDone},
   {id:'mimir',name:'Mimirs Hoved',x:2850,y:1400,face:Math.PI/2,head:true},
 ];
 
@@ -80,11 +86,11 @@ let buf=null;
 const keys={}, mouse={x:innerWidth/2,y:innerHeight/2,l:false,r:false};
 const mouseW={x:0,y:0};
 
-const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1));
-const maxSt=()=>Math.round(72+P.stats.smi*4);
+const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenrir')?.9:1)*(T('b_hud')?1.15:1));
+const maxSt=()=>Math.round(72+P.stats.smi*4+(eqHas('hrafnring')?10:0));
 const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0);
-const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1);
-function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1);}
+const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1);
+function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1);}
 const lvlCost=L=>Math.floor(130*Math.pow(1.17,L-1));
 
 function newPlayer(cls,stats,name){
@@ -98,7 +104,7 @@ const NPCM={};
 function initNPCs(){NPCS.forEach(n=>{const m=buildNPC(n.id);NPCM[n.id]=m;m.root.position.set(n.x*S,(n.head?ICE_Y+.55:hgt(n.x,n.y)),n.y*S);m.root.rotation.y=-n.face;n.anim={phase:0,move:0,t:Math.random()*5};});}
 
 function spawnEnemy(t,x,y,extra={}){
-  const d=ED[t];const e={t,def:d,x,y,home:{x,y},r:d.r,hp:d.hp,maxHp:d.hp,aggro:false,busy:0,cd:Math.random(),sched:[],face:Math.PI/2,flash:0,stun:0,slow:0,dash:null,dead:false,phase:0,move:0,t0:Math.random()*9,anim:{},...extra};
+  const d=ED[t];const hp0=Math.round(d.hp*DIFF[SET.diff].hp);const e={t,def:d,x,y,home:{x,y},r:d.r,hp:hp0,maxHp:hp0,aggro:false,busy:0,cd:Math.random(),sched:[],face:Math.PI/2,flash:0,stun:0,slow:0,dash:null,dead:false,phase:0,move:0,t0:Math.random()*9,anim:{},...extra};
   e.model=buildEnemyModel(t); G.enemies.push(e); return e;
 }
 function clearEnemies(){for(const e of G.enemies){scene.remove(e.model.root);if(e.hpEl)e.hpEl.remove();}G.enemies=[];for(const h of G.hazards)disposeHaz(h);G.hazards=[];for(const p of G.projs)scene.remove(p.mesh);G.projs=[];}

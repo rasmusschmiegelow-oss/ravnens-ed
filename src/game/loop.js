@@ -10,6 +10,7 @@ function frame(now){
   if(G.slowmo>0){G.slowmo-=rdt;dt*=.3;}
   if(G.hitStop>0){G.hitStop-=rdt;dt*=.05;}
   G.time+=rdt; skyUniforms.uTime.value=G.time; WIND.uTime.value=G.time; WIND.uWind.value=1+Math.max(0,wind)*.25;
+  pollPad(rdt);
   if(G.state==='play'&&P){
     G.play+=rdt;
     updPlayer(dt); updComp(dt);
@@ -19,7 +20,7 @@ function frame(now){
     // boss triggers
     if(!P.dead&&G.flags.gateOpen&&!G.flags.jotunTalked&&Math.hypot(P.x-1800,P.y-500)<210&&jotunEnt()) talk('jotun');
     if(G.endT>0){G.endT-=rdt;if(G.endT<=0)showEnd();}
-    updMusic(rdt); updLock();
+    updMusic(rdt); updLock(); updTutorial();
     if(!G.perfChecked){G.perfN=(G.perfN||0)+1;G.perfT=(G.perfT||0)+rdt;
       if(G.perfT>5){G.perfChecked=true;const avg=G.perfT/G.perfN;let saved=null;try{saved=localStorage.getItem('ravnensEd.gfx');}catch(e){}
         if(!saved&&avg>1/38&&GFX!=='low'){applyGfx(GFX==='ultra'?'high':'low');toast('Grafikken er sat ned for et jævnere billede. Du kan ændre den i pausemenuen (Esc).');}}}

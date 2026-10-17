@@ -11,12 +11,12 @@ import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {loadAll, makeChar, makeProp} from './models.js';
-import {AU, audioInit, sfx, music, setMuted} from './audio.js';
+import {AU, audioInit, sfx, music, setMuted, setVolumes} from './audio.js';
 
 Object.assign(window, {THREE, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, ShaderPass, GTAOPass, BokehPass,
-  mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted});
+  mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted, setVolumes});
 
-const GAME_FILES = ["util-world.js", "render.js", "world-build.js", "effects.js", "characters.js", "state.js", "player.js", "enemies.js", "world-life.js", "dialogue.js", "progress.js", "input-camera.js", "sync-hud.js", "loop.js", "devtools.js", "start.js"];
+const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "effects.js", "characters.js", "state.js", "player.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "talents.js", "progress.js", "tutorial.js", "input-camera.js", "gamepad.js", "sync-hud.js", "loop.js", "devtools.js", "start.js"];
 for (const f of GAME_FILES) {
   await new Promise((resolve, reject) => {
     const s = document.createElement('script'); s.src = `src/game/${f}`;

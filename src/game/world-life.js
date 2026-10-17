@@ -4,9 +4,11 @@
    ========================================================= */
 function interactTarget(){
   if(P.dead) return null;
-  if(C&&C.down&&dist(P,C)<60) return {label:'Hjælp Astrid op',fn:()=>{C.down=false;C.hp=C.maxHp*.4;toast('Astrid er på benene igen');}};
-  for(const n of NPCS){ if(n.id==='astrid'&&C) continue; const r=n.head?95:70; if(dist(P,n)<r) return {label:(n.head?'Tal med ':'Tal med ')+n.name,fn:()=>talk(n.id)}; }
+  if(C&&C.down&&dist(P,C)<60) return {label:'Hjælp '+compName()+' op',fn:()=>{C.down=false;C.hp=C.maxHp*.4;toast(compName()+' er på benene igen');}};
+  for(const n of NPCS){ if(C&&C.kind===n.id) continue; if(n.showIf&&!n.showIf()) continue; const r=n.head?95:70; if(dist(P,n)<r) return {label:(n.head?'Tal med ':'Tal med ')+n.name,fn:()=>talk(n.id)}; }
   for(const rs of RUNESTONES){ if(dist(P,rs)<64) return {label:'Hvil ved runestenen',fn:()=>openRest(rs.id)}; }
+  if(!G.flags.hammer&&Math.hypot(P.x-2660,P.y-470)<62) return {label:'Undersøg dværgens rester',fn:()=>{G.flags.hammer=true;sfx('pickup');questStart('q_durin','Dvalins bror');
+    banner('DURINS HAMMER','Et skelet i dværgerustning, med en hammer i knoglehånden');note('durin','Under Hrafnkels høj lå en dværg i rustning. Hans hammer bar et mærke: Durin, søn af Dain.');}};
   for(const c of CHESTS){ if(G.flags.chests?.[c.id]) continue; if(Math.hypot(P.x-c.x,P.y-c.y)<62) return {label:c.gold&&!G.flags.vogterDead?'Guldkisten er låst':'Åbn kisten',fn:()=>openChest(c)}; }
   if(Math.hypot(P.x-CRYPT.doorX,P.y-CRYPT.doorY)<70) return {label:G.flags.jarlDead?'Gå ned i gravkrypten':'Døren i højen er forseglet',fn:()=>{if(!G.flags.jarlDead){toast('En kold kraft holder døren lukket. Hrafnkel vogter stadig højen.');return;}travel(CRYPT.inX,CRYPT.inY,'GRAVKRYPTEN','Under Hrafnkels høj');}};
   if(Math.hypot(P.x-CRYPT.exitX,P.y-CRYPT.exitY)<55) return {label:'Forlad krypten',fn:()=>travel(CRYPT.doorX+45,CRYPT.doorY,'','')};
@@ -77,20 +79,20 @@ function openChest(c){
 }
 function giveItem(id){
   G.inv=G.inv||[]; if(G.inv.includes(id)) return; G.inv.push(id); const it=ITEMS[id];
-  const slot=it.slot==='talisman'?(!G.eq.t1?'t1':!G.eq.t2?'t2':null):(!G.eq[it.slot]?it.slot:null);
-  if(slot){G.eq[slot]=id; if(id==='idunn')P.flasks++;}
+  const slot=it.cls&&it.cls!==P.cls?null:it.slot==='talisman'?(!G.eq.t1?'t1':!G.eq.t2?'t2':null):(!G.eq[it.slot]?it.slot:null);
+  if(slot){G.eq[slot]=id; if(id==='idunn')P.flasks++; applyWeaponLook();}
   banner('FUNDET',it.name); toast(it.desc+(slot?' (taget på)':' Tryk I for at tage det på.')); sfx('pickup');
 }
 function equip(id){
-  const it=ITEMS[id]; for(const k in G.eq) if(G.eq[k]===id){G.eq[k]=null;if(id==='idunn')P.flasks=Math.min(P.flasks,maxFlasks());P.hp=Math.min(P.hp,maxHp());renderInv();return;}
+  const it=ITEMS[id]; if(it.cls&&it.cls!==P.cls){toast('Det våben passer ikke til din klasse.');return;} for(const k in G.eq) if(G.eq[k]===id){G.eq[k]=null;if(id==='idunn')P.flasks=Math.min(P.flasks,maxFlasks());P.hp=Math.min(P.hp,maxHp());renderInv();return;}
   let slot=it.slot==='talisman'?(!G.eq.t1?'t1':!G.eq.t2?'t2':'t2'):it.slot;
   if(G.eq[slot]==='idunn') P.flasks=Math.max(0,P.flasks-1);
-  G.eq[slot]=id; if(id==='idunn')P.flasks++; P.hp=Math.min(P.hp,maxHp()); sfx('pickup'); renderInv();
+  G.eq[slot]=id; if(id==='idunn')P.flasks++; P.hp=Math.min(P.hp,maxHp()); sfx('pickup'); applyWeaponLook(); renderInv();
 }
 function renderInv(){
   const el=$('invSlots'); el.innerHTML='';
-  for(const k of ['weapon','armor','t1','t2']){const id=G.eq[k];const d=document.createElement('div');d.className='slotrow';
-    d.innerHTML=`<span class="ab">${SLOTN[k]}</span><span class="nm">${id?ITEMS[id].name+'<small>'+ITEMS[id].desc+'</small>':'<small>Tom</small>'}</span>`;el.appendChild(d);}
+  for(const k of ['arm','weapon','armor','t1','t2']){const id=G.eq[k];const d=document.createElement('div');d.className='slotrow';
+    d.innerHTML=`<span class="ab">${SLOTN[k]}</span><span class="nm">${id?ITEMS[id].name+'<small>'+ITEMS[id].desc+'</small>':'<small>'+(k==='arm'?'Klassens standardvåben':'Tom')+'</small>'}</span>`;el.appendChild(d);}
   const list=$('invItems'); list.innerHTML='';
   if(!(G.inv||[]).length){list.innerHTML='<p class="mute small">Du har intet udstyr endnu. Kig efter kister i verden og i gravkrypten under højen.</p>';return;}
   for(const id of G.inv){const it=ITEMS[id], on=eqHas(id);const b=document.createElement('button');b.type='button';b.className='invbtn'+(on?' on':'');
@@ -102,4 +104,12 @@ function travel(x,y,title,sub){
   const f=$('fade'); f.classList.add('on'); G.state='travel'; sfx('gate');
   setTimeout(()=>{P.x=x;P.y=y;P.act=null;P.roll=0;if(C){C.x=x-20;C.y=y+15;}G.boss=null;snapCam();if(title)banner(title,sub);
     setTimeout(()=>{f.classList.remove('on');G.state='play';},250);},550);
+}
+
+/** Shows the meshes of the equipped weapon style on the player model. */
+function applyWeaponLook(){
+  if(!PM||!P) return; const w=G.eq&&G.eq.arm;
+  if(P.cls==='berserker'){PM.show('2H_Axe',w!=='tvilling');PM.show('1H_Axe',w==='tvilling');PM.show('1H_Axe_Offhand',w==='tvilling');}
+  if(P.cls==='skjoldmo'){PM.show('1H_Sword',w!=='langsvaerd');PM.show('Round_Shield',w!=='langsvaerd');PM.show('2H_Sword',w==='langsvaerd');}
+  if(P.cls==='volve'){PM.show('2H_Staff',w!=='galdrestav');PM.show('1H_Wand',w==='galdrestav');}
 }

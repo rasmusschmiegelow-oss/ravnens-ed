@@ -29,8 +29,9 @@ export function audioInit() {
   try {
     const ac = new (window.AudioContext || window.webkitAudioContext)(); AU.ctx = ac;
     AU.master = ac.createGain(); AU.master.gain.value = AU.on ? .8 : 0; AU.master.connect(ac.destination);
-    const comp = ac.createDynamicsCompressor(); comp.connect(AU.master); AU.out = comp;
-    AU.musicBus = ac.createGain(); AU.musicBus.gain.value = 1; AU.musicBus.connect(AU.master);
+    AU.sfxBus = ac.createGain(); AU.sfxBus.gain.value = AU.sfxVol ?? .8; AU.sfxBus.connect(AU.master);
+    const comp = ac.createDynamicsCompressor(); comp.connect(AU.sfxBus); AU.out = comp;
+    AU.musicBus = ac.createGain(); AU.musicBus.gain.value = AU.musicLevel ?? .8; AU.musicBus.connect(AU.master);
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; AU.noise = b;
     // wind bed under everything
@@ -49,6 +50,12 @@ export function audioInit() {
   } catch (e) { AU.ctx = null; }
 }
 
+/** Music and effects volume, 0..1 each. */
+export function setVolumes(music, effects) {
+  AU.musicLevel = music; AU.sfxVol = effects;
+  if (AU.musicBus) AU.musicBus.gain.value = music;
+  if (AU.sfxBus) AU.sfxBus.gain.value = effects;
+}
 export function setMuted(muted) { AU.on = !muted; if (AU.master) AU.master.gain.value = AU.on ? .8 : 0; }
 
 /* ---------- music: two HTMLAudio elements cross-faded through the music bus ---------- */

@@ -22,7 +22,7 @@ function botThink(b){
   const p=P, foes=G.enemies.filter(e=>!e.dead&&!e.dormant); if(!foes.length) return;
   const e=foes.reduce((a,c)=>Math.hypot(c.x-p.x,c.y-p.y)<Math.hypot(a.x-p.x,a.y-p.y)?c:a);
   const d=Math.hypot(e.x-p.x,e.y-p.y), a=Math.atan2(e.y-p.y,e.x-p.x);
-  mouseW.x=e.x; mouseW.y=e.y; for(const k of ['KeyW','KeyA','KeyS','KeyD']) keys[k]=false; mouse.r=false;
+  mouseW.x=e.x; mouseW.y=e.y; for(const k of ['up','down','left','right']) keys[SET.bind[k]]=false; mouse.r=false;
   // threats: telegraphed attacks about to land, lunges and incoming projectiles
   let threat=null;
   for(const h of G.hazards){const left=h.wind-h.t; if(left>.3||left<.02) continue;
@@ -36,13 +36,13 @@ function botThink(b){
     if(Math.random()<b.miss) return; // an average player misreads some attacks
     if(p.cls==='skjoldmo'&&threat.h&&!threat.h.unblock&&threat.left<.2&&p.st>15){mouse.r=true;if(Math.random()<b.parry)p.blockStart=G.time;return;}
     const away=Math.atan2(p.y-threat.y,p.x-threat.x)+(threat.h&&threat.h.k==='arc'||threat.lunge?(Math.random()<.5?1.3:-1.3):0);
-    keys[Math.cos(away)>.3?'KeyD':Math.cos(away)<-.3?'KeyA':'_']=true; keys[Math.sin(away)>.3?'KeyS':Math.sin(away)<-.3?'KeyW':'_']=true;
+    keys[Math.cos(away)>.3?SET.bind.right:Math.cos(away)<-.3?SET.bind.left:'_']=true; keys[Math.sin(away)>.3?SET.bind.down:Math.sin(away)<-.3?SET.bind.up:'_']=true;
     if(p.st>5) buf={k:'roll',t:G.time}; return;
   }
   if(p.hp<maxHp()*.38&&p.flasks>0&&!p.act&&d>90){buf={k:'heal',t:G.time};return;}
   const reach=p.cls==='volve'?320:(p.cls==='berserker'?58:52)+e.r;
   const want=p.cls==='volve'?240:reach*.8;
-  const mv=(dir)=>{keys[Math.cos(dir)>.38?'KeyD':Math.cos(dir)<-.38?'KeyA':'_']=true;keys[Math.sin(dir)>.38?'KeyS':Math.sin(dir)<-.38?'KeyW':'_']=true;};
+  const mv=(dir)=>{keys[Math.cos(dir)>.38?SET.bind.right:Math.cos(dir)<-.38?SET.bind.left:'_']=true;keys[Math.sin(dir)>.38?SET.bind.down:Math.sin(dir)<-.38?SET.bind.up:'_']=true;};
   const fromHome=Math.hypot(p.x-b.hx,p.y-b.hy), homeDir=Math.atan2(b.hy-p.y,b.hx-p.x);
   if(fromHome>320) mv(homeDir);                    // stay in the arena like a real player would
   else if(p.st<18) mv(a+Math.PI+(Math.sin(G.time)>0?.9:-.9)); // back off sideways to recover stamina
@@ -74,7 +74,7 @@ function simFight(cls,stageKey,foe,opts={}){
   clearEnemies(); return res;
 }
 function simAll(n=4,opts={}){
-  G.sim=true; const prevState=G.state; G.state='play'; const muted=!AU.on; setMuted(true);
+  G.sim=true; const prevState=G.state; G.state='play'; const prevDiff=SET.diff; SET.diff=opts.diff||'normal'; const muted=!AU.on; setMuted(true);
   const out=[];
   try{
     for(const cls of ['berserker','skjoldmo','volve']) for(const [k,st] of Object.entries(SIM_STAGES)) for(const foe of st.foes){
@@ -82,7 +82,7 @@ function simAll(n=4,opts={}){
       const w=runs.filter(r=>r.won);
       out.push({cls,stage:k,foe,win:Math.round(w.length/n*100),time:w.length?+(w.reduce((a,r)=>a+r.time,0)/w.length).toFixed(1):null,hp:w.length?Math.round(w.reduce((a,r)=>a+r.hp,0)/w.length):0,flasks:+(runs.reduce((a,r)=>a+r.flasks,0)/n).toFixed(1),foeHp:Math.round(runs.reduce((a,r)=>a+r.foeHp,0)/n)});
     }
-  } finally { G.sim=false; G.state=prevState; setMuted(muted); $('deathScr').hidden=true; }
+  } finally { G.sim=false; G.state=prevState; SET.diff=prevDiff; setMuted(muted); $('deathScr').hidden=true; }
   return out;
 }
 

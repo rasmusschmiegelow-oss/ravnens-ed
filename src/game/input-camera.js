@@ -3,21 +3,25 @@
    INPUT
    ========================================================= */
 addEventListener('keydown',e=>{
-  if(e.target&&e.target.tagName==='INPUT') return;
-  keys[e.code]=true;
+  if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') return;
+  if(G.state==='settings'&&captureRebind(e)) return;
+  keys[e.code]=true; G.padActive=false;
   if(e.code==='KeyM'){setMuted(AU.on);toast(AU.on?'Lyd til':'Lyd fra');}
   if(G.state==='play'){
-    if(e.code==='Space'){buf={k:'roll',t:G.time};e.preventDefault();}
-    if(e.code==='KeyR') buf={k:'heal',t:G.time};
-    if(e.code==='KeyF') buf={k:'special',t:G.time};
-    if(e.code==='KeyE'){const it=interactTarget();if(it)it.fn();}
+    if(bound('roll',e.code)){buf={k:'roll',t:G.time};e.preventDefault();}
+    if(bound('heal',e.code)) buf={k:'heal',t:G.time};
+    if(bound('special',e.code)) buf={k:'special',t:G.time};
+    if(bound('interact',e.code)){const it=interactTarget();if(it)it.fn();}
     if(e.code==='Escape') openPause();
-    if(e.code==='KeyI') openInv();
-    if(e.code==='Tab'){e.preventDefault();toggleLock();}
+    if(bound('inv',e.code)) openInv();
+    if(bound('journal',e.code)) openJournal();
+    if(bound('lock',e.code)){e.preventDefault();toggleLock();}
   } else if(G.state==='dialog'&&dlgCur&&!diceAnim){
     const n=parseInt(e.key,10);if(n>=1&&n<=9){const b=dlgOpts.querySelectorAll('button')[n-1];if(b){b.click();e.preventDefault();}}
   } else if(G.state==='pause'&&e.code==='Escape'){$('pause').hidden=true;G.state='play';}
-  else if(G.state==='inv'&&(e.code==='Escape'||e.code==='KeyI')){$('inv').hidden=true;G.state='play';}
+  else if(G.state==='inv'&&(e.code==='Escape'||bound('inv',e.code))){$('inv').hidden=true;G.state='play';}
+  else if(G.state==='journal'&&(e.code==='Escape'||bound('journal',e.code))){closeJournal();}
+  else if(G.state==='settings'&&e.code==='Escape'){closeSettings();}
   else if(G.state==='rest'&&e.code==='Escape'){$('rest').hidden=true;G.state='play';}
   if(e.code==='Space'&&G.state!=='play'&&document.activeElement===document.body) e.preventDefault();
 });
@@ -63,7 +67,7 @@ function updateCamera(dt){
     goal=camGoal();G.camPos.lerp(goal.pos,Math.min(1,dt*5));G.camLook.lerp(goal.look,Math.min(1,dt*6));
   }
   camera.position.copy(G.camPos);
-  if(G.shake>0){const s=G.shake*.35;camera.position.x+=rand(-s,s);camera.position.y+=rand(-s,s);camera.position.z+=rand(-s,s);G.shake=Math.max(0,G.shake-dt*1.8);}
+  if(G.shake>0){const s=G.shake*.35*SET.shake;camera.position.x+=rand(-s,s);camera.position.y+=rand(-s,s);camera.position.z+=rand(-s,s);G.shake=Math.max(0,G.shake-dt*1.8);}
   camera.lookAt(G.camLook);
   SEE.uFade.value=P&&G.state!=='title'&&G.state!=='dialog'?1:0; if(P){SEE.uPlayer.value.set(P.x*S,groundY(P.x,P.y),P.y*S);} SEE.uCam.value.copy(camera.position);
   sky.position.copy(camera.position);
