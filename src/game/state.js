@@ -12,7 +12,7 @@ const ED={
   draugr:{name:'Draugr',hp:172,r:15,spd:78,dmg:23,reach:46,runes:60},
   archer:{name:'Draugr-skytte',hp:110,r:14,spd:66,dmg:19,reach:420,runes:70},
   wolf:{name:'Gråulv',hp:120,r:15,spd:150,dmg:20,reach:160,runes:50},
-  jarl:{name:'Hrafnkel, Draugr-jarlen',hp:1230,r:26,spd:92,dmg:38,reach:100,runes:1600},
+  jarl:{name:'Hrafnkel, Draugr-jarlen',hp:1080,r:26,spd:92,dmg:28,reach:100,runes:1600},
   minion:{name:'Gravtræl',hp:103,r:13,spd:96,dmg:17,reach:42,runes:45},
   seidr:{name:'Seiðr-draugr',hp:133,r:14,spd:58,dmg:22,reach:400,runes:95},
   trold:{name:'Skovtrold',hp:126,r:13,spd:92,dmg:17,reach:42,runes:45},
@@ -51,7 +51,7 @@ const SPAWNS=[
   {t:'gjenganger',x:2750,y:1220},{t:'gjenganger2',x:2960,y:1190},{t:'gjenganger',x:2700,y:1560},
   {t:'lindyngel',x:3010,y:1150},{t:'lindyngel',x:3160,y:1300},{t:'lindorm',x:3120,y:1180,boss:'lindorm'},
   {t:'frostvaette',x:2220,y:960},{t:'frostvaette',x:2360,y:1050},{t:'rimtrold',x:2500,y:1000},{t:'rimtrold',x:2320,y:560},
-  {t:'bjergtrold',x:1150,y:950},{t:'trold',x:1100,y:1000},{t:'trold',x:1190,y:1020},{t:'jotun',x:1800,y:470,boss:'jotun'},
+  {t:'bjergtrold',x:1150,y:950},{t:'jotun',x:1800,y:470,boss:'jotun'},
 ];
 // Equipment found in chests or bought from Dvalin. slot: weapon, armor or talisman (two talisman slots).
 const ITEMS={

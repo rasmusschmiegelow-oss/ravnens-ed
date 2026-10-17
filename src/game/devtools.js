@@ -163,7 +163,9 @@ function campaign(cls,opts={}){
     newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
     for(const s of ROUTE){
       const where=JSON.stringify(s);
-      if(s.talk){D[s.talk]();}
+      if(s.talk){D[s.talk]();
+        // most players try Ulfr's Willpower check (DC 10): roll it like the game does
+        if(s.talk==='ulfr'&&1+Math.floor(Math.random()*20)+mod(P.stats.vil)+2>=10){G.flags.ulfrCheck=true;G.flags.ulfrGift=true;G.flags.q_ulfr=true;}}
       if(s.recruit==='astrid'){if(P.runes>=150)P.runes-=150;makeCompanion('astrid');G.flags.astrid=true;}
       if(s.clear&&!clearArea(...s.clear)) problems.push('Kunne ikke rydde '+where);
       if(s.chest){const c=CHESTS.find(q=>q.id===s.chest);G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}

@@ -126,13 +126,14 @@ function lindormAI(e,tg,d,a,step,dm){
 }
 function jarlAI(e,tg,d,a,step,dm){
   if(!e.summoned&&e.hp<e.maxHp*.5){e.summoned=true;e.busy=1.2;banner('Hrafnkel kalder på sine huskarle','', 'frost');sfx('horn');
-    for(const s of [-1,1]){const x=e.x+Math.cos(a+s*1.6)*90,y=e.y+Math.sin(a+s*1.6)*90;const m=spawnEnemy('draugr',x,y,{aggro:true});m.home={x:e.home.x,y:e.home.y};burst(x*S,groundY(x,y)+.5,y*S,40,3,1,.4,.4,1.6,2.4,{grav:1});}
+    for(const s of [-1,1]){const x=e.x+Math.cos(a+s*1.6)*90,y=e.y+Math.sin(a+s*1.6)*90;const m=spawnEnemy('minion',x,y,{aggro:true});m.home={x:e.home.x,y:e.home.y};burst(x*S,groundY(x,y)+.5,y*S,40,3,1,.4,.4,1.6,2.4,{grav:1});}
     return;}
   if(e.cd>0){if(d>95)step(a);return;}
   const r=Math.random(), D=e.def.dmg*dm;
   if(d<135){
-    if(r<.5){arcAtk(e,a,2.6,108,.62,D);e.busy=.62+.5;}
-    else{arcAtk(e,a,2.6,108,.58,D);e.sched.push({t:.78,fn:()=>{const a2=Math.atan2(P.y-e.y,P.x-e.x);e.face=a2;arcAtk(e,a2,2.8,112,.45,D*1.1);}});e.busy=.78+.45+.6;}
+    const wu=e.t==='jarl'?.12:0;
+    if(r<.5){arcAtk(e,a,2.6,108,.62+wu,D);e.busy=.62+wu+.5;}
+    else{arcAtk(e,a,2.6,108,.58,D);e.sched.push({t:.78,fn:()=>{const a2=Math.atan2(P.y-e.y,P.x-e.x);e.face=a2;arcAtk(e,a2,2.8,112,.45+wu,D*1.1);}});e.busy=.78+.45+.6;}
     e.cd=.5+Math.random()*.6;
   } else if(d<420){
     const tx=tg.x,ty=tg.y;e.air=1;e.airT=0;
