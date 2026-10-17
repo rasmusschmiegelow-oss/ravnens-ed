@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ravnens Ed</title>
+<meta name="description" content="Nordisk 3D action-RPG i browseren: soulslike kamp møder dialog med terningeslag i Fimbulvinterens Midgard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=IM+Fell+English+SC&family=Noto+Sans+Runic&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="letterbox"><i></i><i></i></div>
+<div id="labels"></div>
+
+<div id="hud" hidden>
+  <div class="hud-tl">
+    <div class="hud-name"><span id="hName"></span> <span class="mute" id="hLvl"></span></div>
+    <div class="bar hp" id="hpBar"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div>
+    <div class="bar st" id="stBar"><i class="fill" id="stFill"></i></div>
+    <div class="comp" id="hComp" hidden><span>Astrid</span><div class="bar mini"><i class="fill" id="cFill"></i></div></div>
+  </div>
+  <div class="hud-tr">
+    <canvas id="mini" width="340" height="340"></canvas>
+    <div class="obj"><div class="eyebrow">Mål</div><div id="hObj"></div><div class="mute small" id="hOpt"></div></div>
+  </div>
+  <div class="hud-bl">
+    <div class="slot" id="slFlask">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 10c10 2 20 9 25 24l3-1C30 17 19 7 7 6z" fill="#c9a24a" stroke="#3a2a10" stroke-width="1.2"/><path d="M8 7l-3 4" stroke="#e8d6a0" stroke-width="2"/><path d="M26 25l5-2M22 19l4-2M17 14l4-2" stroke="#7a5a20" stroke-width="1.4"/></svg>
+      <b id="hFlask">3</b><kbd>R</kbd>
+    </div>
+    <div class="slot" id="slSpec"><div class="cd" id="specCd"></div><span id="specIco"></span><kbd>F</kbd><span class="slot-name" id="specName"></span></div>
+  </div>
+  <div class="hud-br"><span class="rune">ᚱ</span><b id="hRunes">0</b></div>
+  <div class="boss" id="hBoss" hidden><div id="bossName"></div><div class="bar boss"><i class="lag" id="bossLag"></i><i class="fill" id="bossFill"></i></div></div>
+</div>
+<div id="prompt" hidden></div>
+<div id="toasts"></div>
+<div id="banner" hidden><div id="bannerT"></div><div id="bannerS"></div></div>
+<div id="deathScr" hidden><div>DU ER FALDET</div></div>
+
+<section id="loading" class="ov">
+  <div class="rn">ᚱᚨᚢᚾᛖᚾᛊ ᛖᛞ</div>
+  <div class="mute" id="loadTxt">Ravnene samles …</div>
+</section>
+
+<section id="title" class="ov" hidden>
+  <div class="t-wrap">
+    <div class="t-runes">ᚱᚨᚢᚾᛖᚾᛊ · ᛖᛞ</div>
+    <h1>Ravnens Ed</h1>
+    <p class="t-tag">Fimbulvinteren har varet i tre år. Rimtursen ånder frost over Midgard, og de døde går igen i sneen. Ravnene har valgt dig.</p>
+    <div class="t-btns">
+      <button class="btn" id="bNew">Nyt eventyr</button>
+      <button class="btn" id="bCont" hidden>Fortsæt</button>
+    </div>
+    <div class="t-foot" id="touchNote" hidden>Spillet styres med tastatur og mus. Brug en computer for at spille.</div>
+    <div class="t-foot">Tastatur og mus · lyd anbefales · <kbd>M</kbd> slår lyden fra</div>
+  </div>
+</section>
+
+<section id="create" class="ov" hidden>
+  <div class="panel cr">
+    <div class="cr-head">
+      <div><div class="eyebrow">Skab din helt</div><h2>Hvem vågner ved stenen?</h2></div>
+      <label for="inName">Navn<input id="inName" maxlength="18" value="Ravnebåren" autocomplete="off"></label>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="cr-body">
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">Evner · <span id="ptsLeft"></span> point tilbage</div>
+        <div class="stats" id="crStats"></div>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">Styring</div>
+        <div class="ctrls">
+          <kbd>W A S D</kbd><span>Bevæg dig</span>
+          <kbd>Mus</kbd><span>Sigt</span>
+          <kbd>Venstreklik</kbd><span>Let angreb</span>
+          <kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova (efter klasse)</span>
+          <kbd>Mellemrum</kbd><span>Rul (du er usårlig mens du ruller)</span>
+          <kbd>R</kbd><span>Drik mjød (heler)</span>
+          <kbd>F</kbd><span>Klasse-evne</span>
+          <kbd>E</kbd><span>Tal, hvil, interagér</span>
+          <kbd>Hjul</kbd><span>Zoom kameraet</span>
+          <kbd>Esc</kbd><span>Pause og karakterark</span>
+        </div>
+      </div>
+    </div>
+    <div class="cr-foot">
+      <button class="btn ghost" id="bBack">Tilbage</button>
+      <button class="btn" id="bStart">Vågn ved runestenen</button>
+    </div>
+  </div>
+</section>
+
+<section id="dlg" hidden>
+  <div class="dlg-box" role="dialog" aria-live="polite">
+    <div id="dlgWho"></div>
+    <p id="dlgText"></p>
+    <ol id="dlgOpts"></ol>
+  </div>
+</section>
+
+<section id="dice" class="ov" hidden>
+  <div id="diceHead">SVÆRHEDSGRAD</div>
+  <div id="diceDC">12</div>
+  <div class="dice-stage"><canvas id="diceCv" width="520" height="520"></canvas><div id="dieN">20</div></div>
+  <div id="diceRes"></div>
+  <div id="diceInfo"></div>
+  <button class="btn" id="diceGo" hidden>Fortsæt</button>
+</section>
+
+<section id="rest" class="ov" hidden>
+  <div class="panel rest">
+    <div class="rest-top">
+      <div><div class="eyebrow">Runesten</div><h2 id="restName"></h2></div>
+      <div class="kv"><span>Niveau <b id="rLvl"></b></span><span>Runer <b id="rRunes"></b></span><span>Næste niveau <b id="rCost"></b></span></div>
+    </div>
+    <p class="mute" style="margin:0">Du hviler. Liv, udholdenhed og mjød er fyldt op, og spillet er gemt. De faldne fjender rejser sig igen.</p>
+    <div class="stats" id="rStats"></div>
+    <div class="kv" id="rDerived"></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Rejs til en tændt runesten</div><div class="travel" id="rTravel"></div></div>
+    <div><button class="btn" id="restLeave">Rejs dig</button></div>
+  </div>
+</section>
+
+<section id="pause" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Pause</div><h2 id="pzName"></h2><div class="mute" id="pzClass"></div></div>
+    <div class="stats" id="pzStats"></div>
+    <div class="kv" id="pzDerived"></div>
+    <div class="ctrls">
+      <kbd>Venstreklik</kbd><span>Let angreb</span><kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova</span>
+      <kbd>Mellemrum</kbd><span>Rul</span><kbd>R / F / E</kbd><span>Mjød · evne · interagér</span><kbd>M</kbd><span>Lyd til og fra</span>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
+  </div>
+</section>
+
+<section id="end" class="ov" hidden>
+  <div class="panel end">
+    <div class="eyebrow" id="endEy"></div>
+    <h2 id="endT"></h2>
+    <p id="endP"></p>
+    <div class="kv" id="endStats" style="justify-content:center"></div>
+    <button class="btn" id="endGo">Til titelskærmen</button>
+  </div>
+</section>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script>
+  window.addEventListener('error',e=>{const t=document.getElementById('loadTxt'); if(t&&!window.__gameReady) t.textContent='Spillet kunne ikke indlæses: '+(e.message||'ukendt fejl')+'. Tjek din internetforbindelse og genindlæs siden.';});
+</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
