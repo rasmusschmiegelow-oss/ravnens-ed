@@ -17,7 +17,9 @@ python3 tools/serve.py
 - Tre klasser (Berserker, Skjoldmø, Völve) med animerede figurer
 - Soulslike kamp med rul, blok, varslede angreb og runer, der tabes ved død
 - Dialog med terningeslag (d20), ledsageren Astrid og to slutninger
-- Bosser: Draugr-jarlen, Gravvogteren i krypten og Rimtursen
+- Bosser: Draugr-jarlen, Gravvogteren i krypten, Lindormen på søen og Rimtursen
+- Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
+- Træer bliver gennemsigtige, når de står mellem kameraet og spilleren
 - Gravkrypten under højen, kister med udstyr og et udstyrsvindue (I)
 - Musik der skifter med område og bosskamp, optagede lydeffekter
 
@@ -45,6 +47,7 @@ python3 tools/serve.py
 - `src/main.js` – verden, kamp, dialog, udstyr og spilforløb (Three.js 0.160 via CDN)
 - `src/models.js` – indlæsning af figurer, bygninger og animationer
 - `src/audio.js` – musik, lydeffekter og syntetiseret vind
+- `tools/` – lokal testserver og hjælpere til at hente CC0-aktiver (itch.io, Poly Pizza, Google Drive)
 - `assets/` – figurer, bygninger, musik, lyd og teksturer (se `assets/CREDITS.md`)
 - Tilføj `?dev` til adressen for et udviklerhåndtag (`window.__rv`)
 

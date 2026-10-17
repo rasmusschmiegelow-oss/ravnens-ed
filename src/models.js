@@ -17,6 +17,10 @@ for (const n of ['building_barracks_red', 'building_lumbermill_red', 'building_w
   'resource_lumber', 'wheelbarrow', 'bucket_water', 'target', 'flag_red', 'rock_single_A', 'rock_single_B', 'rock_single_C', 'rock_single_D', 'rock_single_E']) FILES[n] = `village/${n}.gltf`;
 for (const n of ['chest', 'chest_gold', 'torch_lit', 'pillar_decorated', 'banner_patternA_red', 'barrel_large', 'wall', 'wall_arched', 'wall_doorway',
   'floor_tile_large', 'floor_dirt_large', 'candle_triple', 'column', 'coin_stack_large', 'sword_shield_broken', 'keyring_hanging']) FILES[n] = `crypt/${n}.glb`;
+// Animated low-poly creatures and villagers by Quaternius (CC0, via poly.pizza)
+for (const n of ['Wolf', 'Fox', 'Deer', 'Stag', 'Husky', 'Horse', 'Cow', 'Donkey']) FILES['q' + n] = `animals/${n}.glb`;
+for (const n of ['Yeti', 'Orc', 'Orc_Enemy', 'Demon', 'Blue_Demon', 'Ghost', 'Ghost_Skull', 'Dragon', 'Dragon_Evolved', 'Goleling', 'Goleling_Evolved', 'Tribal']) FILES['q' + n] = `monsters/${n}.glb`;
+for (const n of ['King', 'Farmer', 'Worker', 'Adventurer', 'Hooded_Adventurer']) FILES['q' + n] = `people/${n}.glb`;
 const SRC = {};
 const RAW_H = 2.2; // KayKit rigs stand about 2.2 units tall
 
@@ -34,6 +38,17 @@ export const LOOKS = {
   jarl: {file: 'Skeleton_Warrior', h: 3.3, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0x8a9aa0, eyes: [0.8, 2.8, 4.2], emissive: 0x06141a},
   seidr: {file: 'Skeleton_Mage', h: 1.85, props: {r: 'Skeleton_Staff'}, tint: 0xb4bcd0, eyes: [2.2, .8, 3.6]},
   vogter: {file: 'Skeleton_Warrior', h: 2.7, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0xa09890, eyes: [3.6, 1.2, .3], emissive: 0x140804},
+  // Quaternius creatures: qt marks rigs whose size is measured at load time
+  wolf: {file: 'qWolf', h: 1.05, qt: true}, fox: {file: 'qFox', h: .6, qt: true}, deer: {file: 'qDeer', h: 1.7, qt: true}, stag: {file: 'qStag', h: 2.2, qt: true},
+  husky: {file: 'qHusky', h: .85, qt: true}, horse: {file: 'qHorse', h: 2.1, qt: true}, cow: {file: 'qCow', h: 1.6, qt: true}, donkey: {file: 'qDonkey', h: 1.5, qt: true},
+  trold: {file: 'qOrc_Enemy', h: 1.4, qt: true}, bjergtrold: {file: 'qOrc', h: 2.3, qt: true}, rimtrold: {file: 'qYeti', h: 3.2, qt: true},
+  ildvaette: {file: 'qDemon', h: 2.1, qt: true}, frostvaette: {file: 'qBlue_Demon', h: 2.1, qt: true},
+  gjenganger: {file: 'qGhost', h: 1.5, qt: true, emissive: 0x2a1640}, gjenganger2: {file: 'qGhost_Skull', h: 1.5, qt: true, emissive: 0x241a30},
+  stenvaette: {file: 'qGoleling', h: 1.7, qt: true}, stenvaette2: {file: 'qGoleling_Evolved', h: 2.6, qt: true},
+  lindyngel: {file: 'qDragon', h: 1.7, qt: true}, lindorm: {file: 'qDragon_Evolved', h: 6.5, qt: true, emissive: 0x081420},
+  vaette: {file: 'qTribal', h: 1.7, qt: true, emissive: 0x2a2008},
+  thorgrim: {file: 'qKing', h: 1.9, qt: true}, farmer: {file: 'qFarmer', h: 1.75, qt: true}, worker: {file: 'qWorker', h: 1.75, qt: true},
+  guard: {file: 'qAdventurer', h: 1.8, qt: true}, hguard: {file: 'qHooded_Adventurer', h: 1.8, qt: true},
   jotun: {file: 'Barbarian', h: 8.2, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '1H_Axe', 'Mug'], tint: 0xd8f0ff, emissive: 0x1d4f6e, ice: true},
 };
 
@@ -43,7 +58,7 @@ export function loadAll(onProgress) {
   const prog = Object.fromEntries(keys.map(k => [k, 0]));
   const report = () => onProgress && onProgress(Object.values(prog).reduce((a, b) => a + b, 0) / keys.length);
   return Promise.all(keys.map(k => new Promise((res, rej) => {
-    loader.load(BASE + FILES[k], g => { SRC[k] = g; prog[k] = 1; report(); res(); },
+    loader.load(BASE + FILES[k], g => { g.animations.forEach(c => { c.name = c.name.split('|').pop(); }); SRC[k] = g; prog[k] = 1; report(); res(); },
       e => { if (e.total) { prog[k] = e.loaded / e.total; report(); } }, rej);
   })));
 }
@@ -65,12 +80,22 @@ export class Anim {
   update(dt) { this.mixer.update(dt); }
 }
 
+/** Height of a rig in its bind pose, measured once from the skinned meshes. */
+function naturalHeight(key) {
+  const g = SRC[key]; if (g.natH) return g.natH;
+  g.scene.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  g.scene.traverse(o => { if (o.isSkinnedMesh) { o.computeBoundingBox(); box.union(o.boundingBox.clone().applyMatrix4(o.matrixWorld)); } else if (o.isMesh) box.expandByObject(o); });
+  g.natH = Math.max(.01, box.max.y - box.min.y); g.minY = box.min.y;
+  return g.natH;
+}
 let iceMat = null;
 export function makeChar(role, {iceMaterial} = {}) {
   const L = LOOKS[role]; const src = SRC[L.file];
   const inner = SkeletonUtils.clone(src.scene);
-  const s = L.h / RAW_H; inner.scale.set(s * (L.wide || 1), s, s * (L.wide || 1));
+  const s = L.h / (L.qt ? naturalHeight(L.file) : RAW_H); inner.scale.set(s * (L.wide || 1), s, s * (L.wide || 1));
   inner.rotation.y = Math.PI / 2; // KayKit faces +Z, the game faces +X
+  if (L.qt) inner.position.y = -(SRC[L.file].minY || 0) * s;
   const root = new THREE.Group(); root.add(inner);
   const mats = []; const seen = new Map();
   inner.traverse(o => {
@@ -82,7 +107,12 @@ export function makeChar(role, {iceMaterial} = {}) {
     if (!m) {
       m = m0.clone();
       if (m0.name === 'Glow' && L.eyes) { m.emissive = new THREE.Color(...L.eyes); m.emissiveIntensity = 1; m.color.setRGB(.2, .6, .8); }
-      else { if (L.tint) m.color.multiply(new THREE.Color(L.tint)); if (L.emissive) { m.emissive = new THREE.Color(L.emissive); m.emissiveIntensity = 1; } }
+      else {
+        // Quaternius colours are very dark and half metallic; lift them so they read in a moonlit scene
+        if (L.qt) { m.metalness = 0; m.roughness = .78; m.color.setRGB(m.color.r ** .6, m.color.g ** .6, m.color.b ** .6);
+          if (/eye/i.test(m.name) && !/black/i.test(m.name)) { m.emissive = new THREE.Color(.5, .55, .6); m.emissiveIntensity = 1; } }
+        if (L.tint) m.color.multiply(new THREE.Color(L.tint)); if (L.emissive) { m.emissive = new THREE.Color(L.emissive); m.emissiveIntensity = 1; }
+      }
       m.userData.baseEmissive = m.emissive ? m.emissive.clone() : new THREE.Color(0);
       seen.set(m0, m); mats.push(m);
     }

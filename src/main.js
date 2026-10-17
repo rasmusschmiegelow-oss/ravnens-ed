@@ -210,6 +210,25 @@ const MAT={
   banner:new THREE.MeshStandardMaterial({color:0x7d1f1a,roughness:.9,side:THREE.DoubleSide}),
 };
 
+/* --- Trees between the camera and the player turn see-through (screen-door dither) */
+const SEE={uPlayer:{value:new THREE.Vector3()},uCam:{value:new THREE.Vector3()},uFade:{value:0}};
+function seeThrough(mat){
+  mat.onBeforeCompile=sh=>{
+    Object.assign(sh.uniforms,SEE);
+    sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
+      #ifdef USE_INSTANCING
+        vWP=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz;
+      #else
+        vWP=(modelMatrix*vec4(transformed,1.0)).xyz;
+      #endif`);
+    sh.fragmentShader='varying vec3 vWP;uniform vec3 uPlayer;uniform vec3 uCam;uniform float uFade;\n'+sh.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
+      if(uFade>0.5){vec2 pc=uPlayer.xz,ab=uCam.xz-pc;float t=clamp(dot(vWP.xz-pc,ab)/max(dot(ab,ab),.001),0.,1.);
+        float dseg=length(vWP.xz-(pc+ab*t));float hLine=mix(uPlayer.y+.6,uCam.y,t);
+        if(dseg<3.4&&vWP.y>uPlayer.y+.7&&vWP.y<hLine+4.){vec2 f=mod(floor(gl_FragCoord.xy),3.);if(!(f.x==0.&&f.y==0.))discard;}}`);
+  };
+  return mat;
+}
+
 /* =========================================================
    TERRAIN
    ========================================================= */
@@ -259,6 +278,7 @@ const dummy=new THREE.Object3D();
   const fol=mergeGeometries(parts);
   const trunk=new THREE.CylinderGeometry(.18,.32,2.6,7); trunk.translate(0,1.2,0);
   const nT=TREES.length;
+  seeThrough(MAT.pine); seeThrough(MAT.bark);
   const imF=new THREE.InstancedMesh(fol,MAT.pine,nT), imT=new THREE.InstancedMesh(trunk,MAT.bark,nT);
   imF.castShadow=imT.castShadow=true; imF.receiveShadow=true;
   TREES.forEach((t,i)=>{dummy.position.set(t.x*S,hgt(t.x,t.y)-.1,t.y*S);dummy.rotation.set((Math.random()-.5)*.06,t.rot,(Math.random()-.5)*.06);dummy.scale.setScalar(t.s);dummy.updateMatrix();imF.setMatrixAt(i,dummy.matrix);imT.setMatrixAt(i,dummy.matrix);});
@@ -354,7 +374,7 @@ FIRES.forEach(buildFire);
 function addBanner(x,y){const g=new THREE.Group();g.position.set(x*S,hgt(x,y),y*S);const p=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,4.2,6),MAT.wood);p.position.y=2.1;p.castShadow=true;g.add(p);
   const bg=new THREE.PlaneGeometry(1,1.8,6,6);bg.translate(.5,0,0);const b=new THREE.Mesh(bg,MAT.banner);b.position.y=3.1;b.castShadow=true;g.add(b);scene.add(g);BANNERS.push({mesh:b,geo:bg,base:bg.attributes.position.array.slice()});}
 addBanner(1740,2190);addBanner(1860,2190);addBanner(1690,2300);
-{const g=new THREE.Group();g.position.set(1870*S,hgt(1870,2320),2320*S);const p=new THREE.Mesh(new THREE.CylinderGeometry(.25,.32,3.2,8),MAT.wood);p.position.y=1.6;p.castShadow=true;g.add(p);
+{const g=new THREE.Group();g.position.set(1935*S,hgt(1935,2215),2215*S);const p=new THREE.Mesh(new THREE.CylinderGeometry(.25,.32,3.2,8),MAT.wood);p.position.y=1.6;p.castShadow=true;g.add(p);
   const bird=new THREE.Mesh(new THREE.ConeGeometry(.25,.9,5),new THREE.MeshStandardMaterial({color:0x111216,roughness:.5}));bird.rotation.z=-Math.PI/2;bird.position.set(.2,3.4,0);g.add(bird);
   for(const s of [-1,1]){const w=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.8),bird.material);w.position.set(0,3.45,s*.4);w.rotation.x=s*.5;g.add(w);}scene.add(g);}
 // wall, gate, braziers
@@ -517,8 +537,7 @@ function addIceSpikes(m){
 function buildPlayerModel(cls){const m=makeChar(cls);scene.add(m.root);return m;}
 function buildEnemyModel(t){
   let m;
-  if(t==='wolf') m=makeWolf();
-  else { m=makeChar(t,{iceMaterial:MAT.iceGlow}); if(t==='jotun') addIceSpikes(m); m.skel=t!=='jotun'; }
+  m=makeChar(t,{iceMaterial:MAT.iceGlow}); if(t==='jotun') addIceSpikes(m); m.skel=['draugr','archer','minion','seidr','vogter','jarl'].includes(t);
   scene.add(m.root); return m;
 }
 function buildNPC(id){
@@ -560,9 +579,26 @@ const ED={
   jarl:{name:'Hrafnkel, Draugr-jarlen',hp:820,r:26,spd:92,dmg:28,reach:100,runes:1600},
   minion:{name:'Gravtræl',hp:45,r:13,spd:96,dmg:12,reach:42,runes:45},
   seidr:{name:'Seiðr-draugr',hp:58,r:14,spd:58,dmg:15,reach:400,runes:95},
+  trold:{name:'Skovtrold',hp:55,r:13,spd:92,dmg:12,reach:42,runes:45},
+  bjergtrold:{name:'Bjergtrold',hp:160,r:19,spd:72,dmg:22,reach:58,runes:150},
+  rimtrold:{name:'Rimtrold',hp:360,r:26,spd:80,dmg:26,reach:86,runes:450},
+  ildvaette:{name:'Ildvætte',hp:95,r:16,spd:112,dmg:18,reach:50,runes:120},
+  frostvaette:{name:'Frostvætte',hp:95,r:16,spd:106,dmg:16,reach:50,runes:120},
+  gjenganger:{name:'Gjenganger',hp:60,r:14,spd:125,dmg:14,reach:170,runes:75},
+  gjenganger2:{name:'Dødningehoved',hp:75,r:14,spd:130,dmg:16,reach:170,runes:90},
+  stenvaette:{name:'Stenvætte',hp:170,r:18,spd:56,dmg:20,reach:54,runes:150},
+  stenvaette2:{name:'Klippevætte',hp:280,r:23,spd:50,dmg:28,reach:62,runes:260},
+  lindyngel:{name:'Lindyngel',hp:48,r:13,spd:140,dmg:11,reach:160,runes:60},
+  vaette:{name:'Lysvætte',hp:55,r:13,spd:70,dmg:13,reach:380,runes:90},
+  lindorm:{name:'Lindormen fra Isfjorden',hp:1150,r:32,spd:96,dmg:30,reach:120,runes:2600,aggro:220},
   vogter:{name:'Gravvogteren',hp:560,r:22,spd:86,dmg:24,reach:92,runes:1300,aggro:190},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:2400,r:46,spd:64,dmg:40,reach:170,runes:6000},
 };
+// How each enemy fights: melee swings, ranged casters, lunging beasts, brutes with leaps, or a boss of its own.
+const KIND={draugr:'melee',minion:'melee',trold:'melee',bjergtrold:'melee',ildvaette:'melee',frostvaette:'melee',stenvaette:'melee',stenvaette2:'melee',
+  archer:'ranged',seidr:'ranged',vaette:'ranged',wolf:'lunge',gjenganger:'lunge',gjenganger2:'lunge',lindyngel:'lunge',
+  jarl:'brute',vogter:'brute',rimtrold:'brute',jotun:'jotun',lindorm:'lindorm'};
+const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25,stenvaette2:.25,lindorm:2.2};
 const SPAWNS=[
   {t:'draugr',x:1640,y:1930},{t:'draugr',x:1960,y:1940},{t:'wolf',x:2150,y:1800},{t:'wolf',x:2200,y:1850},
   {t:'archer',x:1300,y:1600},{t:'draugr',x:1200,y:1560},
@@ -572,12 +608,20 @@ const SPAWNS=[
   {t:'archer',x:1450,y:700},{t:'archer',x:2150,y:700},
   {t:'jarl',x:600,y:1200,boss:'jarl'},
   {t:'seidr',x:2700,y:430},{t:'seidr',x:3100,y:430},{t:'minion',x:2650,y:540},{t:'minion',x:3150,y:540},{t:'minion',x:2900,y:540},
-  {t:'vogter',x:2900,y:445,boss:'vogter'},{t:'jotun',x:1800,y:470,boss:'jotun'},
+  {t:'vogter',x:2900,y:445,boss:'vogter'},
+  {t:'ildvaette',x:2620,y:650},{t:'ildvaette',x:3180,y:650},{t:'vaette',x:2900,y:390},
+  {t:'trold',x:1350,y:2150},{t:'trold',x:1385,y:2195},{t:'trold',x:1320,y:2205},{t:'trold',x:2300,y:2300},{t:'trold',x:2345,y:2262},
+  {t:'bjergtrold',x:1255,y:1455},{t:'stenvaette',x:1100,y:1480},{t:'stenvaette2',x:2660,y:1880},{t:'stenvaette',x:2480,y:1900},
+  {t:'gjenganger',x:2750,y:1220},{t:'gjenganger2',x:2960,y:1190},{t:'gjenganger',x:2700,y:1560},
+  {t:'lindyngel',x:3010,y:1150},{t:'lindyngel',x:3160,y:1300},{t:'lindorm',x:3120,y:1180,boss:'lindorm'},
+  {t:'frostvaette',x:2220,y:960},{t:'frostvaette',x:2360,y:1050},{t:'rimtrold',x:2500,y:1000},{t:'rimtrold',x:2320,y:560},
+  {t:'bjergtrold',x:1150,y:950},{t:'trold',x:1100,y:1000},{t:'trold',x:1190,y:1020},{t:'jotun',x:1800,y:470,boss:'jotun'},
 ];
 // Equipment found in chests or bought from Dvalin. slot: weapon, armor or talisman (two talisman slots).
 const ITEMS={
   ulfberht:{name:'Ulfberht-runen',slot:'weapon',desc:'+20 % skade med dit våben.'},
   brynje:{name:'Jarnhud-brynje',slot:'armor',desc:'Du tager 15 % mindre skade.'},
+  lindskael:{name:'Lindormskæl',slot:'armor',desc:'Du tager 20 % mindre skade.'},
   ulvepels:{name:'Ulvepels',slot:'armor',desc:'Udholdenhed vender 30 % hurtigere tilbage.'},
   ravnefjer:{name:'Ravnefjer',slot:'talisman',desc:'Rul koster 40 % mindre udholdenhed.'},
   mjolnir:{name:'Mjølnirs ekko',slot:'talisman',desc:'Din klasse-evne lader 30 % hurtigere op.'},
@@ -590,6 +634,7 @@ const NPCS=[
   {id:'ulfr',name:'Gamle Ulfr',x:1748,y:2272,face:Math.PI*.4},
   {id:'dvalin',name:'Dvalin',x:1650,y:2352,face:-Math.PI/2},
   {id:'astrid',name:'Astrid',x:1440,y:1838,face:Math.PI*.25},
+  {id:'thorgrim',name:'Jarl Thorgrim',x:1880,y:2365,face:-Math.PI/2},
   {id:'mimir',name:'Mimirs Hoved',x:2850,y:1400,face:Math.PI/2,head:true},
 ];
 
@@ -627,6 +672,8 @@ function resetWorld(){
     if(s.boss==='jarl'&&G.flags.jarlDead) continue;
     if(s.boss==='jotun'&&G.flags.jotunDone) continue;
     if(s.boss==='vogter'&&G.flags.vogterDead) continue;
+    if(s.boss==='lindorm'&&G.flags.lindormDead) continue;
+    if(s.t==='rimtrold'){spawnEnemy(s.t,s.x,s.y,{summoned:true});continue;}
     spawnEnemy(s.t,s.x,s.y,s.boss?{boss:s.boss,summoned:s.boss==='vogter',dormant:s.boss==='jotun'&&!G.flags.jotunTalked,dmgMult:s.boss==='jotun'&&G.flags.enraged?1.2:1}:{});
   }
   if(C){C.down=false;C.hp=C.maxHp;C.x=P.x-30;C.y=P.y+30;}
@@ -752,6 +799,7 @@ function hurtPlayer(dmg,fx,fy){
       if(p.st<=0){p.st=0;p.stagger=.7;dmg*=.5;toast('Din garde er brudt');}else{dmg*=.12;}
       p.stDelay=.6;}}
   if(eqHas('brynje')) dmg*=.85;
+  if(eqHas('lindskael')) dmg*=.8;
   dmg=Math.round(dmg); if(dmg<=0) return;
   p.hp-=dmg; p.iframes=.22; p.hitId=(p.hitId||0)+1; num(p.x,p.y,dmg,'hurt');
   if(dmg>6){p.stagger=Math.max(p.stagger,.2);if(p.act&&p.act.kind!=='heavy')p.act=null;}
@@ -811,7 +859,7 @@ function damageEnemy(e,dmg,o={}){
   if(e.dead) return;
   if(e.dormant) return;
   dmg=Math.round(dmg*(.9+Math.random()*.2)); const crit=e.stun>0&&!o.stun; if(crit)dmg=Math.round(dmg*1.5);
-  e.hp-=dmg;e.flash=.13;e.aggro=true;sfx(e.t==='jotun'?'icehit':e.t==='wolf'?'hit':'bonehit');
+  e.hp-=dmg;e.flash=.13;e.aggro=true;sfx(e.t==='jotun'||e.t==='lindorm'||e.t==='frostvaette'?'icehit':e.model&&e.model.skel?'bonehit':'hit');
   num(e.x,e.y,dmg,crit?'crit':'');
   const gy=groundY(e.x,e.y)+(e.boss==='jotun'?4:1);
   burst(e.x*S,gy,e.y*S,10,3,.45,.2,e.t==='jotun'?.6:.3,e.t==='jotun'?1.6:.06,e.t==='jotun'?2.2:.05,{sys:e.t==='jotun'?FXA:FXN,grav:8,alpha:.9});
@@ -829,6 +877,7 @@ function killEnemy(e){
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
   if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
+  if(e.boss==='lindorm'){G.flags.lindormDead=true;G.boss=null;banner('FJENDE FÆLDET','Lindormen fra Isfjorden');setTimeout(()=>toast(G.flags.lindormQuest?'Bring nyheden til Jarl Thorgrim i Ravnsholm':'Jarl Thorgrim i Ravnsholm vil gerne høre om dette'),1600);sfx('boom');G.slowmo=1.3;saveGame();}
   if(e.boss==='vogter'){G.flags.vogterDead=true;G.boss=null;banner('FJENDE FÆLDET','Gravvogteren');setTimeout(()=>toast('Vogterens nøgle passer til guldkisten'),1600);sfx('boom');G.slowmo=1.2;saveGame();}
   if(e.boss==='jotun'){G.flags.jotunDone=true;G.boss=null;banner('RIMTURSEN ER FÆLDET','Hrimgrimr, Ymirs æt');sfx('boom');G.slowmo=2.2;G.endT=5.5;G.ending='sword';}
   setTimeout(()=>{scene.remove(e.model.root);},e.boss?4200:2400);
@@ -869,23 +918,37 @@ function updEnemy(e,dt){
   let moving=0;
   const step=(dir,mult=1)=>{e.x+=Math.cos(dir)*sp*mult*dt;e.y+=Math.sin(dir)*sp*mult*dt;moving=mult;};
   const dm=e.dmgMult||1;
-  if(e.t==='draugr'||e.t==='minion'){
+  const K=KIND[e.t];
+  if(K==='melee'){
     if(d>e.def.reach*.8+tg.r) step(a);
     else if(e.cd<=0){arcAtk(e,a,1.9,e.def.reach+10,.55,e.def.dmg*dm);e.busy=.55+.55;e.cd=.9+Math.random()*.8;}
-  } else if(e.t==='archer'||e.t==='seidr'){
+  } else if(K==='ranged'){
     if(d>330) step(a); else if(d<170) step(a+Math.PI,.8); else step(a+Math.PI/2*(Math.sin(e.t0*.7)>0?1:-1),.4);
     if(e.cd<=0&&d<430){e.aim={t:.8,track:true,len:d};e.busy=1.15;e.cd=1.8+Math.random()*.8;
-      e.sched.push({t:.8,fn:()=>{e.shotId=(e.shotId||0)+1;const t2=pickTarget(e);const aa=Math.atan2(t2.y-e.y,t2.x-e.x);const mage=e.t==='seidr';spawnProj({x:e.x,y:e.y,vx:Math.cos(aa)*(mage?250:400),vy:Math.sin(aa)*(mage?250:400),dmg:e.def.dmg,friendly:false,kind:mage?'boltE':'arrowE',life:mage?2.4:1.4,r:mage?8:5,homingP:mage});if(mage)sfx('bolt');}});}
-  } else if(e.t==='wolf'){
+      e.sched.push({t:.8,fn:()=>{e.shotId=(e.shotId||0)+1;const t2=pickTarget(e);const aa=Math.atan2(t2.y-e.y,t2.x-e.x);const mage=e.t!=='archer';spawnProj({x:e.x,y:e.y,vx:Math.cos(aa)*(mage?250:400),vy:Math.sin(aa)*(mage?250:400),dmg:e.def.dmg,friendly:false,kind:mage?'boltE':'arrowE',life:mage?2.4:1.4,r:mage?8:5,homingP:mage});if(mage)sfx('bolt');}});}
+  } else if(K==='lunge'){
     if(d>140) step(a+Math.sin(e.t0*1.4)*.5); else if(e.cd>0) step(a+Math.PI/2,.5);
     if(e.cd<=0&&d<170){const la=a;e.aim={t:.45,len:150,lunge:true};e.busy=.45+.3+.45;e.cd=1.3+Math.random()*.8;
-      e.sched.push({t:.45,fn:()=>{e.dash={dx:Math.cos(la),dy:Math.sin(la),sp:440,t:.3,dmg:e.def.dmg};}});}
-  } else if(e.t==='jarl'||e.t==='vogter') jarlAI(e,tg,d,a,step,dm);
-  else if(e.t==='jotun') jotunAI(e,tg,d,a,step,dm);
+      e.dashSeq=(e.dashSeq||0)+1;e.sched.push({t:.45,fn:()=>{e.dash={dx:Math.cos(la),dy:Math.sin(la),sp:440,t:.3,dmg:e.def.dmg};}});}
+  } else if(K==='brute') jarlAI(e,tg,d,a,step,dm);
+  else if(K==='lindorm') lindormAI(e,tg,d,a,step,dm);
+  else if(K==='jotun') jotunAI(e,tg,d,a,step,dm);
   e.move=lerp(e.move,moving,dt*8); e.phase+=dt*sp*moving*.055;
   collide(e);
   // separation
   for(const o of G.enemies){if(o===e||o.dead)continue;const dx=e.x-o.x,dy=e.y-o.y,m=e.r+o.r;const d2=dx*dx+dy*dy;if(d2<m*m&&d2>.01){const dd=Math.sqrt(d2),push=(m-dd)*.5;e.x+=dx/dd*push;e.y+=dy/dd*push;}}
+}
+function lindormAI(e,tg,d,a,step,dm){
+  if(!e.phase2&&e.hp<e.maxHp*.5){e.phase2=true;e.busy=1.3;banner('Lindormen skriger','Ynglen vågner i isen','frost');sfx('howl');
+    for(const sg of [-1,1]){const x=e.x+Math.cos(a+sg*1.4)*120,y=e.y+Math.sin(a+sg*1.4)*120;spawnEnemy('lindyngel',x,y,{aggro:true});burst(x*S,groundY(x,y)+1,y*S,40,3,1,.4,.6,1.6,2.4,{grav:1});}
+    return;}
+  if(e.cd>0){if(d>150)step(a);else step(a+Math.PI/2,.6);return;}
+  const r=Math.random(), D=e.def.dmg*dm;
+  if(d<160&&r<.5){arcAtk(e,a,2.4,e.def.reach+20,.7,D);e.busy=1.2;}
+  else if(d<440&&r<.8){const la=a;e.aim={t:.65,len:Math.min(d+80,440),lunge:true};e.busy=.65+.45+.5;e.dashSeq=(e.dashSeq||0)+1;sfx('howl');
+    e.sched.push({t:.65,fn:()=>{e.dash={dx:Math.cos(la),dy:Math.sin(la),sp:640,t:.45,dmg:D*1.1};}});}
+  else{for(let i=1;i<=6;i++){const sp=(i%2?1:-1)*(i>3?.2:.08);const x=e.x+Math.cos(a+sp)*(50+i*62),y=e.y+Math.sin(a+sp)*(50+i*62);circAtk(x,y,46+i*3,.7+i*.08,D*.7,{owner:e,frost:true,onFire:()=>spikeFx(x,y)});}e.busy=1.35;}
+  e.cd=.5+Math.random()*.6;
 }
 function jarlAI(e,tg,d,a,step,dm){
   if(!e.summoned&&e.hp<e.maxHp*.5){e.summoned=true;e.busy=1.2;banner('Hrafnkel kalder på sine huskarle','', 'frost');sfx('horn');
@@ -979,6 +1042,42 @@ function interactTarget(){
   return null;
 }
 
+/* --- Wildlife, farm animals and villagers going about their day */
+const CANIM={animal:{idle:'Idle',walk:'Walk',run:'Gallop',eat:'Eating'},person:{idle:'Idle',walk:'Walk',run:'Run',eat:'Interact'},guard:{idle:'Idle_Sword',walk:'Walk',run:'Run',eat:'Idle_Sword'}};
+const CRITTER_SPAWNS=[
+  ['deer',1250,2050,1],['deer',1290,2090,1],['stag',1180,2010,1],['fox',2250,2150,1],['fox',950,1750,1],['deer',2400,2250,1],['stag',2500,2280,1],['fox',1600,1500,1],['deer',700,2000,1],['stag',3000,1900,1],
+  ['husky',1622,2326,0],['husky',1662,2316,0],['horse',1575,2440,0],['horse',1570,2478,0],['cow',1760,2632,0],['cow',1830,2640,0],['donkey',2050,2420,0],
+  ['farmer',1750,2470,0],['worker',1980,2400,0],['guard',1768,2178,0],['hguard',1832,2178,0],
+];
+const CRITTERS=[];
+function initCritters(){
+  for(const [kind,x,y,wild] of CRITTER_SPAWNS){
+    const m=makeChar(kind); scene.add(m.root);
+    const person=['farmer','worker','guard','hguard'].includes(kind), guard=kind==='guard'||kind==='hguard';
+    CRITTERS.push({kind,x,y,home:{x,y},r:person?11:kind==='horse'||kind==='cow'?18:12,wild,m,state:'idle',t:Math.random()*3,tx:x,ty:y,face:Math.random()*TAU,
+      range:guard?0:person?160:wild?140:40,walk:person?42:kind==='fox'?55:38,run:kind==='fox'?260:220,A:CANIM[guard?'guard':person?'person':'animal']});
+  }
+}
+function updCritters(dt){
+  const cx=G.camLook.x/S, cz=G.camLook.z/S;
+  for(const c of CRITTERS){
+    const far=Math.hypot(c.x-cx,c.y-cz)>1400; c.m.root.visible=!far; if(far) continue;
+    c.t-=dt; let sp=0;
+    const dP=P&&!P.dead?Math.hypot(P.x-c.x,P.y-c.y):1e9;
+    if(c.wild&&dP<230&&c.state!=='flee'){const a=Math.atan2(c.y-P.y,c.x-P.x);c.state='flee';c.t=2.6;c.tx=c.x+Math.cos(a)*340;c.ty=c.y+Math.sin(a)*340;}
+    if(c.t<=0){
+      if(c.range>0&&Math.random()<.55){const a=Math.random()*TAU,r=Math.random()*c.range;c.state='walk';c.tx=c.home.x+Math.cos(a)*r;c.ty=c.home.y+Math.sin(a)*r;c.t=7;}
+      else{c.state=Math.random()<.45?'eat':'idle';c.t=3+Math.random()*4;}
+      if(c.wild&&Math.hypot(c.x-c.home.x,c.y-c.home.y)>500){c.state='walk';c.tx=c.home.x;c.ty=c.home.y;c.t=9;}
+    }
+    if(c.state==='walk'||c.state==='flee'){const dx=c.tx-c.x,dy=c.ty-c.y,dd=Math.hypot(dx,dy);
+      if(dd<8){c.state='idle';c.t=2+Math.random()*3;}else{sp=c.state==='flee'?c.run:c.walk;c.face=Math.atan2(dy,dx);const ox=c.x,oy=c.y;c.x+=dx/dd*sp*dt;c.y+=dy/dd*sp*dt;collide(c);if(Math.hypot(c.x-ox,c.y-oy)<sp*dt*.3){c.state='idle';c.t=1;}}}
+    if(!c.wild&&!c.range&&P&&dP<160) c.face=Math.atan2(P.y-c.y,P.x-c.x);
+    const gy=groundY(c.x,c.y); c.m.root.position.set(c.x*S,gy,c.y*S); c.m.root.rotation.y=lerpAng(c.m.root.rotation.y,-c.face,Math.min(1,dt*6));
+    drive(c.m,{n:sp>0?(c.state==='flee'?c.A.run:c.A.walk):(c.state==='eat'?c.A.eat:c.A.idle)}); c.m.anim.update(dt);
+  }
+}
+
 /* --- Chests, equipment and travelling through doors */
 function openChest(c){
   if(c.gold&&!G.flags.vogterDead){toast('Låst. Gravvogteren bærer nøglen.');sfx('block');return;}
@@ -1051,6 +1150,19 @@ const D={
     if(!f.aTriedKar) n.opts.push({t:'Alene dør du derude. Sammen har vi en chance mod Rimtursen.',stat:'kar',dc:13,ok:()=>join('Hun ser ind i ilden, så på dig. «Pæne ord. Og sande, desværre.»'),fail:()=>{f.aTriedKar=true;return{who:'Astrid',text:'«Pæne ord. Kom tilbage, når du har fældet noget større end en ulv.»',opts:D.astrid().opts};}});
     if(!f.aTriedSty) n.opts.push({t:'Lad os armlægge om det. Vinder jeg, følger du mig.',stat:'sty',dc:14,ok:()=>join('Hendes arm giver efter med et knæk. «Fint! Fint. Jeg følger dig, kæmpe.»'),fail:()=>{f.aTriedSty=true;return{who:'Astrid',text:'Du ligger på ryggen i sneen, før du når at spænde armen. «Træn lidt mere.»',opts:D.astrid().opts};}});
     if(P.runes>=150) n.opts.push({t:'Jeg betaler. 150 runer for din bue.',go:()=>{P.runes-=150;return join('Hun bider i en af runerne. «Ægte nok. Du har købt dig en bue.»');}});
+    n.opts.push({t:'Farvel.'});
+    return n;
+  },
+  thorgrim(){
+    const f=F(); const reward=f.lindormAdvance?550:800;
+    if(f.lindormDead&&!f.lindormPaid){f.lindormPaid=true;P.runes+=reward;setTimeout(()=>giveItem('lindskael'),600);sfx('coins');
+      return{who:'Jarl Thorgrim',text:`Thorgrim rejser sig, før du når at sige noget. «Jægerne så den falde fra hinanden på isen. Det her er dit.» Han lægger ${reward} runer i din hånd og et skjold af grønsort skæl over din skulder. «Lindormskæl. Smedet af dens egen hud. Ingen i Ravnsholm glemmer dette.»`,opts:[{t:'Tak, jarl.'}]};}
+    if(f.lindormPaid) return{who:'Jarl Thorgrim',text:'«Skjaldene synger allerede om dig. Gå med Odin, lindormsbane.»',opts:[{t:'Farvel.'}]};
+    const n={who:'Jarl Thorgrim',text:f.thorgrimMet?(f.lindormQuest?'«Ligger lindormen stadig på søen? Mine folk tør ikke gå ud på isen.»':'«Har du tænkt over mit tilbud?»'):'En bredskuldret mand med pelskappe og en sølvring om overarmen ser op fra et kort over fjorden. «Jarl Thorgrim af Ravnsholm. Du er den, Ulfr taler om. Godt. Jeg har brug for en, der ikke er bange for at dø.»',opts:[]};
+    f.thorgrimMet=true;
+    if(!f.lindormQuest) n.opts.push({t:'Hvad har du brug for?',go:()=>{f.lindormQuest=true;return{who:'Jarl Thorgrim',text:'«En lindorm er kravlet op fra Isfjorden og har lagt sig på den frosne sø mod øst, bag Mimirs sten. Den har taget vores rener og to af mine jægere. Dræb den, og du får 800 runer og et skæl af dens egen hud at bære.»',opts:D.thorgrim().opts};}});
+    if(f.lindormQuest&&!f.thorgrimKar) n.opts.push({t:'Betal halvdelen nu, så jeg kan købe mjød til turen.',stat:'kar',dc:14,ok:()=>{f.thorgrimKar=true;f.lindormAdvance=true;P.runes+=250;sfx('coins');return{who:'Jarl Thorgrim',text:'Thorgrim griner kort. «Du har en tunge som en skjald. 250 nu, resten når jeg ser dens hoved.»',opts:D.thorgrim().opts};},fail:()=>{f.thorgrimKar=true;return{who:'Jarl Thorgrim',text:'«Jeg betaler for et lig, ikke for løfter.»',opts:D.thorgrim().opts};}});
+    if(f.lindormQuest&&!f.thorgrimVil) n.opts.push({t:'Hvad så dine jægere, før de døde?',stat:'vil',dc:12,ok:()=>{f.thorgrimVil=true;return{who:'Jarl Thorgrim',text:'Han tøver. «Den eneste, der kom tilbage, sagde, at den skriger, før den kaster sig frem i en lige linje. Rul til siden, ikke bagud. Og når den bløder, vågner ynglen i isen.»',opts:D.thorgrim().opts};},fail:()=>{f.thorgrimVil=true;return{who:'Jarl Thorgrim',text:'«De så den. Så døde de. Mere ved jeg ikke.»',opts:D.thorgrim().opts};}});
     n.opts.push({t:'Farvel.'});
     return n;
   },
@@ -1338,6 +1450,7 @@ function updateCamera(dt){
   camera.position.copy(G.camPos);
   if(G.shake>0){const s=G.shake*.35;camera.position.x+=rand(-s,s);camera.position.y+=rand(-s,s);camera.position.z+=rand(-s,s);G.shake=Math.max(0,G.shake-dt*1.8);}
   camera.lookAt(G.camLook);
+  SEE.uFade.value=P&&G.state!=='title'&&G.state!=='dialog'?1:0; if(P){SEE.uPlayer.value.set(P.x*S,groundY(P.x,P.y),P.y*S);} SEE.uCam.value.copy(camera.position);
   sky.position.copy(camera.position);
   const fc=P?{x:P.x*S,y:groundY(P.x,P.y),z:P.y*S}:{x:G.camLook.x,y:G.camLook.y,z:G.camLook.z};
   moon.position.set(fc.x+MOON_OFF.x,fc.y+MOON_OFF.y,fc.z+MOON_OFF.z);moon.target.position.set(fc.x,fc.y,fc.z);
@@ -1374,7 +1487,13 @@ function syncPlayer(dt){
   lantern.position.set(p.x*S,gy+2.4,p.y*S);
   PM.tintEmissive(p.rage>0?.22:0,0,0);
 }
+const QA={idle:'Idle',calm:'Idle',move:'Run',walk:'Walk',death:'Death',hit:'HitReact'}, QF={idle:'Flying_Idle',calm:'Flying_Idle',move:'Fast_Flying',walk:'Flying_Idle',aim:'Flying_Idle',dash:'Headbutt',arc:'Punch',death:'Death',hit:'HitReact'};
 const EANIM={
+  wolf:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',death:'Death',hit:'Idle_HitReact_Left'},
+  trold:{...QA,move:'Walk',arc:'Bite_Front',hit:'HitRecieve'}, bjergtrold:{...QA,arc:'Weapon'}, rimtrold:{...QA,arc:'Punch',leap:'Jump'},
+  ildvaette:{...QA,arc:'Weapon'}, frostvaette:{...QA,arc:'Weapon'},
+  gjenganger:QF, gjenganger2:QF, stenvaette:QF, stenvaette2:QF, vaette:{...QF,shoot:'Punch'}, lindorm:{...QF,breath:'Yes'},
+  lindyngel:{idle:'Dragon_Flying',calm:'Dragon_Flying',move:'Dragon_Flying',walk:'Dragon_Flying',aim:'Dragon_Flying',dash:'Dragon_Attack',death:'Dragon_Death',hit:'Dragon_Hit'},
   minion:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Chop',death:'Death_C_Skeletons'},
   seidr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'Spellcasting',shoot:'Spellcast_Shoot',death:'Death_C_Skeletons'},
   vogter:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'2H_Melee_Attack_Slice',leap:'1H_Melee_Attack_Jump_Chop',summon:'Spellcast_Summon',death:'Death_C_Skeletons'},
@@ -1389,19 +1508,21 @@ function animEnemy(e,m,dt,gy){
     w={n:an.death,key:'dead',fade:.1};
     const k=clamp((e.deathT-(e.boss?2.2:1.3))/(e.boss?1.6:.8),0,1); if(k>0){m.opacity(1-k);m.root.position.y=gy-k*(e.boss?1.5:.3);} if(k>=1)m.root.visible=false;
   }
-  else if(e.stun>0) w={n:'Hit_B',key:'st'+e.stunId,fit:.5};
+  else if(e.stun>0) w={n:an.hit||'Hit_B',key:'st'+e.stunId,fit:.5};
   else if(e.atkHaz&&G.hazards.includes(e.atkHaz)){
     const h=e.atkHaz, own=h.k==='circle'&&Math.hypot(h.x-e.x,h.y-e.y)<20;
     let n=an.arc, fit=h.wind+.35;
-    if((e.t==='jarl'||e.t==='vogter')&&h.k==='circle'){n=an.leap;fit=h.wind+.5;}
+    if(KIND[e.t]==='brute'&&h.k==='circle'){n=an.leap;fit=h.wind+.5;}
+    if(e.t==='lindorm'&&h.k==='circle'){n=an.breath;fit=h.wind+.3;}
     if(e.t==='jotun'&&h.k==='circle'){n=own?an.stomp:(G.hazards.filter(x=>x.owner===e).length>7?an.rain:an.cast);fit=own?h.wind+.4:h.wind+.3;}
     w={n,key:'a'+e.atkSeq,fit};
   }
   else if(e.summoned&&e.busy>.5&&e.t==='jarl') w={n:an.summon,key:'sum',fit:1.2};
+  else if(e.dash&&an.dash) w={n:an.dash,key:'d'+e.dashSeq,fit:.5};
   else if(e.aim&&an.aim) w={n:an.aim};
   else if(e.shotId&&e.busy>0&&an.shoot) w={n:an.shoot,key:'s'+e.shotId,fit:.45};
   else if(e.awoke&&e.busy>.05&&!e.awakeDone) w={n:'Skeletons_Awaken_Standing',key:'awake',fit:1.1};
-  else if(e.leaving||e.move>.15) w={n:e.aggro||e.leaving?an.move:'Walking_D_Skeletons',speed:e.t==='jotun'?.75:1};
+  else if(e.leaving||e.move>.15) w={n:e.aggro||e.leaving?an.move:(an.walk||'Walking_D_Skeletons'),speed:e.t==='jotun'?.75:1};
   else w={n:e.aggro?an.idle:(e.dormant&&e.t==='jotun'?'Sit_Chair_Idle':an.calm)};
   if(e.awoke&&e.busy<=.05) e.awakeDone=true;
   if(!m.anim.has(w.n)) w={...w,n:m.anim.has('Idle')?'Idle':w.n};
@@ -1416,6 +1537,7 @@ function syncEnemies(dt){
     const gy=groundY(e.x,e.y);
     let lift=0;
     if(e.air){e.airT=(e.airT||0)+dt;lift=Math.sin(clamp(e.airT/1,0,1)*Math.PI)*5;}
+    if(FLOAT[e.t]&&!e.dead) lift+=FLOAT[e.t]+Math.sin(e.t0*2.2)*.15;
     m.root.position.set(e.x*S,gy+lift,e.y*S);
     if(e.leaving){e.y-=dt*40;e.face=-Math.PI/2;e.move=1;e.fade=Math.max(0,(e.fade??1)-dt*.16);m.opacity(e.fade);if(e.fade<=0)m.root.visible=false;}
     m.root.rotation.y=lerpAng(m.root.rotation.y,-e.face,Math.min(1,dt*(e.boss?6:12)));
@@ -1435,7 +1557,7 @@ function syncEnemies(dt){
     // hp bars
     if(!e.boss&&!e.dead&&e.hp<e.maxHp){
       if(!e.hpEl){e.hpEl=document.createElement('div');e.hpEl.className='ehp';e.hpEl.innerHTML='<i></i>';labels.appendChild(e.hpEl);}
-      const s=toScreen(e.x*S,gy+(e.t==='wolf'?1.4:2.3),e.y*S);e.hpEl.style.display=s.vis?'block':'none';e.hpEl.style.left=s.x+'px';e.hpEl.style.top=s.y+'px';e.hpEl.firstChild.style.width=(e.hp/e.maxHp*100)+'%';
+      const s=toScreen(e.x*S,gy+(FLOAT[e.t]||0)+1.2+e.r*.06,e.y*S);e.hpEl.style.display=s.vis?'block':'none';e.hpEl.style.left=s.x+'px';e.hpEl.style.top=s.y+'px';e.hpEl.firstChild.style.width=(e.hp/e.maxHp*100)+'%';
     }
   }
   // clean dead
@@ -1531,7 +1653,7 @@ function objective(){const f=G.flags;
   if(!f.metUlfr) return ['Tal med Gamle Ulfr ved runestenen i Ravnsholm',''];
   if(!f.horn&&!f.gateOpen) return ['Find Draugr-jarlen i gravhøjen mod vest','Valgfrit: Astrid ved lejren · Mimirs Hoved på den frosne sø mod øst'];
   if(!f.gateOpen) return ['Blæs i Jarlens Horn ved Jötunporten mod nord',!f.vogterDead?'Valgfrit: Gravkrypten under højen er åben nu':'Valgfrit: Mimirs Hoved kender Rimtursens hemmelighed'];
-  return ['Konfrontér Rimtursen bag Jötunporten',G.flags.jarlDead&&!G.flags.vogterDead?'Valgfrit: Gravkrypten under højen er åben':''];}
+  return ['Konfrontér Rimtursen bag Jötunporten',G.flags.lindormQuest&&!G.flags.lindormDead?'Valgfrit: Dræb Lindormen på den frosne sø':G.flags.jarlDead&&!G.flags.vogterDead?'Valgfrit: Gravkrypten under højen er åben':''];}
 let lastRunes=-1, shownRunes=0;
 function updHUD(dt){
   if(!P) return;
@@ -1587,7 +1709,7 @@ function frame(now){
   } else if(G.state==='dialog'){ for(const e of G.enemies) if(e.leaving) {} }
   if(G.state==='dialog'||G.state==='end'){ if(G.endT>0&&G.state!=='end'){G.endT-=rdt;} }
   if(P&&G.state!=='title') syncPlayer(rdt);
-  syncEnemies(rdt); syncNPCs(rdt);
+  syncEnemies(rdt); syncNPCs(rdt); if(CRITTERS.length) updCritters(G.state==='play'||G.state==='title'?rdt:0);
   ambientFX(rdt); FXA.update(rdt); FXN.update(rdt); updFX(rdt);
   updateCamera(rdt);
   updateSnow(rdt,G.camLook,G.time);
@@ -1616,6 +1738,6 @@ Promise.all([
 ]).then(()=>{
   // redraw rune textures once the runic font is ready
   RS_MESH.forEach(m=>{m.mat.emissiveMap=runeTex('ᚱᚨᚢᚾ','#ffcf6a');m.mat.needsUpdate=true;});
-  initNPCs(); buildWorldProps();
+  initNPCs(); buildWorldProps(); initCritters();
   start({});
 }).catch(err=>{$('loadTxt').textContent='Spillets figurer kunne ikke indlæses ('+(err&&err.message||err)+'). Genindlæs siden.';});
