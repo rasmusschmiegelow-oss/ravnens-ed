@@ -1,0 +1,58 @@
+# Plays the game automatically on every push and only publishes it to GitHub Pages when everything passes.
+name: Spiltest og udgivelse
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Spiltest
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Tjek navne på tværs af spilfilerne
+        run: python3 tools/check_globals.py
+      - name: Installér Playwright
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Start spilserveren
+        run: python3 tools/serve.py 8765 &
+      - name: Spil spillet
+        run: node tests/smoke.mjs
+
+  deploy:
+    name: Udgiv på GitHub Pages
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pak siden (uden test- og værktøjsfiler)
+        run: |
+          mkdir _site
+          cp -r index.html styles.css src assets .nojekyll _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -86,5 +86,103 @@ function simAll(n=4,opts={}){
   return out;
 }
 
+/* =========================================================
+   CAMPAIGN BOT (dev only): plays the whole game in order, levelling and dying like a player,
+   and checks the game state and a save/load round trip after every step.
+   ========================================================= */
+// The route a typical player takes: areas to clear (x, y, radius), rests, people and bosses.
+const ROUTE=[
+  {talk:'ulfr'},
+  {clear:[1640,1930,260],rest:0},{clear:[1960,1940,260]},{clear:[2175,1825,200]},{clear:[1350,2175,200],rest:0},
+  {recruit:'astrid'},
+  {clear:[1250,1580,220]},{clear:[1255,1455,180]},{chest:'ruin'},{clear:[1100,1480,160],rest:1},
+  {clear:[1080,1330,140]},{clear:[1080,1010,180]},{clear:[760,1540,160],rest:1},
+  {boss:'jarl',at:[820,1200],rest:1},
+  {crypt:true},
+  {clear:[2530,1245,200]},{clear:[2620,1580,180]},{clear:[2400,1650,180]},{chest:'wild'},{clear:[2570,1890,220],rest:0},
+  {clear:[1800,1150,320],rest:2},{clear:[1500,1300,160]},{clear:[2100,1300,160]},{clear:[2290,1005,240],rest:2},
+  {optional:'lindorm',at:[2980,1260],rest:2},
+  {gate:true},{clear:[1450,700,150,1450,620]},{clear:[2150,700,150,2150,620]},
+  {boss:'jotun',at:[1800,700]},
+];
+function campaign(cls,opts={}){
+  const log=[], problems=[], bossLvl={}, attempts=[], t0=performance.now();
+  G.sim=true; const prevState=G.state; G.state='play'; const muted=!AU.on; setMuted(true); const prevDiff=SET.diff; SET.diff=opts.diff||'normal';
+  let deaths=0, simTime=0;
+  const b={react:0,reaction:opts.reaction??.26,miss:opts.miss??.3,parry:opts.parry??.35,hx:0,hy:0};
+  const check=(where)=>{
+    if(!(P.hp<=maxHp()+.5)||Number.isNaN(P.x)||Number.isNaN(P.y)||Number.isNaN(P.hp)) problems.push(where+': spillertilstand ugyldig');
+    for(const e of G.enemies) if(Number.isNaN(e.x)||Number.isNaN(e.hp)) {problems.push(where+': fjende med NaN ('+e.t+')');break;}
+    if(G.flags.jarlDead&&!G.flags.horn&&!G.flags.gateForced) problems.push(where+': jarlen er død, men hornet mangler');
+    // save/load round trip keeps the important state
+    const sv=JSON.parse(JSON.stringify(makeSave()));
+    if(sv.level!==P.level||sv.runes!==P.runes||JSON.stringify(sv.flags)!==JSON.stringify(G.flags)||JSON.stringify(sv.eq)!==JSON.stringify(G.eq)) problems.push(where+': gem/indlæs mister data');
+  };
+  const spend=()=>{ // level up like a player: main stat mostly, some agility; talents in class order
+    const main=cls==='berserker'?'sty':cls==='volve'?'vil':(P.level%2?'sty':'smi');
+    while(P.runes>=lvlCost(P.level)){P.runes-=lvlCost(P.level);P.stats[P.level%4===0?'smi':main]++;P.level++;}
+    while(talentPoints()>0){const t=TALENTS[cls].find(x=>!T(x.id));if(!t)break;P.talents=[...(P.talents||[]),t.id];}
+    // Dvalin: buy a weapon upgrade or a mead horn when there is money left over
+    const c=x=>Math.round(x*G.discount);
+    if(G.weaponLvl<3&&P.runes>=c(450*(G.weaponLvl+1))){P.runes-=c(450*(G.weaponLvl+1));G.weaponLvl++;}
+    if(G.extraFlasks<2&&P.runes>=c(500+G.extraFlasks*250)){P.runes-=c(500+G.extraFlasks*250);G.extraFlasks++;}
+  };
+  const rest=(id)=>{G.lastRS=id;RUNESTONES[id].lit=true;spend();P.hp=maxHp();P.st=maxSt();P.flasks=maxFlasks();resetWorld();P.x=RUNESTONES[id].x;P.y=RUNESTONES[id].y+46;if(C){C.x=P.x-30;C.y=P.y+30;C.down=false;C.hp=C.maxHp;}};
+  const died=()=>{deaths++;G.stain=P.runes>0?{x:P.x,y:P.y,amount:P.runes}:null;P.runes=0;P.dead=false;G.boss=null;G.lock=null;rest(G.lastRS);};
+  const step=(dt)=>{G.time+=dt;simTime+=dt;b.react-=dt;botThink(b);updPlayer(dt);updComp(dt);for(const q of [...G.enemies])updEnemy(q,dt);updHazards(dt);updProjs(dt);};
+  const goTo=(x,y)=>{P.x=x;P.y=y;collide(P);if(C){C.x=x-30;C.y=y+30;}b.hx=P.x;b.hy=P.y;
+    if(G.stain&&Math.hypot(G.stain.x-x,G.stain.y-y)<450){P.runes+=G.stain.amount;G.stain=null;}};
+  // fight everything near a point; returns true when cleared, retries after dying
+  const clearArea=(x,y,r,ax,ay,limit=90,tries=4)=>{
+    for(let k=0;k<tries;k++){
+      goTo(ax??x,ay??(y+Math.min(r,160)));
+      const foes=G.enemies.filter(e=>!e.dead&&!e.dormant&&Math.hypot(e.x-x,e.y-y)<r);
+      if(!foes.length) return true;
+      foes.forEach(e=>{e.aggro=true;});
+      let t=0; while(t<limit){step(1/60);t+=1/60;if(P.dead)break;if(foes.every(e=>e.dead))break;}
+      if(P.dead){died();continue;}
+      if(foes.every(e=>e.dead)) return true;
+    }
+    return false;
+  };
+  const fightBoss=(kind,x,y,tries=6)=>{
+    for(let k=0;k<tries;k++){
+      // after a death the road respawns: clear what stands near the arena first, like a player walking back
+      for(const q of G.enemies) if(!q.dead&&!q.boss&&!q.dormant&&Math.hypot(q.x-x,q.y-y)<420) clearArea(q.x,q.y,120,undefined,undefined,60,1);
+      goTo(x,y); const e=G.enemies.find(q=>q.boss===kind&&!q.dead); if(!e) return true;
+      if(kind==='jotun'){e.dormant=false;G.flags.jotunTalked=true;} e.aggro=true;
+      bossLvl[kind]=P.level;
+      let t=0; while(t<200){step(1/60);t+=1/60;if(P.dead||e.dead)break;}
+      attempts.push({boss:kind,try:k+1,result:e.dead?'win':P.dead?'died':'timeout',bossHp:Math.round(Math.max(0,e.hp)/e.maxHp*100),t:Math.round(t),dist:Math.round(Math.hypot(P.x-e.x,P.y-e.y)),aggro:e.aggro});
+      if(e.dead) return true;
+      if(P.dead) died();
+    }
+    return false;
+  };
+  try{
+    newPlayer(cls,{...CLASSES[cls].base},'Bot'); resetRun(); P.x=1800;P.y=2330; resetWorld(); G.lock=null;
+    for(const s of ROUTE){
+      const where=JSON.stringify(s);
+      if(s.talk){D[s.talk]();}
+      if(s.recruit==='astrid'){if(P.runes>=150)P.runes-=150;makeCompanion('astrid');G.flags.astrid=true;}
+      if(s.clear&&!clearArea(...s.clear)) problems.push('Kunne ikke rydde '+where);
+      if(s.chest){const c=CHESTS.find(q=>q.id===s.chest);G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}
+      if(s.boss){if(!fightBoss(s.boss,...s.at)){problems.push('Tabte til '+s.boss);break;}}
+      if(s.optional){fightBoss(s.optional,...s.at,3);if(G.flags.lindormDead){P.runes+=G.flags.lindormAdvance?550:800;G.flags.lindormPaid=true;giveItem('lindskael');}}
+      if(s.crypt){goTo(CRYPT.inX,CRYPT.inY);
+        for(const [x,y,r] of [[2900,600,100],[2690,545,140],[3110,545,140],[2640,420,130],[3160,420,130],[2900,420,150]]) if(!clearArea(x,y,r,2900,650,120,5)){problems.push('Kunne ikke rydde krypten ved '+x+','+y);break;}
+        for(const c of CHESTS.filter(q=>q.crypt)){if(c.gold&&!G.flags.vogterDead)continue;G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}
+        goTo(CRYPT.doorX+45,CRYPT.doorY);}
+      if(s.gate){G.flags.gateOpen=true;GATE.gone=true;}
+      if(s.rest!==undefined) rest(s.rest);
+      check(where);
+      log.push({step:Object.keys(s)[0],lvl:P.level,runes:P.runes,deaths,t:Math.round(simTime)});
+    }
+  } catch(err){ problems.push('Fejl: '+(err&&err.message||err)); }
+  finally { G.sim=false; G.state=prevState; setMuted(muted); SET.diff=prevDiff; $('deathScr').hidden=true; }
+  return {cls,done:!!G.flags.jotunDone,deaths,levelAtBoss:bossLvl,finalLevel:P.level,gear:Object.values(G.eq).filter(Boolean),
+    lindorm:!!G.flags.lindormDead,attempts,simMinutes:+(simTime/60).toFixed(1),ms:Math.round(performance.now()-t0),problems,log};
+}
+
 // Developer handle, only with ?dev in the address.
-if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse,giveItem,travel,AU,CHESTS,openChest,simAll,simFight,ED,SIM_STAGES,bench:(n=30)=>{const gl=renderer.getContext();composer.render();gl.finish();const t=performance.now();for(let i=0;i<n;i++)composer.render();gl.finish();return +((performance.now()-t)/n).toFixed(1);},applyGfx,renderer,scene,camera,composer,moon};
+if(new URLSearchParams(location.search).has('dev')) window.__rv={G,quick:c=>{newPlayer(c,CLASSES[c].base,'Test');beginGame(null);},get P(){return P},get C(){return C},talk,openRest,killEnemy,makeCompanion,mouse,giveItem,travel,AU,CHESTS,openChest,simAll,simFight,campaign,ED,SIM_STAGES,bench:(n=30)=>{const gl=renderer.getContext();composer.render();gl.finish();const t=performance.now();for(let i=0;i<n;i++)composer.render();gl.finish();return +((performance.now()-t)/n).toFixed(1);},applyGfx,renderer,scene,camera,composer,moon};

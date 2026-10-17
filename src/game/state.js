@@ -27,7 +27,7 @@ const ED={
   lindyngel:{name:'Lindyngel',hp:110,r:13,spd:140,dmg:16,reach:160,runes:60},
   vaette:{name:'Lysvætte',hp:126,r:13,spd:70,dmg:19,reach:380,runes:90},
   lindorm:{name:'Lindormen fra Isfjorden',hp:1725,r:32,spd:96,dmg:40,reach:120,runes:2600,aggro:220},
-  vogter:{name:'Gravvogteren',hp:840,r:22,spd:86,dmg:32,reach:92,runes:1300,aggro:190},
+  vogter:{name:'Gravvogteren',hp:840,r:22,spd:86,dmg:32,reach:92,runes:1300,aggro:140},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:3600,r:46,spd:64,dmg:54,reach:170,runes:6000},
 };
 // How each enemy fights: melee swings, ranged casters, lunging beasts, brutes with leaps, or a boss of its own.
@@ -38,14 +38,14 @@ const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25
 const SPAWNS=[
   {t:'draugr',x:1640,y:1930},{t:'draugr',x:1960,y:1940},{t:'wolf',x:2150,y:1800},{t:'wolf',x:2200,y:1850},
   {t:'archer',x:1300,y:1600},{t:'draugr',x:1200,y:1560},
-  {t:'draugr',x:1020,y:1260},{t:'archer',x:900,y:1080},{t:'draugr',x:1080,y:1130},{t:'archer',x:760,y:1540},
+  {t:'draugr',x:1085,y:1330},{t:'archer',x:1010,y:960},{t:'draugr',x:1140,y:1060},{t:'archer',x:760,y:1540},
   {t:'wolf',x:2500,y:1220},{t:'wolf',x:2560,y:1270},{t:'wolf',x:2620,y:1580},{t:'draugr',x:2400,y:1650},
   {t:'draugr',x:1600,y:1100},{t:'draugr',x:2000,y:1100},{t:'archer',x:1800,y:1220},{t:'wolf',x:1500,y:1300},{t:'wolf',x:2100,y:1300},
   {t:'archer',x:1450,y:700},{t:'archer',x:2150,y:700},
   {t:'jarl',x:600,y:1200,boss:'jarl'},
-  {t:'seidr',x:2700,y:430},{t:'seidr',x:3100,y:430},{t:'minion',x:2650,y:540},{t:'minion',x:3150,y:540},{t:'minion',x:2900,y:540},
-  {t:'vogter',x:2900,y:445,boss:'vogter'},
-  {t:'ildvaette',x:2620,y:650},{t:'ildvaette',x:3180,y:650},{t:'vaette',x:2900,y:390},
+  {t:'seidr',x:2640,y:400},{t:'seidr',x:3160,y:400},{t:'minion',x:2700,y:560},{t:'minion',x:3100,y:560},{t:'minion',x:2900,y:590},
+  {t:'vogter',x:2900,y:425,boss:'vogter'},
+  {t:'ildvaette',x:2610,y:520},{t:'ildvaette',x:3190,y:520},{t:'vaette',x:2900,y:375},
   {t:'trold',x:1350,y:2150},{t:'trold',x:1385,y:2195},{t:'trold',x:1320,y:2205},{t:'trold',x:2300,y:2300},{t:'trold',x:2345,y:2262},
   {t:'bjergtrold',x:1255,y:1455},{t:'stenvaette',x:1100,y:1480},{t:'stenvaette2',x:2660,y:1880},{t:'stenvaette',x:2480,y:1900},
   {t:'gjenganger',x:2750,y:1220},{t:'gjenganger2',x:2960,y:1190},{t:'gjenganger',x:2700,y:1560},
@@ -91,7 +91,7 @@ const maxSt=()=>Math.round(72+P.stats.smi*4+(eqHas('hrafnring')?10:0));
 const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0);
 const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1);
 function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1);}
-const lvlCost=L=>Math.floor(130*Math.pow(1.17,L-1));
+const lvlCost=L=>Math.floor(130*Math.pow(1.32,L-1));
 
 function newPlayer(cls,stats,name){
   P={x:1800,y:2330,r:13,cls,name,stats:{...stats},level:1,runes:0,face:-Math.PI/2,act:null,roll:0,rdx:0,rdy:0,iframes:0,stagger:0,specialT:0,rage:0,blocking:false,dash:null,dead:false,phase:0,move:0,combo:0,stepT:0};

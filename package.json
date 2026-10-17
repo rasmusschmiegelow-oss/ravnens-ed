@@ -1,0 +1,11 @@
+{
+  "name": "ravnens-ed",
+  "private": true,
+  "description": "Nordisk 3D action-RPG i browseren",
+  "scripts": {
+    "test": "node tests/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.48.2"
+  }
+}

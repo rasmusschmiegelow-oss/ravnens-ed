@@ -67,7 +67,7 @@ function updEnemy(e,dt){
       return;
     }
   }
-  const leash=e.boss?560:850;
+  const leash=850; // bosses follow as far as normal foes, so ranged players are not reset mid-fight
   if(P.dead||dist(P,e.home)>leash){
     e.aggro=false;cancelAttacks(e);
     if(e.boss){e.x=e.home.x;e.y=e.home.y;e.hp=e.maxHp;e.phase2=false;e.summoned=false;if(G.boss===e)G.boss=null;}

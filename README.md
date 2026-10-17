@@ -83,10 +83,20 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, B rul, X mjød, Y evne,
 
 ## Spiltest
 
+Ved hvert push til `main` kører GitHub Actions spillet automatisk (`.github/workflows/test.yml`): navnetjek, en browsertest der klikker gennem menuerne, kamp-botten med tærskler for balancen og et fuldt gennemløb af spillet for hver klasse. Siden udgives kun på GitHub Pages, når alt består. Lokalt (kræver Node):
+
+```bash
+npm install && npx playwright install chromium
+python3 tools/serve.py 8765 & npm test
+```
+
+Manuelt i browseren:
+
 Åbn spillet med `?dev` i adressen og kør i konsollen:
 
 ```js
-__rv.simAll(6)   // alle klasser mod alle fjender og grupper, 6 kampe hver
+__rv.simAll(6)        // alle klasser mod alle fjender og grupper, 6 kampe hver
+__rv.campaign('volve') // hele spillet igennem med én klasse
 __rv.bench(30)   // gennemsnitlig tid pr. billede i ms
 ```
 
