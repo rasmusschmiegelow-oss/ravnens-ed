@@ -42,7 +42,7 @@ const ui = await page.evaluate(async () => {
   r.intro = await until(() => G.state === 'cine', 20000) && await until(() => !document.getElementById('bossCard').hidden, 20000);
   dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 10000); r.afterIntro = G.state;
   // belt, horse, map and save slots
-  for (const e of G.enemies) e.aggro = false;
+  G.boss = null; resetWorld(); for (const e of G.enemies) e.aggro = false; // the woken jarl must not chase the hero through these checks
   const dr = G.enemies.find(e => e.t === 'draugr' && !e.dead); P.x = dr.x - 150; P.y = dr.y; mouseW.x = dr.x; mouseW.y = dr.y; const h0 = dr.hp;
   P.act = null; P.roll = 0; P.stagger = 0; G.cons.ild = 2; useCons('ild'); r.pot = await until(() => dr.dead || dr.hp < h0, 15000);
   for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - 1500, e.y - 2300) < 1200) killEnemy(e);
