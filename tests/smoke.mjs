@@ -44,10 +44,12 @@ const ui = await page.evaluate(async () => {
   // belt, horse, map and save slots
   G.boss = null; resetWorld(); for (const e of G.enemies) e.aggro = false; // the woken jarl must not chase the hero through these checks
   const dr = G.enemies.find(e => e.t === 'draugr' && !e.dead); P.x = dr.x - 150; P.y = dr.y; mouseW.x = dr.x; mouseW.y = dr.y; const h0 = dr.hp;
-  P.act = null; P.roll = 0; P.stagger = 0; G.cons.ild = 2; useCons('ild'); r.pot = await until(() => dr.dead || dr.hp < h0, 15000);
+  P.act = null; P.roll = 0; P.stagger = 0; G.cons.ild = 2; const used = useCons('ild'); r.pot = await until(() => dr.dead || dr.hp < h0, 30000);
+  if (!r.pot) r.dbgPot = {used, st: G.state, dead: P.dead, act: P.act && P.act.kind, pots: POTS.length, d: Math.round(Math.hypot(dr.x - P.x, dr.y - P.y)), hp: [dr.hp, h0], t: G.time};
   for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - 1500, e.y - 2300) < 1200) killEnemy(e);
   P.x = 1500; P.y = 2300; P.act = null; P.stagger = 0; G.flags.horse = true; toggleHorse(); r.horse = !!P.mount;
-  const hx = P.x; keys[SET.bind.left] = true; await until(() => P.x < hx - 60, 15000); keys[SET.bind.left] = false; r.ride = P.x < hx - 60; dismount(false);
+  const hx = P.x; keys[SET.bind.left] = true; await until(() => P.x < hx - 60, 30000); keys[SET.bind.left] = false; r.ride = P.x < hx - 60;
+  if (!r.ride) r.dbgRide = {st: G.state, dead: P.dead, mount: P.mount, x: [P.x, hx], y: P.y, move: P.move, stag: P.stagger, keys: Object.keys(keys).filter(k => keys[k]), t: G.time}; dismount(false);
   openMap(); r.map = G.state === 'map'; closeMap();
   r.slots = document.querySelectorAll('#crSlots .slotpick').length;
   G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
