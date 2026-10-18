@@ -7,10 +7,10 @@ const SIM_STAGES={
   A:{lvl:1,wpn:0,gear:[],foes:['draugr','archer','wolf','trold','minion','draugr+draugr+archer','wolf+wolf+wolf','trold+trold+trold']},
   B:{lvl:4,wpn:0,gear:['ravnefjer'],foes:['gjenganger+gjenganger2+gjenganger','bjergtrold+trold+trold','frostvaette+frostvaette','bjergtrold','stenvaette','gjenganger','gjenganger2','frostvaette','seidr','ildvaette']},
   C:{lvl:6,wpn:1,gear:['ravnefjer','ulvepels'],foes:['jarl','rimtrold','stenvaette2','lindyngel','vaette']},
-  D:{lvl:8,wpn:2,gear:['ravnefjer','ulvepels','mjolnir'],foes:['vogter','lindorm']},
+  D:{lvl:8,wpn:2,gear:['ravnefjer','ulvepels','mjolnir'],foes:['vogter','lindorm','ulvekonge','ketil','troldmor']},
   E:{lvl:11,wpn:3,gear:['ravnefjer','brynje','mjolnir','ulfberht'],foes:['jotun']},
   F:{lvl:14,wpn:4,gear:['ravnefjer','brynje','mjolnir','ulfberht'],foes:['askedraugr','askeskytte','glodulv','eldseidr','lavavaette','askedraugr+askedraugr+eldseidr','glodulv+glodulv+glodulv','askedraugr+askedraugr+askeskytte']},
-  G:{lvl:16,wpn:5,gear:['ravnefjer','askebrynje','mjolnir','tyrsrune'],foes:['garm','glodkaempe']},
+  G:{lvl:16,wpn:5,gear:['ravnefjer','askebrynje','mjolnir','tyrsrune'],foes:['garm','glodkaempe','askebrud']},
   H:{lvl:18,wpn:6,gear:['vardeflamme','askebrynje','garmtand','tyrsrune'],foes:['surt']},
 };
 function simSetup(cls,st){
@@ -68,7 +68,7 @@ function botThink(b){
 function simFight(cls,stageKey,foe,opts={}){
   const st=SIM_STAGES[stageKey]; simSetup(cls,st); clearEnemies();
   if(foe.includes('+')){const group=foe.split('+');group.slice(1).forEach((g,i)=>{const q=spawnEnemy(g,P.x+230,P.y+(i%2?1:-1)*(60+i*30),{aggro:true});q.home={x:q.x,y:q.y};});foe=group[0];}
-  const ex=['jotun','jarl','lindorm','garm','glodkaempe','surt'].includes(foe)?{boss:foe}:foe==='vogter'?{boss:'vogter',summoned:true}:foe==='rimtrold'?{summoned:true}:{};
+  const ex=['jotun','jarl','lindorm','garm','glodkaempe','surt','ulvekonge','ketil','troldmor','askebrud'].includes(foe)?{boss:foe}:foe==='vogter'?{boss:'vogter',summoned:true}:foe==='rimtrold'?{summoned:true}:{};
   const e=spawnEnemy(foe,P.x+(foe==='jotun'||foe==='surt'?260:200),P.y,{...ex,aggro:true}); e.home={x:e.x,y:e.y};
   const b={react:0,reaction:opts.reaction??.26,miss:opts.miss??.3,parry:opts.parry??.35,hx:P.x+100,hy:P.y};
   const dt=1/60; let t=0; const f0=P.flasks;
@@ -93,7 +93,7 @@ function simAll(n=4,opts={}){
       const w=runs.filter(r=>r.won);
       out.push({cls,stage:k,foe,win:Math.round(w.length/n*100),time:w.length?+(w.reduce((a,r)=>a+r.time,0)/w.length).toFixed(1):null,hp:w.length?Math.round(w.reduce((a,r)=>a+r.hp,0)/w.length):0,flasks:+(runs.reduce((a,r)=>a+r.flasks,0)/n).toFixed(1),foeHp:Math.round(runs.reduce((a,r)=>a+r.foeHp,0)/n)});
     }
-  } finally { G.sim=false; G.state=prevState; SET.diff=prevDiff; setMuted(muted); $('deathScr').hidden=true; }
+  } finally { G.sim=false; G.state=prevState; SET.diff=prevDiff; setMuted(muted); $('deathScr').hidden=true; for(const k in keys)keys[k]=false; mouse.r=false; }
   return out;
 }
 
@@ -225,7 +225,7 @@ function campaign(cls,opts={}){
       log.push({step:Object.keys(s)[0],lvl:P.level,runes:P.runes,deaths,t:Math.round(simTime)});
     }
   } catch(err){ problems.push('Fejl: '+(err&&err.message||err)); }
-  finally { G.sim=false; G.state=prevState; setMuted(muted); SET.diff=prevDiff; $('deathScr').hidden=true; }
+  finally { G.sim=false; G.state=prevState; setMuted(muted); SET.diff=prevDiff; $('deathScr').hidden=true; for(const k in keys)keys[k]=false; mouse.r=false; }
   return {cls,done:!!G.flags.surtDone,act1:!!G.flags.jotunDone,deaths,levelAtBoss:bossLvl,finalLevel:P.level,gear:Object.values(G.eq).filter(Boolean),
     lindorm:!!G.flags.lindormDead,attempts,simMinutes:+(simTime/60).toFixed(1),ms:Math.round(performance.now()-t0),problems,skipped,log};
 }

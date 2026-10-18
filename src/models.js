@@ -51,6 +51,10 @@ export const LOOKS = {
   bjorn: {file: 'qHooded_Adventurer', h: 1.8, qt: true, tint: 0xd8c0a0},
   thorgrim: {file: 'qKing', h: 1.9, qt: true}, farmer: {file: 'qFarmer', h: 1.75, qt: true}, worker: {file: 'qWorker', h: 1.75, qt: true},
   guard: {file: 'qAdventurer', h: 1.8, qt: true}, hguard: {file: 'qHooded_Adventurer', h: 1.8, qt: true},
+  ulvekonge: {file: 'qWolf', h: 2.0, qt: true, tint: 0xe8eef4, emissive: 0x0a1a2a},
+  ketil: {file: 'Skeleton_Warrior', h: 2.5, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0x9a8a70, eyes: [3.4, 2.4, .6]},
+  troldmor: {file: 'qOrc', h: 3.3, qt: true, tint: 0x9aa07a},
+  askebrud: {file: 'Skeleton_Mage', h: 2.3, props: {r: 'Skeleton_Staff'}, tint: 0x5a3a3a, eyes: [3.6, 1.2, .3], emissive: 0x300800},
   // Askefjorden: burnt draugr, fire wolves, lava golems, Garm, Surt and the people of Skjoldvik
   askedraugr: {file: 'Skeleton_Warrior', h: 1.95, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Small_A'}, tint: 0x5c524c, eyes: [3.4, 1.1, .2], emissive: 0x160500},
   askeskytte: {file: 'Skeleton_Rogue', h: 1.85, props: {r: 'Skeleton_Crossbow'}, tint: 0x5c524c, eyes: [3.4, 1.1, .2], emissive: 0x160500},

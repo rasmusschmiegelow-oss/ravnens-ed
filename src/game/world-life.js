@@ -107,6 +107,7 @@ function renderInv(){
 function openInv(){G.state='inv';renderInv();$('inv').hidden=false;$('invGo').focus({preventScroll:true});}
 $('invGo').addEventListener('click',()=>{$('inv').hidden=true;G.state='play';});
 function travel(x,y,title,sub){
+  if(P.mount) dismount(false);
   const f=$('fade'); f.classList.add('on'); G.state='travel'; sfx('gate');
   setTimeout(()=>{P.x=x;P.y=y;P.act=null;P.roll=0;if(C){C.x=x-20;C.y=y+15;}G.boss=null;snapCam();if(title)banner(title,sub);
     setTimeout(()=>{f.classList.remove('on');G.state='play';},250);},550);

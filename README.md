@@ -27,6 +27,11 @@ python3 tools/serve.py
 - Valhalla-arenaen: bølger af fjender og helte, gaver fra guderne mellem bølgerne og en rekord at slå
 - Levende vejr: klare nordlysnætter, snefald og snestorme i Midgard (fjender ser dig dårligere i stormen), askeregn og askestorme med lyn i Askefjorden
 - 20 bedrifter og et bestiarium i dagbogen, gemt på tværs af gennemløb
+- Verdenskort (G) med udforsket område, dit næste mål, sideopgaver og hurtig rejse til tændte runesten; en pil på minikortet peger mod målet
+- Hesten Hrimfaxe fra Jarl Thorgrim: fløjt med H, og rid gennem verden (et slag kaster dig af)
+- Kastevåben og eliksirer på 1–4: ildkrukker, frostkrukker, bjørnemjød og Eirs salve. Fjender taber dem, og smedene sælger dem
+- Fire navngivne feltbosser i verden med hver sin unikke talisman
+- Tre gemmepladser, så flere helte kan være i gang på én gang
 - Touch-styring på mobil og tablet, og spillet kan installeres som app og spilles uden net
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
 - Træer bliver gennemsigtige, når de står mellem kameraet og spilleren
@@ -50,6 +55,9 @@ python3 tools/serve.py
 | R | Drik mjød |
 | F | Klasse-evne |
 | Q | Våbenkunst |
+| 1–4 | Kastevåben og eliksirer |
+| H | Fløjt på hesten |
+| G | Kort |
 | E | Tal, hvil, åbn kister, interagér |
 | I | Udstyr |
 | J | Dagbog |
@@ -91,6 +99,9 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, LB våbenkunst, B rul, 
 | `tutorial.js` | tips de første minutter |
 | `cinematic.js` | bossernes indledninger |
 | `gamepad.js` | controller |
+| `belt.js` | kastevåben og eliksirer |
+| `horse.js` | hesten Hrimfaxe |
+| `map.js` | verdenskort, udforskning og målmarkører |
 | `weather.js` | vejr, nordlys, storme og lyn |
 | `achievements.js` | bedrifter og bestiarium |
 | `valhalla.js` | Valhalla-arenaen |

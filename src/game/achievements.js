@@ -21,6 +21,9 @@ const ACH=[
   {id:'varder',name:'Vardebærer',desc:'Tænd de tre varder for Ragna.',test:f=>f.vardeDone},
   {id:'smede',name:'Dværgenes ven',desc:'Hjælp både Dvalin og Sindri.',test:f=>f.durinDone&&f.sindriDone},
   {id:'logi',name:'Ild med ild',desc:'Få Surts hemmelighed ud af Logi.',test:f=>f.surtLore},
+  {id:'felt',name:'Feltjæger',desc:'Fæld alle fire navngivne feltbosser.',test:f=>f.fb_ulvekonge&&f.fb_ketil&&f.fb_troldmor&&f.fb_askebrud,prog:()=>[['ulvekonge','ketil','troldmor','askebrud'].filter(b=>G.flags['fb_'+b]).length,4]},
+  {id:'hest',name:'Hrimfaxes rytter',desc:'Rid på Jarl Thorgrims hest.',test:f=>f.rode},
+  {id:'kort',name:'Kortlægger',desc:'Udforsk det meste af verden.',test:f=>(f.seen||'').split('1').length-1>=900,prog:()=>[Math.min(900,(G.flags.seen||'').split('1').length-1),900]},
   {id:'surt',name:'Ragnarok må vente',desc:'Fæld Surt ved Muspelrevnen.',test:f=>f.surtDone},
   {id:'udod',name:'Den der aldrig faldt',desc:'Fæld Surt uden at dø en eneste gang.',test:f=>f.surtDone&&!G.deaths},
   {id:'kritisk',name:'Kritisk stød',desc:'Udfør 25 kritiske stød på fjender med brudt balance.',test:()=>mN('fatals')>=25,prog:()=>[mN('fatals'),25]},
@@ -71,6 +74,10 @@ const BEST={
   lavavaette:['Lava, der har fået form.','Dens stamp sætter jorden i brand. Gå ud af ilden.'],
   glodkaempe:['Vogteren af Muspelstenen.','I anden fase eksploderer den. Rul væk, når den gløder.'],
   garm:['Helhunden, der lå i lænker ved Gnipahellir.','Hans spring kan ikke blokeres. I anden fase spyr han ild.'],
+  ulvekonge:['En hvid ulvekonge, sagt at være af Fenris\' blod.','Hans spring kan ikke blokeres. I anden fase kalder han flokken.'],
+  ketil:['Hrafnkels hærfører, der aldrig fik sin hvile.','Langsom, men tålmodig. Hold dig tæt på, og rul gennem hans spring.'],
+  troldmor:['Moder til skovtroldene sydøst for landsbyen.','Hun slår hårdt og ofte. Tunge slag bryder hendes balance.'],
+  askebrud:['Surts udvalgte, der kalder ild ned fra himlen.','Ilden lander, hvor du står. Bliv i bevægelse, og luk afstanden.'],
   surt:['Herren over Muspelheim, ilden der var før alt andet.','Hans flamme blafrer, lige efter han har svunget sværdet.'],
 };
 function bestiaryHTML(){

@@ -13,6 +13,9 @@ addEventListener('keydown',e=>{
     if(bound('heal',e.code)) buf={k:'heal',t:G.time};
     if(bound('special',e.code)) buf={k:'special',t:G.time};
     if(bound('art',e.code)) buf={k:'art',t:G.time};
+    if(bound('horse',e.code)) toggleHorse();
+    if(bound('map',e.code)) openMap();
+    {const i=['Digit1','Digit2','Digit3','Digit4'].indexOf(e.code);if(i>=0)useCons(CONS_IDS[i]);}
     if(bound('interact',e.code)){const it=interactTarget();if(it)it.fn();}
     if(e.code==='Escape') openPause();
     if(bound('inv',e.code)) openInv();
@@ -23,6 +26,7 @@ addEventListener('keydown',e=>{
   } else if(G.state==='pause'&&e.code==='Escape'){$('pause').hidden=true;G.state='play';}
   else if(G.state==='inv'&&(e.code==='Escape'||bound('inv',e.code))){$('inv').hidden=true;G.state='play';}
   else if(G.state==='journal'&&(e.code==='Escape'||bound('journal',e.code))){closeJournal();}
+  else if(G.state==='map'&&(e.code==='Escape'||bound('map',e.code))){closeMap();}
   else if(G.state==='settings'&&e.code==='Escape'){closeSettings();}
   else if(G.state==='rest'&&e.code==='Escape'){$('rest').hidden=true;G.state='play';}
   if(e.code==='Space'&&G.state!=='play'&&document.activeElement===document.body) e.preventDefault();
@@ -44,7 +48,7 @@ const ray=new THREE.Raycaster(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),
 function camGoal(){
   let tx=P.x*S, tz=P.y*S; const ty=groundY(P.x,P.y);
   const B=G.boss&&!G.boss.dead?G.boss:(G.lock&&!G.lock.dead?G.lock:null), big=B&&(B.t==='jotun'||B.t==='lindorm'||B.t==='surt'||B.t==='garm');
-  G.zEff=lerp(G.zEff??G.zoom,big?Math.max(G.zoom,.82):B?Math.max(G.zoom,.55):G.zoom,.03);
+  G.zEff=lerp(G.zEff??G.zoom,big?Math.max(G.zoom,.82):B?Math.max(G.zoom,.55):P.mount?Math.max(G.zoom,.5):G.zoom,.03);
   if(B){const k=big?.3:.2;tx=lerp(tx,B.x*S,k);tz=lerp(tz,B.y*S,k);}
   const z=Math.max(0,G.zEff-(G.fatalT>0?Math.sin(G.fatalT/.9*Math.PI)*.22:0)), d=lerp(11,27,z), pitch=lerp(.5,.98,z);
   return {pos:new THREE.Vector3(tx,ty+1+Math.sin(pitch)*d,tz+Math.cos(pitch)*d),look:new THREE.Vector3(tx,ty+1.2,tz-lerp(1.6,0,z))};

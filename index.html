@@ -39,6 +39,7 @@
       <b id="hFlask">3</b><kbd id="kHeal">R</kbd>
     </div>
     <div class="slot" id="slSpec"><div class="cd" id="specCd"></div><span id="specIco"></span><kbd id="kSpec">F</kbd><span class="slot-name" id="specName"></span></div>
+    <div id="belt"></div>
     <div class="slot" id="slArt"><div class="cd" id="artCd"></div><span class="art-ico">ᛏ</span><kbd id="kArt">Q</kbd><span class="slot-name" id="artName"></span></div>
   </div>
   <div class="hud-br"><span class="rune">ᚱ</span><b id="hRunes">0</b></div>
@@ -81,6 +82,7 @@
     <div class="t-btns">
       <button class="btn" id="bNew">Nyt eventyr</button>
       <button class="btn" id="bCont" hidden>Fortsæt</button>
+      <button class="btn ghost" id="bLoad">Indlæs</button>
       <button class="btn ghost" id="bValhalla">Valhalla</button>
       <button class="btn ghost" id="bSet">Indstillinger</button>
     </div>
@@ -121,6 +123,7 @@
         </div>
       </div>
     </div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Gemmeplads</div><div class="stats" id="crSlots"></div></div>
     <div class="cr-foot">
       <button class="btn ghost" id="bBack">Tilbage</button>
       <button class="btn" id="bStart">Vågn ved runestenen</button>
@@ -177,6 +180,17 @@
   </div>
 </section>
 
+<section id="map" class="ov" hidden>
+  <div class="panel mapp">
+    <div class="map-top"><div><div class="eyebrow">Kort</div><h2>Midgard og Askefjorden</h2></div>
+      <div class="mute small map-legend"><span class="lg gold">◆</span> Dit mål <span class="lg">○</span> Sideopgave <span class="lg gold">◆</span> Tændt runesten</div></div>
+    <canvas id="mapCv" width="1200" height="600"></canvas>
+    <div class="mute small" id="mapNote"></div>
+    <div class="travel" id="mapTravel"></div>
+    <div><button class="btn" id="mapGo">Luk</button></div>
+  </div>
+</section>
+
 <section id="settings" class="ov" hidden>
   <div class="panel pz">
     <div><div class="eyebrow">Indstillinger</div><h2>Lyd, spil og taster</h2></div>
@@ -195,6 +209,14 @@
       <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / Q / E</kbd><span>Mjød · evne · våbenkunst · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
+  </div>
+</section>
+
+<section id="slots" class="ov" hidden>
+  <div class="panel pz">
+    <div><div class="eyebrow">Gemte spil</div><h2>Vælg en helt</h2></div>
+    <div class="stats" id="slotList"></div>
+    <div><button class="btn ghost" id="slotsBack">Tilbage</button></div>
   </div>
 </section>
 

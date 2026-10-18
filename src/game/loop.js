@@ -15,14 +15,14 @@ function frame(now){
     G.play+=rdt;
     updPlayer(dt); updComp(dt);
     for(const e of [...G.enemies]) updEnemy(e,dt);
-    updHazards(dt); updProjs(dt); checkIntros();
+    updHazards(dt); updProjs(dt); updPots(dt); checkIntros();
     if(P.dead){G.deadT+=rdt;if(G.mode==='valhalla'){if(G.deadT>3)valhallaOver();}else if(G.deadT>4.2)respawn();}
     updValhalla(rdt);
     // boss triggers
     if(!P.dead&&G.flags.gateOpen&&!G.flags.jotunTalked&&Math.hypot(P.x-1800,P.y-500)<210&&jotunEnt()) talk('jotun');
     if(!P.dead&&G.flags.fgateOpen&&!G.flags.surtTalked&&Math.hypot(P.x-5000,P.y-560)<300&&surtEnt()) talk('surt');
     if(G.endT>0){G.endT-=rdt;if(G.endT<=0){if(G.flags.surtDone)showEnd();else startAct2();}}
-    updMusic(rdt); updLock(); updTutorial(); updAchievements(rdt); updWeather(rdt);
+    updMusic(rdt); updLock(); updTutorial(); updAchievements(rdt); updWeather(rdt); updFog(rdt);
     if(!G.perfChecked){G.perfN=(G.perfN||0)+1;G.perfT=(G.perfT||0)+rdt;
       if(G.perfT>5){G.perfChecked=true;const avg=G.perfT/G.perfN;let saved=null;try{saved=localStorage.getItem('ravnensEd.gfx');}catch(e){}
         if(!saved&&avg>1/38&&GFX!=='low'){applyGfx(GFX==='ultra'?'high':'low');toast('Grafikken er sat ned for et jævnere billede. Du kan ændre den i pausemenuen (Esc).');}}}
@@ -44,7 +44,7 @@ function frame(now){
 function start(data){
   window.__gameReady=true;
   $('loading').hidden=true;
-  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!loadSave();
+  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!latestSlot();
   if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches) $('touchNote').hidden=false;
   if(data&&data.save){beginGame(data.save);if(data.pos&&P){P.x=data.pos.x;P.y=data.pos.y;snapCam();}}
 }

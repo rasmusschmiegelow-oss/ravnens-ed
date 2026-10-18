@@ -29,6 +29,11 @@ const ED={
   lindorm:{name:'Lindormen fra Isfjorden',hp:1725,r:32,spd:96,dmg:40,reach:120,runes:2600,aggro:220},
   vogter:{name:'Gravvogteren',hp:1000,r:22,spd:86,dmg:36,reach:92,runes:1300,aggro:140},
   jotun:{name:'Hrimgrimr, Rimtursen',hp:3600,r:46,spd:64,dmg:54,reach:170,runes:6000},
+  // field bosses that roam the world
+  ulvekonge:{name:'Fenrisætlingen',hp:1500,r:24,spd:150,dmg:30,reach:120,runes:2200,aggro:300},
+  ketil:{name:'Hærfører Ketil',hp:1300,r:20,spd:88,dmg:30,reach:96,runes:1800,aggro:280},
+  troldmor:{name:'Troldemoderen',hp:1700,r:26,spd:70,dmg:34,reach:80,runes:2400,aggro:280},
+  askebrud:{name:'Askebruden',hp:3600,r:18,spd:62,dmg:56,reach:460,runes:5000,aggro:320,poise:4200},
   // Askefjorden
   askedraugr:{name:'Askedraugr',hp:620,r:15,spd:84,dmg:50,reach:48,runes:300},
   askeskytte:{name:'Askeskytte',hp:400,r:14,spd:66,dmg:42,reach:420,runes:320},
@@ -43,7 +48,7 @@ const ED={
 const KIND={draugr:'melee',minion:'melee',trold:'melee',bjergtrold:'melee',ildvaette:'melee',frostvaette:'melee',stenvaette:'melee',stenvaette2:'melee',
   archer:'ranged',seidr:'ranged',vaette:'ranged',wolf:'lunge',gjenganger:'lunge',gjenganger2:'lunge',lindyngel:'lunge',
   jarl:'brute',vogter:'brute',rimtrold:'brute',jotun:'jotun',lindorm:'lindorm',
-  askedraugr:'melee',lavavaette:'melee',askeskytte:'ranged',glodulv:'lunge',eldseidr:'mortar',glodkaempe:'brute',garm:'garm',surt:'surt'};
+  askedraugr:'melee',lavavaette:'melee',askeskytte:'ranged',glodulv:'lunge',eldseidr:'mortar',glodkaempe:'brute',garm:'garm',surt:'surt',ulvekonge:'garm',ketil:'brute',troldmor:'brute',askebrud:'mortar'};
 const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25,stenvaette2:.25,lindorm:2.2,lavavaette:.25,glodkaempe:.3};
 const SPAWNS=[
   {t:'draugr',x:1640,y:1930},{t:'draugr',x:1960,y:1940},{t:'wolf',x:2150,y:1800},{t:'wolf',x:2200,y:1850},
@@ -62,6 +67,7 @@ const SPAWNS=[
   {t:'lindyngel',x:3010,y:1150},{t:'lindyngel',x:3160,y:1300},{t:'lindorm',x:3120,y:1180,boss:'lindorm'},
   {t:'frostvaette',x:2220,y:960},{t:'frostvaette',x:2360,y:1050},{t:'rimtrold',x:2500,y:1000},{t:'rimtrold',x:2320,y:560},
   {t:'bjergtrold',x:1150,y:950},{t:'jotun',x:1800,y:470,boss:'jotun'},
+  {t:'ulvekonge',x:3050,y:1950,boss:'ulvekonge'},{t:'ketil',x:700,y:2300,boss:'ketil'},{t:'troldmor',x:2450,y:2520,boss:'troldmor'},{t:'askebrud',x:5640,y:1260,boss:'askebrud',act:2},
   // Askefjorden (act two)
   {t:'askedraugr',x:4120,y:1990,act:2},{t:'askedraugr',x:4170,y:2100,act:2},{t:'glodulv',x:3990,y:1890,act:2},{t:'glodulv',x:4030,y:1860,act:2},
   {t:'askeskytte',x:4620,y:2200,act:2},{t:'askedraugr',x:4680,y:2330,act:2},
@@ -94,6 +100,10 @@ const ITEMS={
   askebrynje:{name:'Askebrynje',slot:'armor',desc:'Smedet af Sindri af Muspelsten. Du tager 25 % mindre skade.'},
   vardeflamme:{name:'Vardeflammen',slot:'talisman',desc:'+15 % liv, og mjød heler mere.'},
   garmtand:{name:'Garms tand',slot:'talisman',desc:'Våbenkunsten lader 30 % hurtigere op, og du giver 10 % mere skade.'},
+  ulvehjerte:{name:'Ulvehjertet',slot:'talisman',desc:'Fenrisætlingens hjerte. Du løber 10 % hurtigere, og rul koster 20 % mindre.'},
+  jarnring:{name:'Ketils jernring',slot:'talisman',desc:'Hærførerens ring. Du tager 10 % mindre skade.'},
+  troldblod:{name:'Troldblod',slot:'talisman',desc:'Uden for kamp heler du 1,5 % liv i sekundet.'},
+  askekrone:{name:'Askekronen',slot:'talisman',desc:'Kritiske stød giver 25 % mere skade, og fjendens balance brydes 20 % hurtigere.'},
   logisglod:{name:'Logis glød',slot:'talisman',desc:'Dine slag bryder fjendens balance 40 % hurtigere.'},
 };
 const SLOTN={arm:'Våben',weapon:'Våbenrune',armor:'Rustning',t1:'Talisman I',t2:'Talisman II'};
@@ -121,7 +131,7 @@ const maxHp=()=>Math.round((64+P.stats.sty*5+P.stats.smi+P.level*4)*(eqHas('fenr
 const maxSt=()=>Math.round((72+P.stats.smi*4+(eqHas('hrafnring')?10:0))*G.vb.st);
 const maxFlasks=()=>3+G.extraFlasks+(G.flags.ulfrGift?1:0)+(eqHas('idunn')?1:0)+G.vb.flask;
 const specialCd=()=>CLASSES[P.cls].scd*(eqHas('mjolnir')?.7:1)*(T('b_rasende')?.75:1)*G.vb.cd;
-function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1)*(eqHas('tyrsrune')?1.3:1)*(eqHas('garmtand')?1.1:1)*G.vb.dmg;}
+function atkMult(){const s=P.stats;const base=P.cls==='berserker'?s.sty:P.cls==='skjoldmo'?(s.sty+s.smi)/2:s.vil;return(1+(base-10)*.065)*(1+.15*G.weaponLvl)*(P.rage>0?1.35:1)*(eqHas('fenrir')?1.15:1)*(eqHas('ulfberht')?1.2:1)*(eqHas('hrafnring')?1.1:1)*(T('b_doeds')&&P.hp<maxHp()*.35?1.3:1)*(P.stormT>0?1.25:1)*(eqHas('tyrsrune')?1.3:1)*(eqHas('garmtand')?1.1:1)*G.vb.dmg*(P.buffT>0?1.25:1);}
 const lvlCost=L=>Math.floor(130*Math.pow(1.32,L-1));
 
 function newPlayer(cls,stats,name){
@@ -139,8 +149,8 @@ function spawnEnemy(t,x,y,extra={}){
   e.maxPoise=e.poise=Math.round(d.poise||hp0*(e.boss?.6:.75)); e.poiseT=0; e.broken=0;
   e.model=buildEnemyModel(t); G.enemies.push(e); return e;
 }
-function clearEnemies(){for(const e of G.enemies){scene.remove(e.model.root);if(e.hpEl)e.hpEl.remove();}G.enemies=[];for(const h of G.hazards)disposeHaz(h);G.hazards=[];for(const p of G.projs)scene.remove(p.mesh);G.projs=[];for(const r of RUNEB)scene.remove(r.mesh);RUNEB.length=0;}
-const BOSS_DEAD={jarl:'jarlDead',jotun:'jotunDone',vogter:'vogterDead',lindorm:'lindormDead',garm:'garmDead',glodkaempe:'glodDead',surt:'surtDone'};
+function clearEnemies(){for(const e of G.enemies){scene.remove(e.model.root);if(e.hpEl)e.hpEl.remove();}G.enemies=[];for(const h of G.hazards)disposeHaz(h);G.hazards=[];for(const p of G.projs)scene.remove(p.mesh);G.projs=[];for(const r of RUNEB)scene.remove(r.mesh);RUNEB.length=0;for(const q of POTS)scene.remove(q.mesh);POTS.length=0;}
+const BOSS_DEAD={ulvekonge:'fb_ulvekonge',ketil:'fb_ketil',troldmor:'fb_troldmor',askebrud:'fb_askebrud',jarl:'jarlDead',jotun:'jotunDone',vogter:'vogterDead',lindorm:'lindormDead',garm:'garmDead',glodkaempe:'glodDead',surt:'surtDone'};
 function spawnFrom(s){
   if(s.boss&&G.flags[BOSS_DEAD[s.boss]]) return;
   if(s.t==='rimtrold'){spawnEnemy(s.t,s.x,s.y,{summoned:true});return;}

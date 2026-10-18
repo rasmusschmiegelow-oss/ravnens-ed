@@ -1,7 +1,7 @@
 'use strict';
 /* =========================================================
    CONTROLLER (standard mapping, souls-style layout)
-   RB light · RT heavy · LT block · LB weapon art · B roll · X mead · Y skill · A interact · R3 lock · Start pause · View gear · D-pad up journal
+   RB light · RT heavy · LT block · LB weapon art · B roll · X mead · Y skill · A interact · R3 lock · Start pause · View gear · D-pad up journal · D-pad left/right pick and use a belt item · D-pad down map
    In menus: D-pad or left stick moves focus, A selects, B goes back.
    ========================================================= */
 const GPAD={prev:[],dead:.22,navT:0};
@@ -35,9 +35,13 @@ function pollPad(dt){
     if(down(4)) buf={k:'art',t:G.time};
     if(down(0)){const it=interactTarget();if(it)it.fn();}
     if(down(11)) toggleLock();
+    if(down(10)) toggleHorse();
+    if(down(13)) openMap();
     if(down(9)) openPause();
     if(down(8)) openInv();
     if(down(12)) openJournal();
+    if(down(14)) G.beltSel=((G.beltSel||0)+1)%CONS_IDS.length;
+    if(down(15)) useCons(CONS_IDS[G.beltSel||0]);
   } else {
     G.padMove=null; if(G.state!=='play') mouse.r=false;
     GPAD.navT-=dt;

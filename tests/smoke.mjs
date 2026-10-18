@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 import {appendFileSync} from 'node:fs';
 
 const URL = process.env.GAME_URL || 'http://localhost:8765/?dev';
-const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun', 'garm', 'glodkaempe', 'surt'];
+const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun', 'garm', 'glodkaempe', 'surt', 'ulvekonge', 'ketil', 'troldmor', 'askebrud'];
 const failures = [];
 const lines = [];
 const out = (s) => { console.log(s); lines.push(s); };
@@ -41,6 +41,15 @@ const ui = await page.evaluate(async () => {
   // the CI browser renders in software and runs at a few frames per second, so allow plenty of time
   r.intro = await until(() => G.state === 'cine', 20000) && await until(() => !document.getElementById('bossCard').hidden, 20000);
   dispatchEvent(new KeyboardEvent('keydown', {code: 'Escape', key: 'Escape'})); await until(() => G.state !== 'cine', 10000); r.afterIntro = G.state;
+  // belt, horse, map and save slots
+  for (const e of G.enemies) e.aggro = false;
+  const dr = G.enemies.find(e => e.t === 'draugr' && !e.dead); P.x = dr.x - 150; P.y = dr.y; mouseW.x = dr.x; mouseW.y = dr.y; const h0 = dr.hp;
+  P.act = null; P.roll = 0; P.stagger = 0; G.cons.ild = 2; useCons('ild'); r.pot = await until(() => dr.dead || dr.hp < h0, 15000);
+  for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - 1500, e.y - 2300) < 1200) killEnemy(e);
+  P.x = 1500; P.y = 2300; P.act = null; P.stagger = 0; G.flags.horse = true; toggleHorse(); r.horse = !!P.mount;
+  const hx = P.x; keys[SET.bind.left] = true; await until(() => P.x < hx - 60, 15000); keys[SET.bind.left] = false; r.ride = P.x < hx - 60; dismount(false);
+  openMap(); r.map = G.state === 'map'; closeMap();
+  r.slots = document.querySelectorAll('#crSlots .slotpick').length;
   G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
   // journal tabs, achievements, New Game+ and the Valhalla arena
   G.jrTab = 'a'; openJournal(); r.ach = document.querySelectorAll('.achrow').length; G.jrTab = 'q'; closeJournal();
@@ -55,7 +64,7 @@ const ui = await page.evaluate(async () => {
   return r;
 });
 if (ui.state !== 'play') fail(`Nyt spil endte i tilstanden "${ui.state}" i stedet for "play"`);
-if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
+if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest || !ui.pot || !ui.horse || !ui.ride || !ui.map || ui.slots !== 3) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
 else out(`Menuer, dialog og evner virker: ${JSON.stringify(ui)}`);
 
 // 3. Combat balance: every class against every foe and group

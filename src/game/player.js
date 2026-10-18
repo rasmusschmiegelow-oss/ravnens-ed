@@ -86,7 +86,7 @@ function beamTick(){
 function tryAction(k,ix,iy){
   const p=P;
   if(k==='art') return weaponArt();
-  if(k==='roll'){ if(p.st<=0) return false; spend((eqHas('ravnefjer')?12:20)*(T('b_storm')?.7:1)*G.vb.roll); if(T('b_storm'))p.stormT=1.2; let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollStart=G.time;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
+  if(k==='roll'){ if(p.st<=0) return false; spend((eqHas('ravnefjer')?12:20)*(T('b_storm')?.7:1)*G.vb.roll*(eqHas('ulvehjerte')?.8:1)); if(T('b_storm'))p.stormT=1.2; let dx=ix,dy=iy; if(!dx&&!dy){dx=Math.cos(p.face);dy=Math.sin(p.face);} p.rdx=dx;p.rdy=dy;p.roll=.36;p.rollStart=G.time;p.rollId=(p.rollId||0)+1;p.iframes=Math.max(p.iframes,.32);p.act=null;sfx('roll');
     const gy=groundY(p.x,p.y); burst(p.x*S,gy+.1,p.y*S,14,2.2,.7,.5,.85,.9,1,{sys:FXN,up:.5,grav:1,drag:3,alpha:.5,grow:2}); return true;}
   if(k==='heal'){ if(p.flasks<=0){toast('Mjødhornet er tomt. Hvil ved en runesten.');return true;}
     p.act={kind:'heal',t:0,dur:1,hit:.6,move:.35,fn:()=>{p.flasks--;G.tutHealed=true;const h=Math.round(maxHp()*(eqHas('vardeflamme')?.55:.45));p.hp=Math.min(maxHp(),p.hp+h);num(p.x,p.y,'+'+h,'heal');sfx('drink');
@@ -125,7 +125,10 @@ function tryAction(k,ix,iy){
 }
 function updPlayer(dt){
   const p=P;
-  p.artT=Math.max(0,(p.artT||0)-dt);p.parryOpenT=Math.max(0,(p.parryOpenT||0)-dt);G.fatalT=Math.max(0,(G.fatalT||0)-dt);
+  p.artT=Math.max(0,(p.artT||0)-dt);p.buffT=Math.max(0,(p.buffT||0)-dt);
+  if(p.regenT>0&&!p.dead){p.regenT-=dt;p.hp=Math.min(maxHp(),p.hp+p.regenA*dt);if(Math.random()<.3)FXA.emit(p.x*S+rand(-.4,.4),groundY(p.x,p.y)+rand(.2,1.6),p.y*S+rand(-.4,.4),0,rand(.4,1),0,.8,.25,.6,1.8,.8,1,-.2,.5,0);}
+  if(eqHas('troldblod')&&p.hp<maxHp()&&!G.sim){G.tbT=(G.tbT||0)-dt;if(G.tbT<=0){G.tbT=.5;G.tbOk=!foesNear(500);}if(G.tbOk)p.hp=Math.min(maxHp(),p.hp+maxHp()*.015*dt);}
+  if(p.buffT>0&&Math.random()<.3)FXA.emit(p.x*S+rand(-.3,.3),groundY(p.x,p.y)+rand(.3,1.6),p.y*S+rand(-.3,.3),0,1,0,.5,.25,2.4,.9,.3,1,0,1,0);p.parryOpenT=Math.max(0,(p.parryOpenT||0)-dt);G.fatalT=Math.max(0,(G.fatalT||0)-dt);
   updRuneBrands(dt); BEAM.visible=false;
   p.iframes=Math.max(0,p.iframes-dt);p.perfectT=Math.max(0,(p.perfectT||0)-dt);p.stagger=Math.max(0,p.stagger-dt);p.specialT=Math.max(0,p.specialT-dt);p.rage=Math.max(0,p.rage-dt);p.stormT=Math.max(0,(p.stormT||0)-dt);p.wardT=Math.max(0,(p.wardT||0)-dt);p.stDelay=Math.max(0,(p.stDelay||0)-dt);
   if(p.dead) return;
@@ -139,14 +142,15 @@ function updPlayer(dt){
     if(p.act===A&&A.t>=A.dur)p.act=null;}
   p.blocking=p.cls==='skjoldmo'&&mouse.r&&!p.act&&p.roll<=0&&p.stagger<=0&&p.st>0;
   if(buf&&G.time-buf.t>.4) buf=null;
+  if(p.mount) buf=null; // no fighting from the saddle
   if(buf){const A=p.act;const can=p.stagger<=0&&p.roll<=0&&!p.dash&&(!A||(buf.k==='roll'&&A.kind!=='heal'&&A.done&&A.t>A.hit+.05)||(buf.k==='lmb'&&A.kind==='atk'&&A.t>A.dur*.72));
     if(can){if(A)p.act=null;if(tryAction(buf.k,ix,iy))buf=null;}}
   let vx=0,vy=0;
   if(p.roll>0){p.roll-=dt;const k=p.roll/.36;vx=p.rdx*(260+260*k);vy=p.rdy*(260+260*k);}
   else if(p.dash){p.dash.t-=dt;vx=p.dash.dx*p.dash.sp;vy=p.dash.dy*p.dash.sp;if(p.dash.t<=0)p.dash=null;}
-  else if(p.stagger<=0){let sp=158*(1+(p.stats.smi-10)*.012)*(T('s_fart')?1.1:1);if(p.act)sp*=p.act.move??.3;if(p.blocking)sp*=.45;vx=ix*sp;vy=iy*sp;}
+  else if(p.stagger<=0){let sp=p.mount?390:158*(1+(p.stats.smi-10)*.012)*(T('s_fart')?1.1:1)*(eqHas('ulvehjerte')?1.1:1);if(p.act)sp*=p.act.move??.3;if(p.blocking)sp*=.45;vx=ix*sp;vy=iy*sp;}
   p.x+=vx*dt;p.y+=vy*dt;
-  const spd=Math.hypot(vx,vy);p.move=lerp(p.move,clamp(spd/158,0,1.2),Math.min(1,dt*10));p.phase+=dt*spd*.055;
+  const spd=Math.hypot(vx,vy); if(p.mount&&spd>10) p.face=lerpAng(p.face,Math.atan2(vy,vx),Math.min(1,dt*8));p.move=lerp(p.move,clamp(spd/158,0,1.2),Math.min(1,dt*10));p.phase+=dt*spd*.055;
   if(spd>20&&p.roll<=0){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx('step');p.foot=-(p.foot||1);{const ma=Math.atan2(vy,vx);if(!inCrypt(p.x,p.y))decal(TEX_FOOT,p.x+Math.cos(ma+Math.PI/2)*2.6*p.foot,p.y+Math.sin(ma+Math.PI/2)*2.6*p.foot,Math.PI/2-ma,.24,.42,[.32,.4,.55],22,.55);}FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
   collide(p);
   if(!p.act&&p.roll<=0&&p.stDelay<=0) p.st=Math.min(maxSt(),p.st+(p.blocking?12:52)*(eqHas('ulvepels')?1.3:1)*(T('v_spind')?1.3:1)*dt);
@@ -160,6 +164,7 @@ function updPlayer(dt){
 function hurt(tg,dmg,fx,fy,src=null,unblock=false,soft=false){ if(tg===P) hurtPlayer(dmg,fx,fy,src,unblock,soft); else if(tg===C) hurtComp(dmg); }
 function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
   const p=P; if(p.dead||G.state!=='play') return;
+  if(p.mount&&!(p.iframes>0)) dismount(true);
   // perfect dodge: the blow lands in the first moments of a roll
   if(p.iframes>0){ if(p.roll>0&&G.time-(p.rollStart||0)<.2&&!p.perfectT){p.perfectT=.6;G.slowmo=.45;metaInc('dodges');p.st=Math.min(maxSt(),p.st+25);num(p.x,p.y,'Undveget','heal');sfx('dodge');burst(p.x*S,groundY(p.x,p.y)+1,p.y*S,26,3,.6,.25,.8,1.4,2.4,{grav:-1});} return; }
   const facing=Math.abs(angDiff(Math.atan2(fy-p.y,fx-p.x),p.face))<1.35;
@@ -182,7 +187,7 @@ function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
   if(eqHas('brynje')) dmg*=.85;
   if(eqHas('lindskael')) dmg*=.8;
   if(eqHas('askebrynje')) dmg*=.75;
-  dmg*=G.vb.def;
+  dmg*=G.vb.def*(p.buffT>0?.85:1)*(eqHas('jarnring')?.9:1);
   dmg=Math.round(dmg); if(dmg<=0) return;
   p.hp-=dmg; p.iframes=.22; p.hitId=(p.hitId||0)+1; num(p.x,p.y,dmg,'hurt');
   if(dmg>6&&!soft&&!(p.act&&p.act.armor)){p.stagger=Math.max(p.stagger,.2);if(p.act&&p.act.kind!=='heavy'&&p.act.kind!=='crit')p.act=null;}
@@ -191,6 +196,7 @@ function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
   if(p.hp<=0) die();
 }
 function die(){
+  if(P.mount) dismount(false);
   if(G.sim){P.dead=true;P.hp=0;return;}
   P.dead=true;P.hp=0;G.deadT=0;G.deaths++;sfx('die');
   if(G.stain===null||true){G.stain=P.runes>0?{x:P.x,y:P.y,amount:P.runes}:null;P.runes=0;}

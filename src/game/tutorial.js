@@ -12,6 +12,8 @@ const TUT=[
   {id:'rest',when:()=>P.runes>=lvlCost(P.level),text:()=>`Du har runer nok til et nyt niveau. Hvil ved en runesten med <b>${actLabel('interact')}</b>. Dør du først, ligger runerne, hvor du faldt.`,done:()=>G.tutRested},
   {id:'fatal',when:()=>G.enemies.some(e=>e.broken>0&&!e.dead&&Math.hypot(e.x-P.x,e.y-P.y)<300),text:()=>`Fjendens balance er brudt! Gå helt hen til den, og slå med <b>${actLabel('attack')}</b> for et kritisk stød.`,done:()=>(G.fatals||0)>0},
   {id:'art',when:()=>(G.kills||0)>3,text:()=>`Dit våben har en våbenkunst: <b>${ARTS[artKey()].name}</b>. Brug den med <b>${actLabel('art')}</b>. ${ARTS[artKey()].desc}`,done:()=>(P.artUses||0)>0},
+  {id:'horse',when:()=>G.flags.horse,text:()=>`Fløjt på din hest Hrimfaxe med <b>${actLabel('horse')}</b>. Han kommer kun, når ingen fjender er tæt på.`,done:()=>G.flags.rode},
+  {id:'map',when:()=>(G.kills||0)>1,text:()=>`Åbn kortet med <b>${actLabel('map')}</b>. Det gyldne mærke viser dit næste mål.`,done:()=>G.flags.mapOpened},
   {id:'journal',when:()=>G.flags.metUlfr&&(G.kills||0)>2,text:()=>`Din dagbog (<b>${actLabel('journal')}</b>) holder styr på opgaver og det, folk har fortalt dig.`,done:()=>G.tutJournal},
 ];
 let hintEl=null, hintId=null;

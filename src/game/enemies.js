@@ -22,14 +22,14 @@ function damageEnemy(e,dmg,o={}){
   dmg*=(.9+Math.random()*.2)*(e.vuln||1);
   // critical hits: a fatal blow on a broken foe, a stab in the back of one that has not seen you, or any blow on a stunned foe
   let crit=false, label='';
-  if(o.fatal){G.fatals=(G.fatals||0)+1;metaInc('fatals');dmg*=(e.boss?2.6:3.6)+(e.parried>0&&T('s_haevn')?1:0);crit=true;label='Kritisk stød';e.broken=0;e.parried=0;e.stun=Math.min(e.stun,.4);}
+  if(o.fatal){G.fatals=(G.fatals||0)+1;metaInc('fatals');dmg*=(eqHas('askekrone')?1.25:1)*(e.boss?2.6:3.6)+(e.parried>0&&T('s_haevn')?1:0);crit=true;label='Kritisk stød';e.broken=0;e.parried=0;e.stun=Math.min(e.stun,.4);}
   else if(o.back){metaInc('backs');dmg*=2.5;crit=true;label='Rygstød';}
   else if(e.stun>0&&!o.stun){crit=true;dmg*=e.parried>0?(T('s_haevn')?3.5:2.5):1.5;if(e.parried>0){e.parried=0;G.hitStop=.12;sfx('heavy');}}
   dmg=Math.round(dmg);
   e.hp-=dmg;e.flash=.13;e.aggro=true;{const st=splatType(e.t);decal(TEX_SPLAT,e.x+rand(-10,10),e.y+rand(-10,10),Math.random()*TAU,.6+Math.random()*.7*(e.r/16),.6+Math.random()*.7*(e.r/16),SPLAT_COL[st],30,st==='blood'?.75:.55);}sfx(e.t==='jotun'||e.t==='lindorm'||e.t==='frostvaette'?'icehit':e.model&&e.model.skel?'bonehit':'hit');
   num(e.x,e.y,dmg,crit?'crit':''); if(label) num(e.x,e.y,label,'crit');
   // balance: every blow wears it down, heavy blows more. When it breaks the foe reels and is open to a fatal blow.
-  if(!o.fatal&&!(e.broken>0)&&e.hp>0){e.poise-=dmg*(o.stagger?1.7:.7)*(o.poiseMult||1)*(eqHas('logisglod')?1.4:1);e.poiseT=2.8;if(e.poise<=0)breakPoise(e);}
+  if(!o.fatal&&!(e.broken>0)&&e.hp>0){e.poise-=dmg*(o.stagger?1.7:.7)*(o.poiseMult||1)*(eqHas('logisglod')?1.4:1)*(eqHas('askekrone')?1.2:1);e.poiseT=2.8;if(e.poise<=0)breakPoise(e);}
   const gy=groundY(e.x,e.y)+(e.boss==='jotun'?4:1);
   burst(e.x*S,gy,e.y*S,10,3,.45,.2,e.t==='jotun'?.6:.3,e.t==='jotun'?1.6:.06,e.t==='jotun'?2.2:.05,{sys:e.t==='jotun'?FXA:FXN,grav:8,alpha:.9});
   burst(e.x*S,gy,e.y*S,6,4,.25,.12,2.5,2,1.2,{grav:10});
@@ -57,21 +57,23 @@ function enterPhase2(e,title,sub,cls,glow){
 const p2At=()=>G.ng?.62:.5;
 function resetPhase(e){e.phase2=false;if(e.model)for(const m of e.model.mats)if(m.userData.glow0)m.userData.baseEmissive.copy(m.userData.glow0);}
 /** Burning ground that hurts whoever stands in it. */
-function burnAt(x,y,r,life,dps){
+function burnAt(x,y,r,life,dps,friendly){
   const g=new THREE.Group(), geo=new THREE.CircleGeometry(1,40).rotateX(-Math.PI/2);
   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,.45,.08),transparent:true,opacity:.0,blending:THREE.AdditiveBlending,depthWrite:false}));
   g.add(m);g.position.set(x*S,groundY(x,y)+.1,y*S);g.scale.set(r*S,1,r*S);g.renderOrder=3;scene.add(g);
-  G.hazards.push({k:'burn',x,y,r,life,dps,t:0,tick:.25,mesh:g,disc:m});
+  G.hazards.push({k:'burn',x,y,r,life,dps,t:0,tick:.25,mesh:g,disc:m,friendly});
 }
 function fireFx(x,y,n=24){const gy=groundY(x,y);for(let i=0;i<n;i++)FXA.emit(x*S+rand(-.6,.6),gy+rand(0,.6),y*S+rand(-.6,.6),rand(-1.5,1.5),rand(2,6),rand(-1.5,1.5),rand(.4,.9),rand(.25,.55),3,1.1,.25,1,-1,1.2,1);G.shake=Math.max(G.shake,.12);}
 function killEnemy(e){
-  e.dead=true;cancelAttacks(e);if(!G.sim)META.kills[e.t]=(META.kills[e.t]||0)+1;P.runes+=Math.round(e.def.runes*(1+.5*(G.ng||0)));sfx('coins');G.kills=(G.kills||0)+1;
+  e.dead=true;cancelAttacks(e);maybeDrop(e);if(!G.sim)META.kills[e.t]=(META.kills[e.t]||0)+1;P.runes+=Math.round(e.def.runes*(1+.5*(G.ng||0)));sfx('coins');G.kills=(G.kills||0)+1;
   if(e.t==='rimtrold'&&G.flags.q_astrid&&!G.flags.astridRevenge){G.flags.astridRevenge=true;
     if(C&&C.kind==='astrid'&&!C.down&&dist(C,e)<700){G.flags.astridWitnessed=true;approve(2);toast('Astrid: «Far… den er død.» Hun sænker buen længe.');}else{approve(-1);toast('Ny note: Astrid vil gerne høre, at rimtrolden er død.');}}
   const gy=groundY(e.x,e.y);
   for(let i=0;i<(e.boss?160:30);i++)FXA.emit(e.x*S+rand(-.5,.5),gy+rand(.2,e.boss?6:1.6),e.y*S+rand(-.5,.5),rand(-.6,.6),rand(.5,2.5),rand(-.6,.6),rand(1,2.2),rand(.15,.35),2.2,1.6,.6,1,-.4,.6,0);
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
+  const FB={ulvekonge:'ulvehjerte',ketil:'jarnring',troldmor:'troldblod',askebrud:'askekrone'};
+  if(FB[e.boss]&&G.mode!=='valhalla'){G.flags['fb_'+e.boss]=true;G.boss=null;banner('FELTBOSS FÆLDET',e.def.name);sfx('boom');G.slowmo=1.1;const it=FB[e.boss];setTimeout(()=>giveItem(it),1500);saveGame();}
   if(G.mode==='valhalla'){if(e.boss){G.boss=null;banner('FJENDE FÆLDET',e.def.name);sfx('boom');G.slowmo=1;}}
   else{
   if(e.boss==='jarl'){G.flags.jarlDead=true;G.flags.horn=true;G.flags.ring=true;setTimeout(()=>toast('Du fandt en sølvring på jarlens hånd: Hrafnkels ring'),3200);G.boss=null;banner('FJENDE FÆLDET','Hrafnkel, Draugr-jarlen');setTimeout(()=>toast('Du fik: Jarlens Horn'),1600);sfx('boom');G.slowmo=1.4;saveGame();}
@@ -146,8 +148,12 @@ function updEnemy(e,dt){
         e.sched.push({t:.35,fn:()=>{e.dash={dx:Math.cos(a2),dy:Math.sin(a2),sp:460,t:.3,dmg:e.def.dmg};}});}});}}
   } else if(K==='mortar'){
     // fire casters keep their distance and drop fire where you stand
-    if(d>360) step(a); else if(d<200) step(a+Math.PI,.8); else step(a+Math.PI/2*(Math.sin(e.t0*.6)>0?1:-1),.35);
-    if(e.cd<=0&&d<470){e.pose={n:'cast',t:.9,key:'m'+(e.castN=(e.castN||0)+1)};e.busy=1.1;e.cd=2.7+Math.random()*.9;const n=Math.random()<.3?3:1;sfx('bolt');
+    if(d>360) step(a); else if(d<200) step(e.boss?a+Math.PI/2*(Math.sin(e.t0*.6)>0?1:-1):a+Math.PI,e.boss?.45:.8); else step(a+Math.PI/2*(Math.sin(e.t0*.6)>0?1:-1),.35);
+    if(e.boss&&!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Askebruden kalder sit følge','Asken rejser sig','red',[.5,.15,.02]);
+      for(const sg of [-1,1]){const x=e.x+Math.cos(a+sg*1.4)*100,y=e.y+Math.sin(a+sg*1.4)*100;const m=spawnEnemy('askedraugr',x,y,{aggro:true});m.home={x:e.home.x,y:e.home.y};fireFx(x,y,40);}}
+    else if(e.boss&&e.cd<=0&&d<150&&!(e.novaT>G.time)){e.novaT=G.time+3.5;e.pose={n:'roar',t:.9,key:'nv'+(e.castN=(e.castN||0)+1)};e.busy=1.3;e.cd=1.6;
+      circAtk(e.x,e.y,160,.9,e.def.dmg*dm*1.1,{owner:e,fire:true,unblock:true,onFire:()=>{fireFx(e.x,e.y,80);sfx('boom');G.shake=.5;burnAt(e.x,e.y,90,3,16);}});}
+    else if(e.cd<=0&&d<470){e.pose={n:'cast',t:.9,key:'m'+(e.castN=(e.castN||0)+1)};e.busy=1.1;e.cd=2.7+Math.random()*.9;const n=e.boss?(e.hp<e.maxHp*.5?5:3):Math.random()<.3?3:1;sfx('bolt');
       for(let i=0;i<n;i++){const tx=tg.x+(i?rand(-95,95):0), ty=tg.y+(i?rand(-95,95):0);
         circAtk(tx,ty,58,1.05+i*.2,e.def.dmg*dm*(n>1?.75:1),{owner:e,fire:true,onFire:()=>{fireFx(tx,ty,30);sfx('spike');if(Math.random()<.3)burnAt(tx,ty,42,3.5,16);}});}}
   } else if(K==='garm') garmAI(e,tg,d,a,step,dm);
@@ -183,6 +189,8 @@ function jarlAI(e,tg,d,a,step,dm){
     if(e.t==='jarl'){enterPhase2(e,'Hrafnkel kalder på sine huskarle','Gravens kulde omslutter ham','frost',[.04,.22,.36]);sfx('horn');
       for(const s of [-1,1]){const x=e.x+Math.cos(a+s*1.6)*90,y=e.y+Math.sin(a+s*1.6)*90;const m=spawnEnemy('minion',x,y,{aggro:true});m.home={x:e.home.x,y:e.home.y};burst(x*S,groundY(x,y)+.5,y*S,40,3,1,.4,.4,1.6,2.4,{grav:1});}}
     else if(e.t==='vogter') enterPhase2(e,'Gravvogteren vågner helt','Sjælene i krypten svarer hans kald','red',[.3,.06,.02]);
+    else if(e.t==='ketil') enterPhase2(e,'Ketil blæser i sit horn','Hærføreren kæmper, som var det hans sidste slag','red',[.3,.15,.02]);
+    else if(e.t==='troldmor') enterPhase2(e,'Troldemoderen raser','Skoven ryster','',[.1,.2,.04]);
     else enterPhase2(e,'Glødkæmpen flammer op','Muspels ild brænder i dens årer','red',[.5,.16,.02]);
     return;}
   if(e.cd>0){if(d>95)step(a);return;}
@@ -227,8 +235,9 @@ function jotunAI(e,tg,d,a,step,dm){
 }
 /* Garm: a hound the size of a house. Snapping combos, a charging lunge, a tail sweep, and hellfire in phase two. */
 function garmAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Garm hyler mod himlen','Helilden vågner i hans strube','red',[.5,.08,.02]);sfx('howl');
-    {const x=e.x+Math.cos(a+1.5)*110,y=e.y+Math.sin(a+1.5)*110;const w=spawnEnemy('glodulv',x,y,{aggro:true});w.home={x:e.home.x,y:e.home.y};fireFx(x,y,40);}
+  const wk=e.t==='ulvekonge';
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){if(wk)enterPhase2(e,'Fenrisætlingen hyler','Flokken svarer','frost',[.1,.25,.4]);else enterPhase2(e,'Garm hyler mod himlen','Helilden vågner i hans strube','red',[.5,.08,.02]);sfx('howl');
+    {const x=e.x+Math.cos(a+1.5)*110,y=e.y+Math.sin(a+1.5)*110;const w=spawnEnemy(wk?'wolf':'glodulv',x,y,{aggro:true});w.home={x:e.home.x,y:e.home.y};burst(x*S,groundY(x,y)+1,y*S,40,3,1,.4,.8,.9,1,{grav:1});}
     return;}
   if(e.cd>0){if(d>210)step(a);else step(a+Math.PI/2*(e.side||1),.7);return;}
   const r=Math.random(), D=e.def.dmg*dm;
@@ -239,7 +248,7 @@ function garmAI(e,tg,d,a,step,dm){
     e.sched.push({t:.7,fn:()=>{e.dash={dx:Math.cos(la),dy:Math.sin(la),sp:680,t:.5,dmg:D*.95,unblock:true};}});}
   else if(d<230&&r<.9){circAtk(e.x,e.y,155,.75,D*.85,{owner:e});e.busy=.75+.6;}
   else if(e.phase2){e.pose={n:'breath',t:1.3,key:'gb'+(e.brN=(e.brN||0)+1)};sfx('warn');
-    for(let i=0;i<4;i++){const aa=a+(i-1.5)*.28;e.sched.push({t:i*.16,fn:()=>arcAtk(e,aa,.55,300,.7,D*.7,{fire:true,onFire:()=>{breathFx(e,aa,300,false);if(i%2)burnAt(e.x+Math.cos(aa)*190,e.y+Math.sin(aa)*190,50,4,20);}})});}
+    for(let i=0;i<4;i++){const aa=a+(i-1.5)*.28;e.sched.push({t:i*.16,fn:()=>arcAtk(e,aa,.55,300,.7,D*.7,{fire:!wk,frost:wk,onFire:()=>{breathFx(e,aa,300,wk);if(i%2&&!wk)burnAt(e.x+Math.cos(aa)*190,e.y+Math.sin(aa)*190,50,4,20);}})});}
     e.busy=.16*3+.7+.6;}
   else {step(a);return;}
   e.cd=.65+Math.random()*.55; e.side=Math.random()<.5?1:-1;
@@ -283,7 +292,8 @@ function updHazards(dt){
   for(let i=G.hazards.length-1;i>=0;i--){const h=G.hazards[i];
     if(h.k==='burn'){h.t+=dt;h.tick-=dt;const k=Math.min(1,h.t*4)*Math.min(1,(h.life-h.t)*2);h.disc.material.opacity=k*(.32+.08*Math.sin(G.time*9+h.x));
       if(Math.random()<.5)FXA.emit((h.x+rand(-h.r,h.r)*.7)*S,groundY(h.x,h.y)+.1,(h.y+rand(-h.r,h.r)*.7)*S,0,rand(1,2.5),0,rand(.3,.6),rand(.2,.4),3,1,.2,.9,-.5,.5,1);
-      if(h.tick<=0){h.tick=.5;for(const tg of targets())if(Math.hypot(tg.x-h.x,tg.y-h.y)<h.r+tg.r*.3)hurt(tg,h.dps*.5,h.x,h.y,null,true,true);}
+      if(h.tick<=0&&h.friendly){h.tick=.5;for(const e of G.enemies)if(!e.dead&&!e.dormant&&Math.hypot(e.x-h.x,e.y-h.y)<h.r+e.r*.5)damageEnemy(e,h.friendly*.5,{poiseMult:.3});}
+      else if(h.tick<=0){h.tick=.5;for(const tg of targets())if(Math.hypot(tg.x-h.x,tg.y-h.y)<h.r+tg.r*.3)hurt(tg,h.dps*.5,h.x,h.y,null,true,true);}
       if(h.t>=h.life){disposeHaz(h);G.hazards.splice(i,1);}continue;}
     if(h.owner&&h.owner.dead){disposeHaz(h);G.hazards.splice(i,1);continue;}
     h.t+=dt;const k=clamp(h.t/h.wind,0,1);

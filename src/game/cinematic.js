@@ -10,6 +10,10 @@ const INTRO={
   jotun:{name:'Hrimgrimr',sub:'Rimtursen · Ymirs æt',quote:'«Så kom da, lille menneske. Vinteren har ventet på dig.»',h:8.2,cls:'frost',sfx:'boom'},
   glodkaempe:{name:'Glødkæmpen',sub:'Vogter af Muspelstenen',quote:'Lavaen bobler, og stenen rejser sig på ben af ild.',h:3.4,cls:'fire',sfx:'boom'},
   garm:{name:'Garm',sub:'Helhunden fra Gnipahellir',quote:'Lænken om dens hals er sprængt. Den har ventet på netop dig.',h:3.4,cls:'fire',sfx:'howl'},
+  ulvekonge:{name:'Fenrisætlingen',sub:'Ulvenes konge',quote:'En hvid ulv, større end en hest. Flokken tier, da den træder frem.',h:2,cls:'frost',sfx:'howl'},
+  ketil:{name:'Ketil',sub:'Hærfører af Hrafnkels hird',quote:'«Jarlen er faldet, men hirden marcherer stadig.»',h:2.5,cls:'',sfx:'horn'},
+  troldmor:{name:'Troldemoderen',sub:'Skovens gamle',quote:'Hun lugter af mos og blod, og hendes børn ligger døde i sneen.',h:3.3,cls:'',sfx:'boom'},
+  askebrud:{name:'Askebruden',sub:'Surts udvalgte',quote:'«Han lovede mig ild til evig tid. Vil du se den?»',h:2.3,cls:'fire',sfx:'warn'},
   surt:{name:'Surt',sub:'Herre over Muspelheim',quote:'«Isen er brudt, og nu brænder verden, som det var spået.»',h:7.6,cls:'fire',sfx:'boom'},
 };
 let CINE=null;

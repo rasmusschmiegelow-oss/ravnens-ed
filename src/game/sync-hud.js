@@ -26,10 +26,11 @@ function updTrail(dt){
 function syncPlayer(dt){
   if(!P||!PM) return; const p=P, an=PANIM_ALT[G.eq&&G.eq.arm]||PANIM[p.cls];
   const gy=groundY(p.x,p.y);
-  PM.root.position.set(p.x*S,gy,p.y*S);
+  PM.root.position.set(p.x*S,gy+(p.mount?1.0:0),p.y*S); syncHorse(dt);
   PM.root.rotation.y=lerpAng(PM.root.rotation.y,-p.face,Math.min(1,dt*18));
   const A=p.act; let w;
   if(p.dead) w={n:'Death_A',key:'dead',fade:.2};
+  else if(p.mount) w={n:'Sit_Chair_Idle'};
   else if(p.roll>0) w={n:'Dodge_Forward',key:'roll'+p.rollId,fit:.42};
   else if(A){
     const k=A.kind;
@@ -70,6 +71,10 @@ const EANIM={
   glodulv:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',death:'Death',hit:'Idle_HitReact_Left'},
   lavavaette:{...QF,arc:'Punch'}, glodkaempe:{...QF,arc:'Punch',leap:'Headbutt',spin:'Punch',roar:'Yes'},
   garm:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',arc:'Attack',breath:'Attack',roar:'Idle_2_HeadLow',death:'Death',hit:'Idle_HitReact_Left'},
+  ulvekonge:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',arc:'Attack',breath:'Attack',roar:'Idle_2_HeadLow',death:'Death',hit:'Idle_HitReact_Left'},
+  ketil:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',roar:'Taunt',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
+  troldmor:{...QA,arc:'Weapon',leap:'Jump',spin:'Punch',roar:'Yes'},
+  askebrud:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',cast:'Spellcast_Long',roar:'Spellcast_Summon',death:'Death_C_Skeletons'},
   surt:{idle:'Idle',calm:'Idle',move:'Walk',walk:'Walk',arc:'Weapon',stomp:'Punch',leap:'Jump',cast:'Yes',rain:'Wave',roar:'No',death:'Death',hit:'HitReact'},
   jotun:{idle:'2H_Melee_Idle',calm:'Idle',move:'Walking_A',arc:'2H_Melee_Attack_Slice',stomp:'2H_Melee_Attack_Chop',cast:'Spellcast_Shoot',rain:'Spellcast_Long',roar:'Cheer',death:'Death_B'},
 };
@@ -100,7 +105,7 @@ function animEnemy(e,m,dt,gy){
   drive(m,w); m.anim.update(dt);
   const fl=e.flash>0?1:0; m.flash(fl);
 }
-const P2COL={jarl:[.6,1.6,2.4],vogter:[2.6,.6,.2],lindorm:[.7,1.6,2.4],jotun:[.7,1.6,2.4],glodkaempe:[3,1,.2],garm:[2.8,.4,.15],surt:[3.2,1.2,.2]};
+const P2COL={ulvekonge:[.7,1.6,2.4],ketil:[2.6,1.4,.4],troldmor:[1.4,2,.6],jarl:[.6,1.6,2.4],vogter:[2.6,.6,.2],lindorm:[.7,1.6,2.4],jotun:[.7,1.6,2.4],glodkaempe:[3,1,.2],garm:[2.8,.4,.15],surt:[3.2,1.2,.2]};
 const easeOut=t=>1-Math.pow(1-t,3), easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function lerpAng(a,b,t){return a+angDiff(b,a)*t;}
 function syncEnemies(dt){
@@ -238,6 +243,7 @@ function drawMini(){
   for(const e of G.enemies){if(e.dead||e.dormant)continue;const [x,y]=tp(e.x,e.y);if(x<0||x>W||y<0||y>W)continue;mctx.fillStyle=e.boss?'#ff6a4a':'rgba(220,80,60,.85)';mctx.beginPath();mctx.arc(x,y,e.boss?7:3,0,TAU);mctx.fill();}
   if(G.stain){const [x,y]=tp(G.stain.x,G.stain.y);mctx.fillStyle='#f3d68a';mctx.font='18px "Noto Sans Runic"';mctx.textAlign='center';mctx.fillText('ᚱ',x,y+6);}
   if(C){const [x,y]=tp(C.x,C.y);mctx.fillStyle='#a9e08a';mctx.beginPath();mctx.arc(x,y,4.5,0,TAU);mctx.fill();}
+  drawMiniGoal(tp,W);
   mctx.save();mctx.translate(W/2,W/2);mctx.rotate(P.face+Math.PI/2);mctx.fillStyle='#f3d68a';mctx.beginPath();mctx.moveTo(0,-11);mctx.lineTo(7,8);mctx.lineTo(0,4);mctx.lineTo(-7,8);mctx.closePath();mctx.fill();mctx.restore();
   mctx.restore();
   mctx.fillStyle='#d4ae55';mctx.font='22px "IM Fell English SC", Georgia';mctx.textAlign='center';mctx.fillText('N',W/2,24);
@@ -280,7 +286,7 @@ function updHUD(dt){
     $('bossPoise').style.width=(b.broken>0?100:Math.max(0,b.poise/b.maxPoise*100))+'%';$('bossPoiseBar').classList.toggle('broken',b.broken>0);}
   const it=G.state==='play'?interactTarget():null; const pe=$('prompt');
   if(it){pe.hidden=false;pe.innerHTML='<kbd>E</kbd>'+escapeHtml(it.label);}else pe.hidden=true;
-  drawMini();
+  updBeltHUD(); drawMini();
 }
 
 /* --- Music follows the place and the fight */
