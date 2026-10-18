@@ -108,12 +108,13 @@ function buildWorldProps(){
   placeProp('flag_red',1700,895,{fit:1.2}); placeProp('flag_red',1900,895,{fit:1.2});
   // chests across the world and in the crypt
   for(const c of CHESTS){
-    const g=c.crypt?hgt(2900,520):undefined;
-    const p=placeProp(c.gold?'chest_gold':'chest',c.x,c.y,{fit:1.15,rot:c.crypt?0:Math.atan2(1800-c.x,2400-c.y),ground:g});
-    CHEST_M[c.id]={obj:p.obj,lid:p.obj.getObjectByName(c.gold?'chest_gold_lid':'chest_lid'),open:0};
+    const g=c.crypt?hgt(2900,520):c.grot?hgt(700,540):undefined;
+    const p=placeProp(c.gold||c.grot?'chest_gold':'chest',c.x,c.y,{fit:1.15,rot:c.crypt||c.grot?0:Math.atan2(1800-c.x,2400-c.y),ground:g});
+    CHEST_M[c.id]={obj:p.obj,lid:p.obj.getObjectByName(c.gold||c.grot?'chest_gold_lid':'chest_lid'),open:0};
   }
   buildCrypt();
   buildAct2Props();
+  buildGrotto();
 }
 let CRYPT_FLOOR=0, CRYPT_VOID=null;
 function buildCrypt(){

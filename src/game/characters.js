@@ -27,7 +27,7 @@ function addIceSpikes(m){
 function buildPlayerModel(cls){const m=makeChar(cls);scene.add(m.root);return m;}
 function buildEnemyModel(t){
   let m;
-  m=makeChar(t,{iceMaterial:MAT.iceGlow}); if(t==='jotun') addIceSpikes(m); m.skel=['draugr','archer','minion','seidr','vogter','jarl','askedraugr','askeskytte','eldseidr','ketil','askebrud'].includes(t);
+  m=makeChar(t,{iceMaterial:MAT.iceGlow}); if(t==='jotun') addIceSpikes(m); m.skel=['draugr','archer','minion','seidr','vogter','jarl','askedraugr','askeskytte','eldseidr','ketil','askebrud','eyvind'].includes(t);
   scene.add(m.root); return m;
 }
 function buildNPC(id){

@@ -3,14 +3,14 @@
    MAIN LOOP
    ========================================================= */
 let last=performance.now();
-function frame(now){
-  requestAnimationFrame(frame);
-  let rdt=Math.min(.05,(now-last)/1000); last=now;
+function frame(now,manual){
+  if(!manual) requestAnimationFrame(frame); // tests can step the game by hand
+  let rdt=Math.max(0,Math.min(.05,(now-last)/1000)); last=Math.max(last,now);
   let dt=rdt;
   if(G.slowmo>0){G.slowmo-=rdt;dt*=.3;}
   if(G.hitStop>0){G.hitStop-=rdt;dt*=.05;}
   G.time+=rdt; skyUniforms.uTime.value=G.time; WIND.uTime.value=G.time; WIND.uWind.value=1+Math.max(0,wind)*.25;
-  pollPad(rdt); updTouch();
+  pollPad(rdt); updTouch(); updDayNight(rdt);
   if(G.state==='play'&&P){
     G.play+=rdt;
     updPlayer(dt); updComp(dt);
@@ -20,6 +20,7 @@ function frame(now){
     updValhalla(rdt);
     // boss triggers
     if(!P.dead&&G.flags.gateOpen&&!G.flags.jotunTalked&&Math.hypot(P.x-1800,P.y-500)<210&&jotunEnt()) talk('jotun');
+    if(!P.dead&&G.flags.act2&&!G.flags.eyvindTalked&&Math.hypot(P.x-4700,P.y-2020)<190&&eyvindEnt()) talk('eyvind');
     if(!P.dead&&G.flags.fgateOpen&&!G.flags.surtTalked&&Math.hypot(P.x-5000,P.y-560)<300&&surtEnt()) talk('surt');
     if(G.endT>0){G.endT-=rdt;if(G.endT<=0){if(G.flags.surtDone)showEnd();else startAct2();}}
     updMusic(rdt); updLock(); updTutorial(); updAchievements(rdt); updWeather(rdt); updFog(rdt);
@@ -28,11 +29,12 @@ function frame(now){
         if(!saved&&avg>1/38&&GFX!=='low'){applyGfx(GFX==='ultra'?'high':'low');toast('Grafikken er sat ned for et jævnere billede. Du kan ændre den i pausemenuen (Esc).');}}}
   } else if(G.state==='cine') updCine(rdt);
   if(G.state==='dialog'&&G.endT>0) G.endT=Math.max(.6,G.endT-rdt);
-  if(P&&G.state!=='title') syncPlayer(rdt);
-  syncEnemies(rdt); syncNPCs(rdt); if(CRITTERS.length) updCritters(G.state==='play'||G.state==='title'?rdt:0);
-  ambientFX(rdt); updDecals(rdt); updTrail(rdt); FXA.update(rdt); FXN.update(rdt); updFX(rdt);
+  const sdt=G.state==='photo'?0:rdt; // photo mode stops time
+  if(P&&G.state!=='title') syncPlayer(sdt);
+  syncEnemies(sdt); syncNPCs(sdt); if(CRITTERS.length) updCritters(G.state==='play'||G.state==='title'?rdt:0);
+  ambientFX(sdt); updDecals(sdt); updTrail(sdt); FXA.update(sdt); FXN.update(sdt); updFX(sdt);
   updateCamera(rdt);
-  updateSnow(rdt,G.camLook,G.time);
+  updateSnow(sdt,G.camLook,G.time);
   if(G.state!=='title'&&G.state!=='loading'&&P) updHUD(rdt);
   updDice(rdt);
   composer.render();

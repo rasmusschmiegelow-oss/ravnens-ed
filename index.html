@@ -63,6 +63,7 @@
 <div id="toasts"></div>
 <div id="banner" hidden><div id="bannerT"></div><div id="bannerS"></div></div>
 <div id="fade"></div>
+<div id="photoUI" hidden><span class="ph-t">Fotomode · træk for at dreje · hjul zoomer · W A S D flytter</span><button class="btn ghost" id="phFilter">Filter</button><button class="btn ghost" id="phDof">Dybdeskarphed</button><button class="btn" id="phShot">Tag billede</button><button class="btn ghost" id="phHide">Skjul</button><button class="btn ghost" id="phBack">Tilbage</button></div>
 <div id="flash"></div>
 <div id="hurtFx"></div>
 <div id="deathScr" hidden><div>DU ER FALDET</div></div>
@@ -159,7 +160,7 @@
     <div class="kv" id="rDerived"></div>
     <div id="rTalents"></div>
     <div><div class="eyebrow" style="margin-bottom:6px">Rejs til en tændt runesten</div><div class="travel" id="rTravel"></div></div>
-    <div><button class="btn" id="restLeave">Rejs dig</button></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="restLeave">Rejs dig</button><button class="btn ghost" id="rWait">Hvil til solopgang</button></div>
   </div>
 </section>
 
@@ -208,7 +209,7 @@
       <kbd>Venstreklik</kbd><span>Let angreb</span><kbd>Højreklik</kbd><span>Tungt angreb · blok · frostnova</span>
       <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / Q / E</kbd><span>Mjød · evne · våbenkunst · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzPhoto">Fotomode</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
   </div>
 </section>
 

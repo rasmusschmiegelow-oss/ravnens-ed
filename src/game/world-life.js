@@ -9,7 +9,12 @@ function interactTarget(){
   for(const rs of RUNESTONES){ if(dist(P,rs)<64) return {label:'Hvil ved runestenen',fn:()=>openRest(rs.id)}; }
   if(!G.flags.hammer&&Math.hypot(P.x-2660,P.y-470)<62) return {label:'Undersøg dværgens rester',fn:()=>{G.flags.hammer=true;sfx('pickup');questStart('q_durin','Dvalins bror');
     banner('DURINS HAMMER','Et skelet i dværgerustning, med en hammer i knoglehånden');note('durin','Under Hrafnkels høj lå en dværg i rustning. Hans hammer bar et mærke: Durin, søn af Dain.');}};
-  for(const c of CHESTS){ if(G.flags.chests?.[c.id]) continue; if(Math.hypot(P.x-c.x,P.y-c.y)<62) return {label:c.gold&&!G.flags.vogterDead?'Guldkisten er låst':'Åbn kisten',fn:()=>openChest(c)}; }
+  for(const c of CHESTS){ if(G.flags.chests?.[c.id]) continue; if(Math.hypot(P.x-c.x,P.y-c.y)<62) return {label:(c.gold&&!G.flags.vogterDead)||(c.need&&!G.flags[c.need])?'Kisten er låst':'Åbn kisten',fn:()=>openChest(c)}; }
+  if(G.flags.q_eir) for(const r of FROSTROSES) if(!(G.flags.roses||{})[r.id]&&Math.hypot(P.x-r.x,P.y-r.y)<60) return {label:'Pluk frostrosen',fn:()=>pickRose(r)};
+  for(const p of RUNEPILLARS) if(Math.hypot(P.x-p.x,P.y-p.y)<60) return {label:'Rør ved runen '+p.r,fn:()=>touchPillar(p)};
+  if(inGrot(P.x,P.y)&&Math.abs(P.x-700)<55&&P.y>GROT.y1-38) return {label:'Forlad Isgrotten',fn:()=>travel(GROT.mouthX+60,GROT.mouthY,'','')};
+  if(inGrot(P.x,P.y)&&Math.hypot(P.x-860,P.y-705)<60) return {label:'Læs indskriften',fn:()=>talk('inskription')};
+  if(Math.hypot(P.x-GROT.mouthX,P.y-GROT.mouthY)<90) return {label:'Gå ind i Isgrotten',fn:()=>travel(GROT.inX,GROT.inY,'ISGROTTEN','Sigruns grav')};
   if(Math.hypot(P.x-CRYPT.doorX,P.y-CRYPT.doorY)<70) return {label:G.flags.jarlDead?'Gå ned i gravkrypten':'Døren i højen er forseglet',fn:()=>{if(!G.flags.jarlDead){toast('En kold kraft holder døren lukket. Hrafnkel vogter stadig højen.');return;}travel(CRYPT.inX,CRYPT.inY,'GRAVKRYPTEN','Under Hrafnkels høj');}};
   if(Math.hypot(P.x-CRYPT.exitX,P.y-CRYPT.exitY)<55) return {label:'Forlad krypten',fn:()=>travel(CRYPT.doorX+45,CRYPT.doorY,'','')};
   if(!GATE.gone&&Math.abs(P.x-1800)<110&&P.y>WALL_Y+WALL_H&&P.y<WALL_Y+WALL_H+90) return {label:'Undersøg Jötunporten',fn:()=>talk('gate')};
@@ -78,6 +83,7 @@ function updLock(){
 /* --- Chests, equipment and travelling through doors */
 function openChest(c){
   if(c.gold&&!G.flags.vogterDead){toast('Låst. Gravvogteren bærer nøglen.');sfx('block');return;}
+  if(c.need&&!G.flags[c.need]){toast('Isen holder låget fast. Isdronningen vogter Sigrun.');sfx('block');return;}
   G.flags.chests=G.flags.chests||{}; G.flags.chests[c.id]=true; sfx('chest');
   const m=CHEST_M[c.id]; if(m) m.opening=true;
   const gy=groundY(c.x,c.y); burst(c.x*S,gy+.8,c.y*S,40,2.2,1.4,.25,2.4,1.8,.6,{grav:-.4,drag:1});

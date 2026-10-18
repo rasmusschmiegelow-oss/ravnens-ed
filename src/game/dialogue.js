@@ -76,6 +76,10 @@ const D={
     const swap=C&&C.kind==='astrid'?' Astrid vender tilbage til lejren og venter der.':'';
     const n={who:'Eir, helbrederske',text:first?'En kvinde i hvid kappe knuser urter i en morter ved brønden. «Eir. Jeg heler dem, der kan heles. For resten synger jeg.»':'Eir ser op fra morteren. «Blødende igen?»',opts:[]};
     if(!f.eirSalve) n.opts.push({t:'Har du noget, jeg kan tage med?',go:()=>{f.eirSalve=true;giveCons('salve',2,true);return{who:'Eir',text:'Hun pakker to små krukker ind i et klæde. «Eirs salve. Smør den på, når det gør ondt, ikke når det er for sent.» (Eirs salve ×2, tast 4)',opts:D.eir().opts};}});
+    if(!f.q_eir) n.opts.push({t:'Hvad mangler du til dine salver?',go:()=>{questStart('q_eir','Frostroserne');note('eir','Eir: frostroser gror kun, hvor kulden er dybest. Én vest for lejren, én i troldeskoven mod sydøst og én nord for Jötunportens runesten.');
+      return{who:'Eir',text:'«Frostroser. Tre af dem. De gror kun, hvor kulden er dybest: vest for Astrids lejr, i troldeskoven mod sydøst og ved runestenen syd for porten. Med dem kan jeg lave en salve, der henter folk tilbage fra kanten.»',opts:D.eir().opts};}});
+    if(f.q_eir&&!f.eirDone&&Object.keys(f.roses||{}).length>=3) n.opts.push({t:'Her er tre frostroser.',go:()=>{f.eirDone=true;giveCons('salve',2,true);approve(1);
+      return{who:'Eir',text:'Eir knuser de blå blade i morteren, og hele lejren dufter af sne og honning. «Nu kan jeg hele dig oftere og bedre.» Hun giver dig to krukker af salven. (Eir heler oftere og mere, Eirs salve ×2)',opts:D.eir().opts};}});
     if(!f.eirHealed) n.opts.push({t:'Kan du hele mine sår?',go:()=>{f.eirHealed=true;P.hp=maxHp();P.hpLag=P.hp;sfx('rune');return{who:'Eir',text:'Hun lægger en varm hånd på dit bryst og nynner en gammel galdr. Smerten trækker sig tilbage som tidevand. «Én gang. Mine urter vokser ikke i sne.» (Fuldt liv)',opts:D.eir().opts};}});
     if(f.bjornChoice==='saved') n.opts.push({t:'Følg med mig. Jeg kunne bruge en helbreder.',tag:'spc',tagT:'BJØRN LEVER',go:()=>join('«Du forbandt Bjørn, da du kunne have taget hans pung. Det siger nok.»'+swap)});
     else if(!f.eirTried) n.opts.push({t:'Jeg har set nok død. Hjælp mig med at standse den.',stat:'vil',dc:12,ok:()=>join('Hun ser længe på dig. «Det mener du. Godt.»'+swap),fail:()=>{f.eirTried=true;return{who:'Eir',text:'«Ord er billige. Vis mig, at du hjælper folk, så taler vi igen.»',opts:D.eir().opts};}});
@@ -176,6 +180,23 @@ const D={
     n.opts.push({t:'Midgard brænder ikke i dag.',tag:'sty',tagT:'KÆMP',go:startSurt});
     return n;
   },
+  eyvind(){
+    const f=F(); f.eyvindTalked=true; const withA=C&&C.kind==='astrid'&&!C.down;
+    const n={who:'Eyvind',text:'En draugr står alene mellem de brændte gårde. Den bærer en sølvnål formet som en pil, magen til Astrids. Den vender langsomt hovedet mod dig.'+(withA?' Astrid standser. «Eyvind…»':''),opts:[]};
+    if(withA&&(f.appr||0)>=4) n.opts.push({t:'Lad Astrid tale til ham.',tag:'spc',tagT:'ASTRID',go:()=>eyvindPeace('Astrid går helt hen til ham og lægger panden mod hans. Hun hvisker noget, du ikke hører. Draugren sænker sværdet, og asken drysser af den, til der kun er en sølvnål tilbage i sneen. Astrid tager den op og siger ingenting længe.')});
+    n.opts.push({t:'Eyvind! Husk din søster. Husk, hvem du var.',stat:'vil',dc:15,ok:()=>eyvindPeace('Noget flakker i de tomme øjne. Hånden om sværdet åbner sig. «As…trid.» Så falder han sammen til aske, stille som sne.'),
+      fail:()=>{f.eyvindTalked=true;if(withA)approve(-1);return{who:'Eyvind',text:'Ordene preller af. Draugren løfter sværdet.',opts:[{t:'Kæmp.',go:startEyvind}]};}});
+    n.opts.push({t:'Giv ham fred med stål.',tag:'sty',tagT:'KÆMP',go:startEyvind});
+    return n;
+  },
+  inskription(){
+    const f=F();
+    const n={who:'Indskrift i isen',text:'Runer er ristet dybt i isvæggen, halvt dækket af rim. «Under is hviler hun, som Rimtursen elskede. Kald hende ved navn, og isen vil lytte.» Bag dig står tre søjler med hver sin rune: ᛁ, ᚷ og ᛋ.',opts:[]};
+    if(f.mimir) n.opts.push({t:'Sigrun. Hun hed Sigrun.',tag:'spc',tagT:'MIMIRS VISDOM',go:()=>{f.grotHint=true;note('sigrun2','Isgrotten: rør runerne i den rækkefølge, Sigruns navn staves: ᛋ, så ᛁ, så ᚷ.');return{who:'Indskrift i isen',text:'Rimen falder af væggen, da du siger navnet. ᛋ … ᛁ … ᚷ. Søjlerne venter.',opts:[{t:'Gå til søjlerne.'}]};}});
+    else if(!f.grotTried) n.opts.push({t:'Læs de halvt skjulte runer under rimen.',stat:'vil',dc:13,ok:()=>{f.grotHint=true;note('sigrun2','Isgrotten: navnet under rimen begynder med ᛋ, ᛁ og ᚷ. Rør søjlerne i den rækkefølge.');return{who:'Indskrift i isen',text:'Under rimen står et navn, der begynder med ᛋ, ᛁ og ᚷ. Sigrun.',opts:[{t:'Gå til søjlerne.'}]};},fail:()=>{f.grotTried=true;return{who:'Indskrift i isen',text:'Runerne flyder sammen for dine øjne. Måske ved nogen andre, hvem der hviler her.',opts:[{t:'Gå.'}]};}});
+    n.opts.push({t:'Gå.'});
+    return n;
+  },
   jotun(){
     const f=F(); f.jotunTalked=true;
     const opener=f.gateForced?'«DU BRØD MIN PORT, LILLE MENNESKE. SÅ BRYDER JEG DIG.»':'«LILLE MENNESKE. DU BÆRER JARLENS HORN. HRAFNKEL FIK FRED. DET FÅR DU IKKE.»';
@@ -219,7 +240,7 @@ let dlgCur=null, dlgNPC=null;
 function talk(id){
   if(P&&P.mount) dismount(false);
   const node=D[id](); if(!node) return;
-  dlgNPC=NPCS.find(n=>n.id===id)||(id==='gate'?{x:1800,y:WALL_Y+20,gate:true}:id==='fgate'?{x:5000,y:FWALL_Y+20,gate:true}:id==='jotun'?jotunEnt():id==='surt'?surtEnt():null);
+  dlgNPC=NPCS.find(n=>n.id===id)||(id==='eyvind'?eyvindEnt():null)||(id==='gate'?{x:1800,y:WALL_Y+20,gate:true}:id==='fgate'?{x:5000,y:FWALL_Y+20,gate:true}:id==='jotun'?jotunEnt():id==='surt'?surtEnt():null);
   if(dlgNPC&&!dlgNPC.gate){P.face=Math.atan2(dlgNPC.y-P.y,dlgNPC.x-P.x);}
   G.state='dialog';$('letterbox').classList.add('on');$('hud').style.opacity=0;mouse.l=mouse.r=false;buf=null;
   showNode(node);
@@ -257,7 +278,7 @@ let diceAnim=null;
 function rollCheck(stat,dc,cb){
   const adv=hasAdv(stat);
   const r1=1+Math.floor(Math.random()*20), r2=adv?1+Math.floor(Math.random()*20):0, nat=adv?Math.max(r1,r2):r1;
-  const sm=mod(P.stats[stat]), prof=2, mim=G.flags.mimir?2:0, total=nat+sm+prof+mim;
+  const sm=mod(P.stats[stat])+(stat==='vil'&&eqHas('sigrunsslor')?2:0), prof=2, mim=G.flags.mimir?2:0, total=nat+sm+prof+mim;
   const ok=nat===20||(nat!==1&&total>=dc);
   $('dice').hidden=false;$('diceHead').textContent=`${STATN[stat][1].toUpperCase()} · SVÆRHEDSGRAD`;$('diceDC').textContent=dc;
   $('diceRes').textContent='';$('diceRes').className='';$('diceInfo').textContent=adv?compName()+' er med dig: du slår med fordel':'';$('dieN').style.opacity=0;$('diceGo').hidden=true;

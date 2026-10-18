@@ -132,6 +132,8 @@ function updPlayer(dt){
   updRuneBrands(dt); BEAM.visible=false;
   p.iframes=Math.max(0,p.iframes-dt);p.perfectT=Math.max(0,(p.perfectT||0)-dt);p.stagger=Math.max(0,p.stagger-dt);p.specialT=Math.max(0,p.specialT-dt);p.rage=Math.max(0,p.rage-dt);p.stormT=Math.max(0,(p.stormT||0)-dt);p.wardT=Math.max(0,(p.wardT||0)-dt);p.stDelay=Math.max(0,(p.stDelay||0)-dt);
   if(p.dead) return;
+  // aim assist: the mouse aim snaps to the foe nearest its line
+  if(SET.assist&&!G.lock&&!G.padActive&&!TOUCH.on&&!G.sim){const ma=Math.atan2(mouseW.y-p.y,mouseW.x-p.x);let best=null,bs=.45;for(const e of G.enemies){if(e.dead||e.dormant||!e.aggro)continue;const d=dist(p,e);if(d>320)continue;const da=Math.abs(angDiff(Math.atan2(e.y-p.y,e.x-p.x),ma));if(da<bs){bs=da;best=e;}}if(best){mouseW.x=best.x;mouseW.y=best.y;}}
   if(p.roll<=0&&!p.dash&&!(p.act&&p.act.done&&p.act.kind==='heavy')&&!(p.act&&p.act.lockFace)) p.face=G.lock?Math.atan2(G.lock.y-p.y,G.lock.x-p.x):Math.atan2(mouseW.y-p.y,mouseW.x-p.x);
   let ix=(held('right')?1:0)-(held('left')?1:0), iy=(held('down')?1:0)-(held('up')?1:0);
   if(G.padMove&&Math.hypot(G.padMove.x,G.padMove.y)>.2){ix=G.padMove.x;iy=G.padMove.y;}
@@ -151,7 +153,7 @@ function updPlayer(dt){
   else if(p.stagger<=0){let sp=p.mount?390:158*(1+(p.stats.smi-10)*.012)*(T('s_fart')?1.1:1)*(eqHas('ulvehjerte')?1.1:1);if(p.act)sp*=p.act.move??.3;if(p.blocking)sp*=.45;vx=ix*sp;vy=iy*sp;}
   p.x+=vx*dt;p.y+=vy*dt;
   const spd=Math.hypot(vx,vy); if(p.mount&&spd>10) p.face=lerpAng(p.face,Math.atan2(vy,vx),Math.min(1,dt*8));p.move=lerp(p.move,clamp(spd/158,0,1.2),Math.min(1,dt*10));p.phase+=dt*spd*.055;
-  if(spd>20&&p.roll<=0){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx('step');p.foot=-(p.foot||1);{const ma=Math.atan2(vy,vx);if(!inCrypt(p.x,p.y))decal(TEX_FOOT,p.x+Math.cos(ma+Math.PI/2)*2.6*p.foot,p.y+Math.sin(ma+Math.PI/2)*2.6*p.foot,Math.PI/2-ma,.24,.42,[.32,.4,.55],22,.55);}FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
+  if(spd>20&&p.roll<=0){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx('step');p.foot=-(p.foot||1);{const ma=Math.atan2(vy,vx);if(!inDungeon(p.x,p.y))decal(TEX_FOOT,p.x+Math.cos(ma+Math.PI/2)*2.6*p.foot,p.y+Math.sin(ma+Math.PI/2)*2.6*p.foot,Math.PI/2-ma,.24,.42,[.32,.4,.55],22,.55);}FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
   collide(p);
   if(!p.act&&p.roll<=0&&p.stDelay<=0) p.st=Math.min(maxSt(),p.st+(p.blocking?12:52)*(eqHas('ulvepels')?1.3:1)*(T('v_spind')?1.3:1)*dt);
   p.hpLag+= (p.hp-p.hpLag)*Math.min(1,dt*(p.hpLag>p.hp?1.4:12));
@@ -183,7 +185,7 @@ function hurtPlayer(dmg,fx,fy,src=null,unblock=false,soft=false){
       p.st-=dmg*.95*(T('s_jern')?.6:1);sfx('block');burst((p.x+Math.cos(p.face)*14)*S,groundY(p.x,p.y)+1,(p.y+Math.sin(p.face)*14)*S,18,4,.35,.15,3,2.4,1.2,{grav:9});
       if(p.st<=0){p.st=0;p.stagger=.7;dmg*=.5;toast('Din garde er brudt');}else{dmg*=.12;}
       p.stDelay=.6;}}
-  dmg*=DIFF[SET.diff].dmg*(1+.35*(G.ng||0))*(G.mode==='valhalla'?G.vScaleD||1:1);
+  dmg*=nightMult(src)*DIFF[SET.diff].dmg*(1+.35*(G.ng||0))*(G.mode==='valhalla'?G.vScaleD||1:1);
   if(eqHas('brynje')) dmg*=.85;
   if(eqHas('lindskael')) dmg*=.8;
   if(eqHas('askebrynje')) dmg*=.75;
@@ -234,10 +236,10 @@ function updComp(dt){
   C.cd-=dt; C.healT=Math.max(0,C.healT-dt);
   // Eir: heals you when you are hurt, otherwise throws frost shards
   if(C.kind==='eir'){
-    if(!P.dead&&P.hp<maxHp()*.5&&C.healT<=0&&dist(C,P)<420){C.healT=14;C.healId=(C.healId||0)+1;const h=Math.round(maxHp()*.25);P.hp=Math.min(maxHp(),P.hp+h);num(P.x,P.y,'+'+h,'heal');sfx('rune');
+    if(!P.dead&&P.hp<maxHp()*.5&&C.healT<=0&&dist(C,P)<420){C.healT=G.flags.eirDone?9:14;C.healId=(C.healId||0)+1;const h=Math.round(maxHp()*(G.flags.eirDone?.35:.25));P.hp=Math.min(maxHp(),P.hp+h);num(P.x,P.y,'+'+h,'heal');sfx('rune');
       for(let i=0;i<30;i++)FXA.emit(P.x*S+rand(-.5,.5),groundY(P.x,P.y)+rand(.1,1.8),P.y*S+rand(-.5,.5),0,rand(.4,1.4),0,rand(.7,1.3),rand(.2,.4),.6,1.8,.8,1,-.2,.5);}
     else if(tgt&&C.cd<=0){C.face=Math.atan2(tgt.y-C.y,tgt.x-C.x);C.cd=1.8;C.shotId=(C.shotId||0)+1;spawnProj({x:C.x,y:C.y,vx:Math.cos(C.face)*480,vy:Math.sin(C.face)*480,dmg:7+P.level*1.1,friendly:true,kind:'bolt',life:1,r:6});}
     return;
   }
-  if(tgt){C.face=Math.atan2(tgt.y-C.y,tgt.x-C.x);if(C.cd<=0){C.cd=1.15;C.shotId=(C.shotId||0)+1;spawnProj({x:C.x,y:C.y,vx:Math.cos(C.face)*620,vy:Math.sin(C.face)*620,dmg:(9+P.level*1.4)*((G.flags.appr||0)>=5?1.25:1)*(G.flags.astridWitnessed?1.2:1),friendly:true,kind:'arrow',life:1,r:5});}}
+  if(tgt){C.face=Math.atan2(tgt.y-C.y,tgt.x-C.x);if(C.cd<=0){C.cd=1.15;C.shotId=(C.shotId||0)+1;spawnProj({x:C.x,y:C.y,vx:Math.cos(C.face)*620,vy:Math.sin(C.face)*620,dmg:(9+P.level*1.4)*((G.flags.appr||0)>=5?1.25:1)*(G.flags.astridWitnessed?1.2:1)*astridBonus(),friendly:true,kind:G.flags.eyvindDone?'arrowF':'arrow',life:1,r:5});}}
 }

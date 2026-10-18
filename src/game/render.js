@@ -25,9 +25,9 @@ const dof=new BokehPass(scene,camera,{focus:6,aperture:.0035,maxblur:.008}); dof
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.6,.5,1.05);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
-const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uDark:{value:0}},
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uDark:{value:0},uFilter:{value:0}},
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`uniform sampler2D tDiffuse;uniform float uTime;uniform float uDark;varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float uTime;uniform float uDark;uniform float uFilter;varying vec2 vUv;
   void main(){vec2 c=vUv-.5;float r2=dot(c,c);
     vec2 off=c*r2*.012;vec3 col=vec3(texture2D(tDiffuse,vUv+off).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-off).b);
     float l=dot(col,vec3(.299,.587,.114));
@@ -35,6 +35,10 @@ const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uDar
     col+=mix(vec3(-.012,-.004,.022),vec3(.018,.008,-.012),smoothstep(.15,.75,l));
     col=pow(max(col,0.),vec3(1.04));
     col*=1.-smoothstep(.18,.62,r2)*(.32+uDark*.25);
+    if(uFilter>.5){float g2=dot(col,vec3(.299,.587,.114));
+      if(uFilter<1.5)col=vec3(g2);else if(uFilter<2.5)col=vec3(g2*1.08,g2*.88,g2*.64);
+      else if(uFilter<3.5)col=mix(col,vec3(g2)*vec3(.78,.95,1.22),.65);else if(uFilter<4.5)col*=vec3(1.16,.97,.78);
+      else{col=(col-.45)*1.4+.45;col*=1.-smoothstep(.08,.45,r2)*.45;}}
     gl_FragColor=vec4(col,1.);}`});
 composer.addPass(grade);
 function onResize(){renderer.setSize(innerWidth,innerHeight,false);composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
@@ -52,10 +56,10 @@ function applyGfx(q){
 addEventListener('resize',onResize);
 
 // --- Sky with aurora, stars and moon
-const skyUniforms={uTime:{value:0},uAsh:{value:0},uAur:{value:.8}};
+const skyUniforms={uTime:{value:0},uAsh:{value:0},uAur:{value:.8},uDay:{value:0},uDusk:{value:0}};
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyUniforms,
   vertexShader:`varying vec3 vDir;void main(){vDir=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;}`,
-  fragmentShader:`uniform float uTime;uniform float uAsh;uniform float uAur;varying vec3 vDir;
+  fragmentShader:`uniform float uTime;uniform float uAsh;uniform float uAur;uniform float uDay;uniform float uDusk;varying vec3 vDir;
   float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
@@ -63,12 +67,15 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
   void main(){vec3 d=normalize(vDir);float y=d.y;
     vec3 col=mix(vec3(.105,.15,.215),vec3(.012,.018,.04),smoothstep(-.02,.55,y));
     col=mix(col,vec3(.08,.1,.14),smoothstep(0.,-.3,y));
-    vec3 sp=floor(d*420.);float s=h3(sp);col+=vec3(.9,.95,1.)*step(.9965,s)*smoothstep(.02,.35,y)*(.55+.45*sin(uTime*2.+s*90.));
+    vec3 dayc=mix(vec3(.74,.8,.86),vec3(.3,.48,.78),smoothstep(-.02,.6,y));dayc=mix(dayc,vec3(.55,.58,.62),smoothstep(0.,-.3,y));col=mix(col,dayc,uDay);
+    vec3 sp=floor(d*420.);float s=h3(sp);col+=vec3(.9,.95,1.)*step(.9965,s)*smoothstep(.02,.35,y)*(.55+.45*sin(uTime*2.+s*90.))*(1.-uDay);
     if(y>0.){vec2 uv=d.xz/(y+.18);float a=0.;
       for(int i=0;i<3;i++){float fi=float(i);float wav=uv.y+.35*sin(uv.x*1.3+uTime*.07+fi*2.)+.15*sin(uv.x*3.1-uTime*.11)-.5+fi*.45;
         float band=exp(-wav*wav*5.);float cur=fbm(vec2(uv.x*2.2+fi*7.,uTime*.05+fi))*.8+.2;float rays=.6+.4*n2(vec2(uv.x*16.+uTime*.3,fi));a+=band*cur*rays;}
-      vec3 ac=mix(vec3(.15,1.,.62),vec3(.55,.3,1.),smoothstep(.15,.65,y));col+=ac*a*.55*smoothstep(.0,.22,y)*(uAur/.8);}
+      vec3 ac=mix(vec3(.15,1.,.62),vec3(.55,.3,1.),smoothstep(.15,.65,y));col+=ac*a*.55*smoothstep(.0,.22,y)*(uAur/.8)*(1.-uDay);}
     vec3 md=normalize(vec3(-.35,.42,-.84));float m=dot(d,md);col+=vec3(1.,.98,.92)*1.6*smoothstep(.99935,.99965,m)+vec3(.35,.45,.7)*pow(max(m,0.),300.)*.5+vec3(.2,.25,.4)*pow(max(m,0.),20.)*.12;
+    col+=vec3(1.6,1.35,1.)*uDay*(smoothstep(.9982,.9992,m)*2.5+pow(max(m,0.),80.)*.5);
+    col+=vec3(1.,.42,.16)*pow(max(0.,1.-abs(y)*3.2),2.)*uDusk*.75;
     if(uAsh>0.){ // Askefjorden: a sky of smoke lit red from below, with drifting embers instead of an aurora
       vec2 su=d.xz/(abs(y)+.25);float sm=fbm(su*1.3+vec2(uTime*.02,uTime*.013));
       vec3 ash=mix(vec3(.42,.12,.05),vec3(.05,.025,.03),smoothstep(-.05,.5,y));ash=mix(ash,vec3(.16,.07,.06),sm*.6*smoothstep(0.,.3,y));

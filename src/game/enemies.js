@@ -4,11 +4,12 @@
    ========================================================= */
 function targets(){const t=[];if(!P.dead)t.push(P);if(C&&!C.down)t.push(C);return t;}
 function pickTarget(e){if(e.boss||!C||C.down)return P;return dist(e,C)<dist(e,P)*.7?C:P;}
-function addHaz(h){h.t=0;if(h.unblock&&h.owner)warnFx(h.owner);if(h.owner&&h.owner.atkT!==G.time){h.owner.atkT=G.time;h.owner.atkSeq=(h.owner.atkSeq||0)+1;h.owner.atkHaz=h;}const col=h.unblock?0xff2a0a:h.frost?0x8fd8ff:h.fire?0xff8a1a:0xff5533;
+function addHaz(h){h.t=0;if(h.unblock&&h.owner)warnFx(h.owner);if(h.owner&&h.owner.atkT!==G.time){h.owner.atkT=G.time;h.owner.atkSeq=(h.owner.atkSeq||0)+1;h.owner.atkHaz=h;}const col=SET.tele?(h.unblock?0xd23cff:h.frost?0x3cc8ff:0xffa000):h.unblock?0xff2a0a:h.frost?0x8fd8ff:h.fire?0xff8a1a:0xff5533;
   let geo;if(h.k==='circle'){geo=new THREE.CircleGeometry(1,48);}else{geo=new THREE.CircleGeometry(1,40,-h.arc/2,h.arc);}geo.rotateX(-Math.PI/2);
   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.15,blending:THREE.AdditiveBlending,depthWrite:false}));
-  const rg=h.k==='circle'?new THREE.RingGeometry(.93,1,64):new THREE.RingGeometry(.93,1,48,1,-h.arc/2,h.arc);rg.rotateX(-Math.PI/2);
+  const rw=SET.tele?.86:.93, rg=h.k==='circle'?new THREE.RingGeometry(rw,1,64):new THREE.RingGeometry(rw,1,48,1,-h.arc/2,h.arc);rg.rotateX(-Math.PI/2);
   const ring=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}));
+  if(SET.tele) m.material.opacity=.3;
   const inner=new THREE.Mesh(geo,m.material.clone()); inner.material.opacity=.32;
   const g=new THREE.Group();g.add(m,ring,inner);g.renderOrder=3;scene.add(g);h.mesh=g;h.inner=inner;G.hazards.push(h);return h;}
 function disposeHaz(h){if(h.mesh){scene.remove(h.mesh);h.mesh.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}}
@@ -65,13 +66,15 @@ function burnAt(x,y,r,life,dps,friendly){
 }
 function fireFx(x,y,n=24){const gy=groundY(x,y);for(let i=0;i<n;i++)FXA.emit(x*S+rand(-.6,.6),gy+rand(0,.6),y*S+rand(-.6,.6),rand(-1.5,1.5),rand(2,6),rand(-1.5,1.5),rand(.4,.9),rand(.25,.55),3,1.1,.25,1,-1,1.2,1);G.shake=Math.max(G.shake,.12);}
 function killEnemy(e){
-  e.dead=true;cancelAttacks(e);maybeDrop(e);if(!G.sim)META.kills[e.t]=(META.kills[e.t]||0)+1;P.runes+=Math.round(e.def.runes*(1+.5*(G.ng||0)));sfx('coins');G.kills=(G.kills||0)+1;
+  e.dead=true;cancelAttacks(e);maybeDrop(e);if(!G.sim)META.kills[e.t]=(META.kills[e.t]||0)+1;P.runes+=Math.round(e.def.runes*(1+.5*(G.ng||0))*(nightMult(e)>1?1.2:1));sfx('coins');G.kills=(G.kills||0)+1;
   if(e.t==='rimtrold'&&G.flags.q_astrid&&!G.flags.astridRevenge){G.flags.astridRevenge=true;
     if(C&&C.kind==='astrid'&&!C.down&&dist(C,e)<700){G.flags.astridWitnessed=true;approve(2);toast('Astrid: «Far… den er død.» Hun sænker buen længe.');}else{approve(-1);toast('Ny note: Astrid vil gerne høre, at rimtrolden er død.');}}
   const gy=groundY(e.x,e.y);
   for(let i=0;i<(e.boss?160:30);i++)FXA.emit(e.x*S+rand(-.5,.5),gy+rand(.2,e.boss?6:1.6),e.y*S+rand(-.5,.5),rand(-.6,.6),rand(.5,2.5),rand(-.6,.6),rand(1,2.2),rand(.15,.35),2.2,1.6,.6,1,-.4,.6,0);
   burst(e.x*S,gy+.5,e.y*S,24,1.8,1.5,.9,.25,.3,.35,{sys:FXN,up:.4,grav:-.3,drag:2,alpha:.45,grow:2.5});
   if(e.hpEl){e.hpEl.remove();e.hpEl=null;}
+  if(e.boss==='eyvind'&&G.mode!=='valhalla'){G.boss=null;if(!G.flags.eyvindPeace){G.flags.eyvindDone=true;G.flags.eyvindSword=true;approve(1);setTimeout(()=>toast(C&&C.kind==='astrid'?'Astrid: «Tak. Han var fanget i den krop.» Hun samler en håndfuld aske i et klæde.':'Eyvind falder sammen til aske. Astrid vil gerne vide det.'),1200);}saveGame();}
+  if(e.boss==='isdronning'&&G.mode!=='valhalla'){G.flags.isdronningDead=true;G.boss=null;banner('ISDRONNINGEN ER FÆLDET','Sigrun kan hvile');sfx('boom');G.slowmo=1.1;setTimeout(()=>toast('Isen om Sigruns sarkofag smelter. Kisten er åben.'),1600);saveGame();}
   const FB={ulvekonge:'ulvehjerte',ketil:'jarnring',troldmor:'troldblod',askebrud:'askekrone'};
   if(FB[e.boss]&&G.mode!=='valhalla'){G.flags['fb_'+e.boss]=true;G.boss=null;banner('FELTBOSS FÆLDET',e.def.name);sfx('boom');G.slowmo=1.1;const it=FB[e.boss];setTimeout(()=>giveItem(it),1500);saveGame();}
   if(G.mode==='valhalla'){if(e.boss){G.boss=null;banner('FJENDE FÆLDET',e.def.name);sfx('boom');G.slowmo=1;}}
@@ -167,8 +170,9 @@ function updEnemy(e,dt){
   for(const o of G.enemies){if(o===e||o.dead)continue;const dx=e.x-o.x,dy=e.y-o.y,m=e.r+o.r;const d2=dx*dx+dy*dy;if(d2<m*m&&d2>.01){const dd=Math.sqrt(d2),push=(m-dd)*.5;e.x+=dx/dd*push;e.y+=dy/dd*push;}}
 }
 function lindormAI(e,tg,d,a,step,dm){
-  if(!e.phase2&&e.hp<e.maxHp*p2At()){enterPhase2(e,'Lindormen skriger','Ynglen vågner i isen','frost',[.04,.18,.32]);sfx('howl');
-    for(const sg of [-1,1]){const x=e.x+Math.cos(a+sg*1.4)*120,y=e.y+Math.sin(a+sg*1.4)*120;spawnEnemy('lindyngel',x,y,{aggro:true});burst(x*S,groundY(x,y)+1,y*S,40,3,1,.4,.6,1.6,2.4,{grav:1});}
+  const iq=e.t==='isdronning';
+  if(!e.phase2&&e.hp<e.maxHp*p2At()){if(iq)enterPhase2(e,'Isdronningen hyler','De døde i isen vågner','frost',[.1,.3,.5]);else enterPhase2(e,'Lindormen skriger','Ynglen vågner i isen','frost',[.04,.18,.32]);sfx('howl');
+    for(const sg of [-1,1]){const x=e.x+Math.cos(a+sg*1.4)*120,y=e.y+Math.sin(a+sg*1.4)*120;spawnEnemy(iq?'gjenganger':'lindyngel',x,y,{aggro:true});burst(x*S,groundY(x,y)+1,y*S,40,3,1,.4,.6,1.6,2.4,{grav:1});}
     return;}
   if(e.cd>0){if(d>150)step(a);else step(a+Math.PI/2,.6);return;}
   const r=Math.random(), D=e.def.dmg*dm;

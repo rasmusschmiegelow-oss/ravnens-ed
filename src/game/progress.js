@@ -28,8 +28,10 @@ function renderRest(){
   const tr=$('rTravel');tr.innerHTML='';
   RUNESTONES.forEach(r=>{if(!r.lit||r.id===G.lastRS)return;const b=document.createElement('button');b.className='btn ghost';b.type='button';b.textContent=r.name;b.addEventListener('click',()=>{G.lastRS=r.id;P.x=r.x;P.y=r.y+46;if(C){C.x=P.x-30;C.y=P.y+30;}resetWorld();snapCam();saveGame();renderRest();});tr.appendChild(b);});
   if(!tr.children.length) tr.innerHTML='<span class="mute small">Tænd flere runesten ude i verden for at kunne rejse mellem dem.</span>';
+  const wt=$('rWait');wt.textContent=DN.night?'Hvil til solopgang':'Hvil til mørket falder på';
 }
 $('restLeave').addEventListener('click',()=>{$('rest').hidden=true;G.state='play';});
+$('rWait').addEventListener('click',()=>{restUntil(DN.night);updDayNight(0);renderRest();});
 const SAVE_KEY='ravnensEd.v1';
 // Three save slots. Slot 1 keeps the original key so older saves still load.
 const slotKey=i=>i>1?SAVE_KEY+'.s'+i:SAVE_KEY;
@@ -63,7 +65,7 @@ function resetRun(){
   for(const id in CHEST_M){const m=CHEST_M[id];m.opening=false;m.open=0;if(m.lid)m.lid.rotation.x=0;}
   RUNESTONES.forEach(r=>{r.lit=r.id===0;RS_MESH[r.id].mat.emissiveIntensity=r.lit?2.6:0;RS_MESH[r.id].light.intensity=r.lit?22:0;});
   GATE.gone=false;G.gateAnim=null;gateDoors.forEach(d=>d.hinge.rotation.y=0);
-  setIceWall(false,true); setFireGate(false,true); resetBeacons(); G.cons={ild:2,frost:0,bjorn:0,salve:1}; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
+  setIceWall(false,true); setFireGate(false,true); resetBeacons(); setGrotto(); setRoses(); G.cons={ild:2,frost:0,bjorn:0,salve:1}; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
   if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true;
 }
 function beginGame(fromSave){
@@ -72,7 +74,7 @@ function beginGame(fromSave){
     (s.lit||[]).forEach((l,i)=>{RUNESTONES[i].lit=l;RS_MESH[i].mat.emissiveIntensity=l?2.6:0;RS_MESH[i].light.intensity=l?22:0;});
     for(const id in (G.flags.chests||{})){const m=CHEST_M[id];if(m){m.open=1;if(m.lid)m.lid.rotation.x=-1.9;}}
     if(G.flags.gateOpen){GATE.gone=true;gateDoors.forEach(d=>d.hinge.rotation.y=d.s*1.6);}
-    if(G.flags.act2) setIceWall(true,true); if(G.flags.fgateOpen) setFireGate(true,true); for(const id in (G.flags.beacons||{})) lightBeacon(id,true);
+    setGrotto(); setRoses(); if(G.flags.act2) setIceWall(true,true); if(G.flags.fgateOpen) setFireGate(true,true); for(const id in (G.flags.beacons||{})) lightBeacon(id,true);
     const rs=RUNESTONES[G.lastRS];P.x=rs.x;P.y=rs.y+46;P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();
     P.talents=s.talents||[]; G.cons=s.cons||{ild:2,frost:0,bjorn:0,salve:1};
     {const ck=G.flags.comp||(G.flags.astrid&&!G.flags.astridLeft?'astrid':null);if(ck)makeCompanion(ck);}
@@ -99,6 +101,7 @@ function startAct2(){
   if(G.flags.act2) return;
   G.flags.act2=true; G.flags.act1End=G.ending||'sword'; G.ending=null;
   setIceWall(true,false); spawnAct2(); sfx('boom'); G.shake=.6;
+  if(G.flags.astrid&&!G.flags.astridLeft) setTimeout(()=>{questStart('q_eyvind','Eyvinds aske');note('eyvind','Astrid: «Min bror Eyvind tog til Skjoldvik før vinteren. Han kom aldrig tilbage. Hvis han er derovre … så vil jeg vide det.»');},9000);
   if(!G.sim){const bc=$('bossCard');$('bcName').textContent='Akt II';$('bcSub').textContent='Askefjorden';
     $('bcQuote').textContent=(G.flags.act1End==='word'?'Rimtursen gik mod nord, og isen begyndte at smelte.':'Rimtursens hjerte splintrede, og isen begyndte at smelte.')+' Men mod øst bliver himlen rød.';
     bc.className='fire';bc.hidden=true;void bc.offsetWidth;bc.hidden=false;setTimeout(()=>{bc.hidden=true;},7500);
@@ -115,6 +118,9 @@ function showEnd(){
   if(f.vardeDone) bits.push('Varderne brændte hele vinteren, og de overlevende fandt hjem til Skjoldvik.');
   if(f.ulfrChoice==='give') bits.push('Gamle Ulfr bar sin søns ring til sin død.'); else if(f.ulfrChoice==='kept') bits.push(f.logiRing?'Hrafnkels ring smeltede i Muspelheims ild.':'Hrafnkels ring sidder stadig kold på din finger.');
   if(f.durinDone) bits.push(f.durinChoice==='truth'?'Dvalin og Sindri smeder sammen nu, og Durins navn står på deres ambolt.':'Dvalin fortæller stadig om sin bror, der tog tre draugr med sig.');
+  if(f.eyvindPeace) bits.push('Astrid bærer sin brors sølvnål, og hun smiler oftere nu.'); else if(f.eyvindSword) bits.push('Eyvinds aske ligger begravet ved Skjoldvik under en lille sten med en pil ristet i.');
+  if(f.eirDone) bits.push('Eirs frostrosesalve reddede mange i den første vinter uden is.');
+  if(f.isdronningDead) bits.push('I Isgrotten hviler Sigrun endelig i fred.');
   if(f.astrid&&!f.astridLeft) bits.push((f.appr||0)>=5?'Astrid Jarnsdóttir fulgte dig til verdens ende, og skjaldene nævner jer altid sammen.':'Astrid tog sin bue og gik sin egen vej, da det var forbi.');
   bits.push(`Ved næste midvinterblot rejste Ravnsholm en runesten med dit navn: ${P.name}, ${G.deaths?'den der rejste sig igen':'den der aldrig faldt'}.`);
   $('endP').textContent=bits.join(' ');
@@ -168,6 +174,7 @@ function openPause(){G.state='pause';$('pzName').textContent=P.name;$('pzClass')
 $('pzGo').addEventListener('click',()=>{$('pause').hidden=true;G.state='play';});
 $('pzQuit').addEventListener('click',()=>{saveGame();toTitle();});
 $('pzGfx').addEventListener('click',()=>openSettings('pause'));
+$('pzPhoto').addEventListener('click',()=>{$('pause').hidden=true;G.state='play';openPhoto();});
 $('setGo').addEventListener('click',closeSettings);
 $('bSet').addEventListener('click',()=>openSettings('title'));
 applyGfx.boot=true; applyGfx(GFX); applyGfx.boot=false;

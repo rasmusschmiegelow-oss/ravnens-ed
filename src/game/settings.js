@@ -8,10 +8,13 @@ const BIND_NAME={up:'Frem',down:'Tilbage',left:'Venstre',right:'Højre',roll:'Ru
 const DIFF={story:{name:'Fortælling',desc:'Fjender slår blødere og har mindre liv. For dig, der vil opleve historien.',dmg:.55,hp:.75},
   normal:{name:'Normal',desc:'Spillet som det er tænkt: hårdt, men fair.',dmg:1,hp:1},
   hard:{name:'Hård',desc:'Fjender slår hårdere og tåler mere. Ingen nåde.',dmg:1.3,hp:1.2}};
-const SET={music:.8,sfx:.8,shake:1,hints:1,diff:'normal',bind:{...BIND_DEFAULT}};
+const SET={music:.8,sfx:.8,shake:1,hints:1,diff:'normal',ui:1,tele:0,assist:0,calm:0,bind:{...BIND_DEFAULT}};
 try{const s=JSON.parse(localStorage.getItem(SET_KEY)||'{}');Object.assign(SET,s);SET.bind={...BIND_DEFAULT,...(s.bind||{})};}catch(e){}
 function saveSettings(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET));}catch(e){}}
 setVolumes(SET.music,SET.sfx);
+/** Text and menu size, and the calmer look for those sensitive to flashing. */
+function applyAccess(){document.documentElement.style.setProperty('--ui-scale',SET.ui);document.body.classList.toggle('calm',!!SET.calm);}
+applyAccess();
 
 /** True when the key code is bound to the action (arrow keys always move too). */
 function bound(action,code){
@@ -45,6 +48,11 @@ function renderSettings(){
   row('Skærmrystelse',choice([[1,'Til'],[.4,'Let'],[0,'Fra']],SET.shake,k=>{SET.shake=+k;saveSettings();}));
   row('Tips undervejs',choice([[1,'Til'],[0,'Fra']],SET.hints,k=>{SET.hints=+k;saveSettings();if(!SET.hints)hideHint();}));
   row('Grafik',choice([['low','Lav'],['high','Høj'],['ultra','Ultra']],GFX,k=>applyGfx(k)));
+  head('Tilgængelighed');
+  row('Tekst og menuer',choice([[1,'Normal'],[1.15,'Stor'],[1.3,'Meget stor']],SET.ui,k=>{SET.ui=+k;saveSettings();applyAccess();}));
+  row('Tydelige varsler',choice([[0,'Fra'],[1,'Til']],SET.tele,k=>{SET.tele=+k;saveSettings();toast(SET.tele?'Varsler vises kraftigere og i farver, der er lette at skelne for farveblinde: orange for slag, lilla for slag, der ikke kan blokeres.':'Almindelige varsler.');}));
+  row('Sigtehjælp',choice([[0,'Fra'],[1,'Til']],SET.assist,k=>{SET.assist=+k;saveSettings();}));
+  row('Færre blink',choice([[0,'Fra'],[1,'Til']],SET.calm,k=>{SET.calm=+k;saveSettings();applyAccess();}));
   head('Taster · klik og tryk en ny tast');
   for(const a of Object.keys(BIND_DEFAULT)){
     const b=document.createElement('button');b.type='button';b.className='seg keyb'+(rebinding===a?' on':'');

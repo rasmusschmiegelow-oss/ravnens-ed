@@ -71,6 +71,8 @@ const EANIM={
   glodulv:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',death:'Death',hit:'Idle_HitReact_Left'},
   lavavaette:{...QF,arc:'Punch'}, glodkaempe:{...QF,arc:'Punch',leap:'Headbutt',spin:'Punch',roar:'Yes'},
   garm:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',arc:'Attack',breath:'Attack',roar:'Idle_2_HeadLow',death:'Death',hit:'Idle_HitReact_Left'},
+  eyvind:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Slice_Diagonal',death:'Death_C_Skeletons'},
+  isdronning:{...QF,breath:'Yes',roar:'No'},
   ulvekonge:{idle:'Idle',calm:'Idle_2',move:'Gallop',walk:'Walk',aim:'Idle_2_HeadLow',dash:'Attack',arc:'Attack',breath:'Attack',roar:'Idle_2_HeadLow',death:'Death',hit:'Idle_HitReact_Left'},
   ketil:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',roar:'Taunt',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
   troldmor:{...QA,arc:'Weapon',leap:'Jump',spin:'Punch',roar:'Yes'},
@@ -105,7 +107,7 @@ function animEnemy(e,m,dt,gy){
   drive(m,w); m.anim.update(dt);
   const fl=e.flash>0?1:0; m.flash(fl);
 }
-const P2COL={ulvekonge:[.7,1.6,2.4],ketil:[2.6,1.4,.4],troldmor:[1.4,2,.6],jarl:[.6,1.6,2.4],vogter:[2.6,.6,.2],lindorm:[.7,1.6,2.4],jotun:[.7,1.6,2.4],glodkaempe:[3,1,.2],garm:[2.8,.4,.15],surt:[3.2,1.2,.2]};
+const P2COL={isdronning:[.7,1.6,2.4],ulvekonge:[.7,1.6,2.4],ketil:[2.6,1.4,.4],troldmor:[1.4,2,.6],jarl:[.6,1.6,2.4],vogter:[2.6,.6,.2],lindorm:[.7,1.6,2.4],jotun:[.7,1.6,2.4],glodkaempe:[3,1,.2],garm:[2.8,.4,.15],surt:[3.2,1.2,.2]};
 const easeOut=t=>1-Math.pow(1-t,3), easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function lerpAng(a,b,t){return a+angDiff(b,a)*t;}
 function syncEnemies(dt){
@@ -145,7 +147,7 @@ function syncEnemies(dt){
   G.enemies=G.enemies.filter(e=>!(e.dead&&e.deathT>(e.boss?4:2.2)));
 }
 function syncNPCs(dt){
-  for(const n of NPCS){const m=NPCM[n.id];if(!m)continue;if(C&&C.kind===n.id){m.root.visible=false;continue;}m.root.visible=Math.hypot(n.x-G.camLook.x/S,n.y-G.camLook.z/S)<1500&&(!n.showIf||!!n.showIf());if(!m.root.visible)continue;n.anim.t+=dt;
+  for(const n of NPCS){const m=NPCM[n.id];if(!m)continue;if(C&&C.kind===n.id){m.root.visible=false;continue;}m.root.visible=Math.hypot(n.x-G.camLook.x/S,n.y-G.camLook.z/S)<1500&&(!n.showIf||!!n.showIf());if(!m.root.visible){npcLbl[n.id].hidden=true;continue;}n.anim.t+=dt;
     if(!n.head){
       if(P&&dist(P,n)<170){const a=Math.atan2(P.y-n.y,P.x-n.x);m.root.rotation.y=lerpAng(m.root.rotation.y,-a,dt*3);}
     } else {m.root.position.y=ICE_Y+.55+Math.sin(n.anim.t*1.2)*.04;if(P){const a=Math.atan2(P.y-n.y,P.x-n.x);m.root.rotation.y=lerpAng(m.root.rotation.y,-a,dt*2);}}
@@ -166,14 +168,16 @@ const ASHC={fog:new THREE.Color(0x2b1712),hemi:new THREE.Color(0xc07a58),hemiG:n
   hemi0:hemi.color.clone(),hemiG0:hemi.groundColor.clone(),moon0:moon.color.clone(),snow0:snow.material.color.clone(),mist0:new THREE.Color(0xb9cbe0)};
 scene.background=scene.fog.color;
 function ambientFX(dt){
-  const inC=!!P&&inCrypt(P.x,P.y); G.cryptK=lerp(G.cryptK||0,inC?1:0,Math.min(1,dt*(inC?6:2))); const ck=G.cryptK;
+  const inC=!!P&&inDungeon(P.x,P.y); G.inGrot=!!P&&inGrot(P.x,P.y); if(GROT_VOID)GROT_VOID.visible=G.inGrot; GROT_LIGHTS.forEach(L=>L.intensity=G.inGrot?(G.cryptK||0)*L.userData.base:0); updGrotto(dt); G.cryptK=lerp(G.cryptK||0,inC?1:0,Math.min(1,dt*(inC?6:2))); const ck=G.cryptK;
   const ak=ashK(P?P.x:G.camLook.x/S); G.ashK=lerp(G.ashK??ak,ak,Math.min(1,dt*1.5)); const aK=G.ashK; skyUniforms.uAsh.value=aK;
-  hemi.intensity=lerp(lerp(.62,.6,aK),.2,ck); moon.intensity=lerp(lerp(1.45,1.1,aK),.03,ck); scene.fog.density=lerp(lerp(.0135,.017,aK)*WXK.fog,.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02;
-  hemi.color.copy(ASHC.hemi0).lerp(ASHC.hemi,aK); hemi.groundColor.copy(ASHC.hemiG0).lerp(ASHC.hemiG,aK); moon.color.copy(ASHC.moon0).lerp(ASHC.moon,aK);
+  const dK=DN.day, uK=DN.dusk;
+  hemi.intensity=lerp(lerp(lerp(.62,1.05,dK),.6+.25*dK,aK),.2,ck); moon.intensity=lerp(lerp(lerp(1.45,2.3,dK),1.1+.5*dK,aK),.03,ck); scene.fog.density=lerp(lerp(lerp(.0135,.0095,dK),.017,aK)*WXK.fog,.045,ck); if(CRYPT_VOID)CRYPT_VOID.visible=ck>.02&&!G.inGrot;
+  hemi.color.copy(ASHC.hemi0).lerp(DAYC.hemi,dK).lerp(ASHC.hemi,aK); hemi.groundColor.copy(ASHC.hemiG0).lerp(DAYC.hemiG,dK).lerp(ASHC.hemiG,aK); moon.color.copy(ASHC.moon0).lerp(DAYC.sun,dK).lerp(DAYC.duskSun,uK*.7).lerp(ASHC.moon,aK);
+  renderer.toneMappingExposure=.82+.08*dK*(1-ck); lantern.intensity=lerp(10,3,dK*(1-ck));
   snow.material.color.copy(ASHC.snow0).lerp(ASHC.snow,aK); snow.material.opacity=.85-aK*.3;
-  scene.fog.color.copy(NIGHT_FOG).lerp(ASHC.fog,aK).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>{m.m.visible=ck<.5;m.m.material.color.copy(ASHC.mist0).lerp(ASHC.mist,aK);});
+  scene.fog.color.copy(NIGHT_FOG).lerp(DAYC.fog,dK).lerp(DAYC.duskFog,uK*.5).lerp(ASHC.fog,aK).lerp(CRYPT_FOG,ck); snow.visible=ck<.5; MIST.forEach(m=>{m.m.visible=ck<.5;m.m.material.color.copy(ASHC.mist0).lerp(ASHC.mist,aK);});
   updAct2(dt);
-  lantern.intensity=lerp(10,16,ck); CRYPT_LIGHTS.forEach(L=>{if(L.distance===8)L.intensity=ck*8;});
+  lantern.intensity=lerp(lantern.intensity,16,ck); CRYPT_LIGHTS.forEach(L=>{if(L.distance===8)L.intensity=ck*8;});
   for(const id in CHEST_M){const m=CHEST_M[id];if(m.opening&&m.open<1){m.open=Math.min(1,m.open+dt*2.2);if(m.lid)m.lid.rotation.x=-1.9*easeOut(m.open);}}
   smokeT-=dt;
   if(smokeT<=0){smokeT=.12;for(const s of SMOKERS){if(P&&Math.abs(s.x-P.x*S)>45)continue;FXN.emit(s.x+rand(-.2,.2),s.y,s.z+rand(-.2,.2),wind*.15+rand(-.1,.1),rand(.6,1),rand(-.1,.1),rand(4,6),rand(1,1.6),.32,.33,.36,.35,-.05,.1,3);}}

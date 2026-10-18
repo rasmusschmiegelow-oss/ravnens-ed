@@ -40,7 +40,7 @@ const PATHS=[
 function segDist(px,py,ax,ay,bx,by){const vx=bx-ax,vy=by-ay;const t=clamp(((px-ax)*vx+(py-ay)*vy)/(vx*vx+vy*vy),0,1);return Math.hypot(px-(ax+vx*t),py-(ay+vy*t));}
 function pathDist(x,y){let m=1e9;for(const p of PATHS)for(let i=0;i<p.length-1;i++)m=Math.min(m,segDist(x,y,p[i][0],p[i][1],p[i+1][0],p[i+1][1]));return m;}
 function flatK(x,y,cx,cy,r){const d=Math.hypot(x-cx,y-cy);return d<r?1:d<r*1.7?1-(d-r)/(r*.7):0;}
-const FLATS=[[1800,2380,320],[560,1200,300],[1800,500,380],[1450,1850,150],[1800,840,200],[2900,520,380],[1180,1380,90],
+const FLATS=[[700,540,400],[360,1650,110],[1800,2380,320],[560,1200,300],[1800,500,380],[1450,1850,150],[1800,840,200],[2900,520,380],[1180,1380,90],
   [4350,2380,270],[3850,2100,120],[4300,1260,240],[5000,1020,170],[5000,560,300],[3850,1350,90],[4900,1650,90],[5450,2350,90],[5060,2090,150]];
 function hgtBase(x,y){
   let h=Math.sin(x*.004)*.9+Math.cos(y*.0035)*.8+Math.sin((x+y)*.0021)*1.2+Math.sin(x*.011+y*.007)*.3+Math.cos(x*.017-y*.013)*.15;
@@ -61,7 +61,7 @@ function hgt(x,y){
   if(x>3600) for(const p of LAVA){const le=lavaE(p,x,y);if(le<1.7)h=lerp(h,p.lv,sstep(1.7,1.0,le));}
   return h;
 }
-function groundY(x,y){if(CRYPT_FLOOR&&inCrypt(x,y))return CRYPT_FLOOR;const h=hgt(x,y);return lakeE(x,y)<1.25?Math.max(h,ICE_Y):h;}
+function groundY(x,y){if(CRYPT_FLOOR&&inCrypt(x,y))return CRYPT_FLOOR;if(GROT_FLOOR&&inGrot(x,y))return GROT_FLOOR;const h=hgt(x,y);return lakeE(x,y)<1.25?Math.max(h,ICE_Y):h;}
 
 const OBS=[]; // collision: {x,y,r} circles or {x,y,w,h} rects
 const TREES=[],ROCKS=[],STONES=[],RINGROCKS=[];
@@ -92,6 +92,15 @@ for(let x=4020;x<=4580;x+=40){if(Math.abs(x-4300)<70)continue;OBS.push({x,y:1010
 // The crypt beneath the barrow: an enclosed hall reached through the mound's door.
 const CRYPT={x0:2560,x1:3240,y0:320,y1:720,inX:2900,inY:655,exitX:2900,exitY:695,doorX:505,doorY:1200};
 const inCrypt=(x,y)=>x>CRYPT.x0-20&&x<CRYPT.x1+20&&y>CRYPT.y0-20&&y<CRYPT.y1+20;
+// Isgrotten: Sigrun's tomb in an ice cave, reached through a cave mouth in the western mountains
+const GROT={x0:360,x1:1040,y0:340,y1:740,doorY:540,inX:700,inY:690,exitX:700,exitY:722,mouthX:340,mouthY:1650};
+const inGrot=(x,y)=>x>GROT.x0-20&&x<GROT.x1+20&&y>GROT.y0-20&&y<GROT.y1+20;
+const inDungeon=(x,y)=>inCrypt(x,y)||inGrot(x,y);
+OBS.push({x:GROT.x0-20,y:GROT.y0-20,w:GROT.x1-GROT.x0+40,h:20},{x:GROT.x0-20,y:GROT.y1,w:GROT.x1-GROT.x0+40,h:20},
+  {x:GROT.x0-20,y:GROT.y0,w:20,h:GROT.y1-GROT.y0},{x:GROT.x1,y:GROT.y0,w:20,h:GROT.y1-GROT.y0});
+const ICEDOOR={x:GROT.x0,y:GROT.doorY-12,w:GROT.x1-GROT.x0,h:24,gone:false}; OBS.push(ICEDOOR);
+const RUNEPILLARS=[{x:520,y:600,r:'ᛁ',id:1},{x:700,y:610,r:'ᚷ',id:2},{x:880,y:600,r:'ᛋ',id:0}];
+RUNEPILLARS.forEach(p=>OBS.push({x:p.x,y:p.y,r:20}));
 OBS.push({x:CRYPT.x0-20,y:CRYPT.y0-20,w:CRYPT.x1-CRYPT.x0+40,h:20},{x:CRYPT.x0-20,y:CRYPT.y1,w:CRYPT.x1-CRYPT.x0+40,h:20},
   {x:CRYPT.x0-20,y:CRYPT.y0,w:20,h:CRYPT.y1-CRYPT.y0},{x:CRYPT.x1,y:CRYPT.y0,w:20,h:CRYPT.y1-CRYPT.y0});
 for(const [x,y] of [[2740,450],[3060,450],[2740,600],[3060,600]]) OBS.push({x,y,r:22});
@@ -103,6 +112,7 @@ const CHESTS=[
   {id:'cA',x:2630,y:380,item:'mjolnir',runes:250,crypt:1},
   {id:'cB',x:3170,y:380,item:'idunn',runes:250,crypt:1},
   {id:'gold',x:2900,y:362,item:'ulfberht',also:'brynje',runes:600,gold:1,crypt:1},
+  {id:'sigrun',x:700,y:380,item:'sigrunsslor',runes:900,need:'isdronningDead',grot:1},
   {id:'ash1',x:4120,y:2470,item:'tyrsrune',runes:500,act:2},
   {id:'ash2',x:5580,y:2440,item:'logisglod',runes:600,act:2},
 ];
@@ -113,6 +123,8 @@ for(let i=0;i<14;i++){const a=i/14*TAU;if(Math.abs(angDiff(a,0))<.5)continue;con
 for(let i=0;i<24;i++){const a=i/24*TAU;if(Math.abs(angDiff(a,Math.PI/2))<.33)continue;const s={x:1800+Math.cos(a)*350,y:500+Math.sin(a)*330,r:rand(24,34)};RINGROCKS.push(s);OBS.push(s);}
 
 function clearZone(x,y,pad){
+  if(x>GROT.x0-160&&x<GROT.x1+160&&y>GROT.y0-160&&y<GROT.y1+140) return false;
+  if(Math.hypot(x-GROT.mouthX,y-GROT.mouthY)<140) return false;
   if(x>3380){ // Askefjorden keeps its own rules
     if(nearLava(x,y,2.2)) return false;
     for(const [cx,cy,r] of FLATS) if(cx>3600&&Math.hypot(x-cx,y-cy)<r+40+pad) return false;

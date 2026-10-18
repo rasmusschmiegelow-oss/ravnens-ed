@@ -42,6 +42,13 @@ const QUESTS=[
   {id:'astrid',title:'Jarnsdóttirs hævn',active:f=>f.q_astrid,steps:[
     {t:'Astrids far blev dræbt af en rimtrold i skoven nordøst for runestenen ved porten. Hun vil se den død.',done:f=>f.astridRevenge},
   ],end:f=>f.astridRevenge&&(f.astridWitnessed?'Astrid så trolden falde. Hun har aldrig skudt bedre.':'Trolden er død, men Astrid var der ikke til at se det.')},
+  {id:'eyvind',title:'Eyvinds aske',active:f=>f.q_eyvind,steps:[
+    {t:'Astrids bror Eyvind tog til Skjoldvik før vinteren. Find ud af, hvad der skete med ham. Måske ved de brændte gårde øst for byen.',done:f=>f.eyvindDone},
+  ],end:f=>f.eyvindDone&&(f.eyvindPeace?'Eyvind huskede sin søster og fandt fred.':'Du gav Eyvind fred med stål.')},
+  {id:'eir',title:'Frostroserne',active:f=>f.q_eir,steps:[
+    {t:f=>`Find tre frostroser til Eir (${Object.keys(f.roses||{}).length} af 3): vest for Astrids lejr, i troldeskoven mod sydøst og ved runestenen syd for Jötunporten.`,done:f=>Object.keys(f.roses||{}).length>=3},
+    {t:'Bring frostroserne til Eir.',show:f=>Object.keys(f.roses||{}).length>=3,done:f=>f.eirDone},
+  ],end:f=>f.eirDone&&'Eir heler dig nu oftere og mere.'},
   {id:'lindorm',title:'Lindormen fra Isfjorden',active:f=>f.lindormQuest,steps:[
     {t:'Jarl Thorgrim lover 800 runer for Lindormen, der ligger på den frosne sø mod øst.',done:f=>f.lindormDead},
     {t:'Lindormen er død. Hent din belønning hos Thorgrim.',show:f=>f.lindormDead,done:f=>f.lindormPaid},

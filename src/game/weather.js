@@ -30,12 +30,12 @@ function updWeather(dt){
   snow.material.size=_sz*(1+WXK.big*.6); snowGeo.setDrawRange(0,Math.round(SNOW_N*Math.min(1,WXK.snow)));
   skyUniforms.uAur.value=WXK.aur;
   if(AU.windGain) AU.windGain.gain.value=.07*(.7+WXK.wind*.5);
-  $('hWx').textContent=w.name;
+  $('hWx').textContent=w.name+(DN.night?' · nat':' · dag');
   // lightning in the ash storm: a flash, thunder, and now and then a strike near you
   if(w.bolt&&G.state==='play'){WEATHER.boltT-=dt;if(WEATHER.boltT<=0){WEATHER.boltT=4+Math.random()*6;lightning(Math.random()<.35);}}
 }
 function lightning(strike){
-  const fl=$('flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+  const fl=$('flash'); if(!SET.calm){fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');}
   setTimeout(()=>{sfx('boom');G.shake=Math.max(G.shake,.25);},250+Math.random()*700);
   if(strike&&!P.dead&&!inSafeZone()){const a=Math.random()*TAU,r=60+Math.random()*200,x=P.x+Math.cos(a)*r,y=P.y+Math.sin(a)*r;
     circAtk(x,y,70,1.3,24,{fire:true,unblock:true,onFire:()=>{fireFx(x,y,70);const gy=groundY(x,y);for(let i=0;i<40;i++)FXA.emit(x*S+rand(-.2,.2),gy+i*.35,y*S+rand(-.2,.2),rand(-.5,.5),rand(-.5,.5),rand(-.5,.5),.35,.5,3,3,4,1,0,1,0);burnAt(x,y,50,3,14);}});}

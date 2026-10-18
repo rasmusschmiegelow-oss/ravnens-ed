@@ -5,6 +5,7 @@
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') return;
   if(G.state==='settings'&&captureRebind(e)) return;
+  if(G.state==='photo'){if(e.code==='Escape'||e.code==='KeyP')closePhoto();else if(e.code==='Enter'||e.code==='Space')takePhoto();else if(e.code==='KeyF'){PHOTO.filter=(PHOTO.filter+1)%FILTERS.length;renderPhotoUI();}else keys[e.code]=true;e.preventDefault();return;}
   if(G.state==='cine'){if(CINE&&CINE.t>.6&&(bound('interact',e.code)||['Escape','Space','Enter'].includes(e.code)))endIntro();e.preventDefault();return;}
   keys[e.code]=true; G.padActive=false;
   if(e.code==='KeyM'){setMuted(AU.on);toast(AU.on?'Lyd til':'Lyd fra');}
@@ -14,6 +15,7 @@ addEventListener('keydown',e=>{
     if(bound('special',e.code)) buf={k:'special',t:G.time};
     if(bound('art',e.code)) buf={k:'art',t:G.time};
     if(bound('horse',e.code)) toggleHorse();
+    if(e.code==='KeyP') openPhoto();
     if(bound('map',e.code)) openMap();
     {const i=['Digit1','Digit2','Digit3','Digit4'].indexOf(e.code);if(i>=0)useCons(CONS_IDS[i]);}
     if(bound('interact',e.code)){const it=interactTarget();if(it)it.fn();}
@@ -71,6 +73,8 @@ function updateCamera(dt){
     G.camPos.lerp(goal.pos,Math.min(1,dt*2.6));G.camLook.lerp(goal.look,Math.min(1,dt*3));
   } else if(G.state==='cine'&&CINE){
     cineCam(dt);
+  } else if(G.state==='photo'&&P){
+    photoCam(dt);
   } else if(P){
     goal=camGoal();G.camPos.lerp(goal.pos,Math.min(1,dt*5));G.camLook.lerp(goal.look,Math.min(1,dt*6));
   }
@@ -80,7 +84,7 @@ function updateCamera(dt){
   SEE.uFade.value=P&&G.state!=='title'&&G.state!=='dialog'?1:0; if(P){SEE.uPlayer.value.set(P.x*S,groundY(P.x,P.y),P.y*S);} SEE.uCam.value.copy(camera.position);
   sky.position.copy(camera.position);
   // depth of field frames the speaker during dialogue
-  const talking=G.state==='dialog'&&dlgNPC; dof.enabled=!!talking;
+  const talking=G.state==='dialog'&&dlgNPC; if(G.state!=='photo') dof.enabled=!!talking;
   if(talking){const nx=dlgNPC.x*S,nz=dlgNPC.y*S;dof.uniforms.focus.value=Math.hypot(camera.position.x-nx,camera.position.z-nz);}
   grade.uniforms.uDark.value=G.cryptK||0;
   const fc=P?{x:P.x*S,y:groundY(P.x,P.y),z:P.y*S}:{x:G.camLook.x,y:G.camLook.y,z:G.camLook.z};

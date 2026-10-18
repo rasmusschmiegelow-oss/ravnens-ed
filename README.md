@@ -31,6 +31,11 @@ python3 tools/serve.py
 - Hesten Hrimfaxe fra Jarl Thorgrim: fløjt med H, og rid gennem verden (et slag kaster dig af)
 - Kastevåben og eliksirer på 1–4: ildkrukker, frostkrukker, bjørnemjød og Eirs salve. Fjender taber dem, og smedene sælger dem
 - Fire navngivne feltbosser i verden med hver sin unikke talisman
+- Dag og nat: en døgnrytme med solopgang og skumring; om natten er de døde stærkere og giver flere runer, og du kan hvile til dag eller nat
+- Isgrotten: Sigruns grav i de vestlige bjerge med en runegåde, en isdør og bossen Isdronningen
+- Ledsageropgaver: Astrid leder efter sin bror Eyvind i Askefjorden, og Eir har brug for tre frostroser
+- Fotomode (P eller pausemenuen): frit kamera, filtre, dybdeskarphed og billeder som PNG
+- Tilgængelighed: større tekst og menuer, tydelige farveblind-venlige varsler, sigtehjælp og færre blink
 - Tre gemmepladser, så flere helte kan være i gang på én gang
 - Touch-styring på mobil og tablet, og spillet kan installeres som app og spilles uden net
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
@@ -58,6 +63,7 @@ python3 tools/serve.py
 | 1–4 | Kastevåben og eliksirer |
 | H | Fløjt på hesten |
 | G | Kort |
+| P | Fotomode |
 | E | Tal, hvil, åbn kister, interagér |
 | I | Udstyr |
 | J | Dagbog |
@@ -102,6 +108,10 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, LB våbenkunst, B rul, 
 | `belt.js` | kastevåben og eliksirer |
 | `horse.js` | hesten Hrimfaxe |
 | `map.js` | verdenskort, udforskning og målmarkører |
+| `daynight.js` | dag og nat |
+| `grotto.js` | Isgrotten og runegåden |
+| `companions.js` | Astrids og Eirs opgaver |
+| `photo.js` | fotomode |
 | `weather.js` | vejr, nordlys, storme og lyn |
 | `achievements.js` | bedrifter og bestiarium |
 | `valhalla.js` | Valhalla-arenaen |

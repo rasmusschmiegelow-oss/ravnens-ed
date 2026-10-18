@@ -16,7 +16,7 @@ import {AU, audioInit, sfx, music, setMuted, setVolumes} from './audio.js';
 Object.assign(window, {THREE, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, ShaderPass, GTAOPass, BokehPass,
   mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted, setVolumes});
 
-const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "world-act2.js", "effects.js", "weather.js", "characters.js", "state.js", "player.js", "belt.js", "horse.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "achievements.js", "talents.js", "progress.js", "valhalla.js", "tutorial.js", "cinematic.js", "input-camera.js", "gamepad.js", "touch.js", "sync-hud.js", "map.js", "loop.js", "devtools.js", "start.js"];
+const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "world-act2.js", "grotto.js", "effects.js", "weather.js", "daynight.js", "characters.js", "companions.js", "state.js", "player.js", "belt.js", "horse.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "achievements.js", "talents.js", "progress.js", "valhalla.js", "tutorial.js", "cinematic.js", "input-camera.js", "gamepad.js", "touch.js", "sync-hud.js", "map.js", "photo.js", "loop.js", "devtools.js", "start.js"];
 // installable and playable offline (not while developing with ?dev)
 if ('serviceWorker' in navigator && !location.search.includes('dev')) navigator.serviceWorker.register('sw.js').catch(() => {});
 

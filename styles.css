@@ -276,3 +276,11 @@ body.touch #prompt{bottom:calc(220px + env(safe-area-inset-bottom,0px))}
 #mapCv{width:100%;height:auto;border:1px solid var(--line2);background:#0b0f14;image-rendering:auto}
 .map-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
 .map-legend .lg{margin-left:10px}.map-legend .lg.gold{color:#ffcf6a}
+/* photo mode */
+#photoUI{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:6;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 12px;background:rgba(6,8,12,.72);border:1px solid var(--line2);max-width:96vw}
+#photoUI .btn{padding:6px 12px;font-size:14px}.ph-t{font-size:13px;color:var(--mute)}
+#photoUI.min .btn:not(#phHide),#photoUI.min .ph-t{display:none}
+/* accessibility: interface size and fewer flashes */
+#hud,#dlg .dlg-box,.ov .panel,#toasts,#hint,#prompt,#banner,#bossCard,.achtoast,#photoUI{zoom:var(--ui-scale,1)}
+body.calm #hurtFx,body.calm #flash{display:none}
+body.calm #banner,body.calm #bossCard,body.calm .achtoast{animation-duration:.01s}

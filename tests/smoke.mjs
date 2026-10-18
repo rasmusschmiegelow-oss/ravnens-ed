@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 import {appendFileSync} from 'node:fs';
 
 const URL = process.env.GAME_URL || 'http://localhost:8765/?dev';
-const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun', 'garm', 'glodkaempe', 'surt', 'ulvekonge', 'ketil', 'troldmor', 'askebrud'];
+const BOSSES = ['jarl', 'vogter', 'lindorm', 'jotun', 'garm', 'glodkaempe', 'surt', 'ulvekonge', 'ketil', 'troldmor', 'askebrud', 'isdronning'];
 const failures = [];
 const lines = [];
 const out = (s) => { console.log(s); lines.push(s); };
@@ -35,7 +35,8 @@ const ui = await page.evaluate(async () => {
   [...document.querySelectorAll('#dlgOpts button')].pop().click();
   openRest(0); await W(100); r.talents = document.querySelectorAll('#rTalents .tcard').length; document.getElementById('restLeave').click();
   // weapon art, a boss intro (skipped with a key) and the switch to the second act
-  const until = async (f, ms = 4000) => { for (let t = 0; t < ms && !f(); t += 50) await W(50); return !!f(); };
+  // the CI browser renders in software at a frame or two per second, so step the game by hand while waiting
+  const until = async (f, ms = 4000) => { for (let t = 0; t < ms && !f(); t += 50) { frame(last + 50, true); await W(50); } return !!f(); };
   P.st = maxSt(); buf = {k: 'art', t: G.time}; r.art = await until(() => (P.artUses || 0) > 0, 15000);
   const j = G.enemies.find(e => e.boss === 'jarl'); P.x = j.x + 150; P.y = j.y;
   // the CI browser renders in software and runs at a few frames per second, so allow plenty of time
@@ -52,6 +53,14 @@ const ui = await page.evaluate(async () => {
   if (!r.ride) r.dbgRide = {st: G.state, dead: P.dead, mount: P.mount, x: [P.x, hx], y: P.y, move: P.move, stag: P.stagger, keys: Object.keys(keys).filter(k => keys[k]), t: G.time}; dismount(false);
   openMap(); r.map = G.state === 'map'; closeMap();
   r.slots = document.querySelectorAll('#crSlots .slotpick').length;
+  // day and night, photo mode, the ice cave puzzle and the companion quests
+  G.flags.tod = .5; await until(() => DN.day > .9, 15000); r.day = DN.day > .9; G.flags.tod = .9;
+  openPhoto(); r.photo = G.state === 'photo'; closePhoto();
+  travel(GROT.inX, GROT.inY, '', ''); r.grot = await until(() => inGrot(P.x, P.y) && G.state === 'play', 15000);
+  for (const e of G.enemies) if (!e.dead && inGrot(e.x, e.y)) e.aggro = false;
+  for (const id of [0, 1, 2]) touchPillar(RUNEPILLARS.find(p => p.id === id)); r.grotOpen = !!G.flags.grotOpen;
+  travel(GROT.mouthX + 60, GROT.mouthY, '', ''); await until(() => !inGrot(P.x, P.y) && G.state === 'play', 15000);
+  for (const ro of FROSTROSES) { G.flags.q_eir = true; pickRose(ro); } r.roses = Object.keys(G.flags.roses).length === 3;
   G.flags.jotunDone = true; startAct2(); r.act2 = G.enemies.filter(e => e.x > 3600).length; r.ice = ICEWALL.gone;
   // journal tabs, achievements, New Game+ and the Valhalla arena
   G.jrTab = 'a'; openJournal(); r.ach = document.querySelectorAll('.achrow').length; G.jrTab = 'q'; closeJournal();
@@ -66,7 +75,7 @@ const ui = await page.evaluate(async () => {
   return r;
 });
 if (ui.state !== 'play') fail(`Nyt spil endte i tilstanden "${ui.state}" i stedet for "play"`);
-if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest || !ui.pot || !ui.horse || !ui.ride || !ui.map || ui.slots !== 3) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
+if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest || !ui.pot || !ui.horse || !ui.ride || !ui.map || ui.slots !== 3 || !ui.day || !ui.photo || !ui.grot || !ui.grotOpen || !ui.roses) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
 else out(`Menuer, dialog og evner virker: ${JSON.stringify(ui)}`);
 
 // 3. Combat balance: every class against every foe and group
