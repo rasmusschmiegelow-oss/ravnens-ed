@@ -56,7 +56,7 @@ const ui = await page.evaluate(async () => {
   // runekast scoring and table, rune sockets, the shield-bearer's guard
   r.rk = rkScore([1, 1, 1]) === 1000 && rkScore([5, 5, 5, 1]) === 600 && rkScore([1, 2, 3, 4, 5, 6]) === 1500 && rkScore([2]) === -1;
   P.runes = 1000; openRunekast('dvalin', 'Dvalin'); document.querySelector('#rkStakeBtns button').click(); r.rkDice = document.querySelectorAll('#rkDice .rkdie').length > 0; closeRunekast();
-  giveRune('torden', true); r.sock = hasRune('torden');
+  giveRune('torden', true); G.sock.slots[0] = 'torden'; r.sock = hasRune('torden') && G.sock.owned.includes('torden');
   { const sb = spawnEnemy('skjoldraugr', P.x + 60, P.y); sb.face = Math.atan2(P.y - sb.y, P.x - sb.x); const h = sb.hp; damageEnemy(sb, 40, {}); r.block = sb.hp > h - 20; G.enemies.splice(G.enemies.indexOf(sb), 1); scene.remove(sb.model.root); }
   // day and night, photo mode, the ice cave puzzle and the companion quests
   G.flags.tod = .5; await until(() => DN.day > .9, 15000); r.day = DN.day > .9; G.flags.tod = .9;
