@@ -26,7 +26,7 @@ out('Spillet starter.');
 const ui = await page.evaluate(async () => {
   const W = ms => new Promise(r => setTimeout(r, ms)), r = {};
   document.getElementById('bNew').click(); await W(200);
-  document.getElementById('bStart').click(); await W(1500);
+  document.getElementById('bStart').click(); await W(300); r.prolog = G.state === 'prolog'; skipPrologue(); await W(1200);
   r.state = G.state;
   openPause(); openSettings('pause'); r.settings = document.querySelectorAll('#setBody .setrow').length; closeSettings(); document.getElementById('pzGo').click();
   openJournal(); r.journal = document.querySelectorAll('#jrBody .jq').length; closeJournal();
@@ -53,6 +53,11 @@ const ui = await page.evaluate(async () => {
   if (!r.ride) r.dbgRide = {st: G.state, dead: P.dead, mount: P.mount, x: [P.x, hx], y: P.y, move: P.move, stag: P.stagger, keys: Object.keys(keys).filter(k => keys[k]), t: G.time}; dismount(false);
   openMap(); r.map = G.state === 'map'; closeMap();
   r.slots = document.querySelectorAll('#crSlots .slotpick').length;
+  // runekast scoring and table, rune sockets, the shield-bearer's guard
+  r.rk = rkScore([1, 1, 1]) === 1000 && rkScore([5, 5, 5, 1]) === 600 && rkScore([1, 2, 3, 4, 5, 6]) === 1500 && rkScore([2]) === -1;
+  P.runes = 1000; openRunekast('dvalin', 'Dvalin'); document.querySelector('#rkStakeBtns button').click(); r.rkDice = document.querySelectorAll('#rkDice .rkdie').length > 0; closeRunekast();
+  giveRune('torden', true); r.sock = hasRune('torden');
+  { const sb = spawnEnemy('skjoldraugr', P.x + 60, P.y); sb.face = Math.atan2(P.y - sb.y, P.x - sb.x); const h = sb.hp; damageEnemy(sb, 40, {}); r.block = sb.hp > h - 20; G.enemies.splice(G.enemies.indexOf(sb), 1); scene.remove(sb.model.root); }
   // day and night, photo mode, the ice cave puzzle and the companion quests
   G.flags.tod = .5; await until(() => DN.day > .9, 15000); r.day = DN.day > .9; G.flags.tod = .9;
   openPhoto(); r.photo = G.state === 'photo'; closePhoto();
@@ -75,7 +80,7 @@ const ui = await page.evaluate(async () => {
   return r;
 });
 if (ui.state !== 'play') fail(`Nyt spil endte i tilstanden "${ui.state}" i stedet for "play"`);
-if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest || !ui.pot || !ui.horse || !ui.ride || !ui.map || ui.slots !== 3 || !ui.day || !ui.photo || !ui.grot || !ui.grotOpen || !ui.roses) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
+if (!ui.settings || !ui.journal || !ui.dialog || ui.talents !== 6 || !ui.art || !ui.intro || ui.afterIntro !== 'play' || ui.act2 < 20 || !ui.ice || ui.ach < 15 || !ui.ng || !ui.vh || !ui.boon || !ui.vh2 || !ui.manifest || !ui.pot || !ui.horse || !ui.ride || !ui.map || ui.slots !== 3 || !ui.day || !ui.photo || !ui.grot || !ui.grotOpen || !ui.roses || !ui.prolog || !ui.rk || !ui.rkDice || !ui.sock || !ui.block) fail(`Menuer mangler indhold: ${JSON.stringify(ui)}`);
 else out(`Menuer, dialog og evner virker: ${JSON.stringify(ui)}`);
 
 // 3. Combat balance: every class against every foe and group

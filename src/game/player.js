@@ -15,7 +15,7 @@ function meleeHit(range,arc,dmg,opts={}){
     const a=Math.atan2(e.y-P.y,e.x-P.x); if(arc<TAU-.01&&Math.abs(angDiff(a,P.face))>arc/2+Math.atan2(e.r,Math.max(d,1))) continue;
     // a foe that has not noticed you and has its back turned takes a stab in the back
     const back=!e.aggro&&!e.boss&&!e.dormant&&Math.abs(angDiff(Math.atan2(P.y-e.y,P.x-e.x),e.face))>2.1;
-    damageEnemy(e,dmg*atkMult(),back?{...opts,back:true}:opts); hit=true;
+    damageEnemy(e,dmg*atkMult(),back?{...opts,back:true}:opts); hit=true; if(!opts.noRune) runeHit(e,dmg*atkMult());
   }
   if(hit){G.hitStop=opts.stagger?.09:.055;}
 }
@@ -153,7 +153,7 @@ function updPlayer(dt){
   else if(p.stagger<=0){let sp=p.mount?390:158*(1+(p.stats.smi-10)*.012)*(T('s_fart')?1.1:1)*(eqHas('ulvehjerte')?1.1:1);if(p.act)sp*=p.act.move??.3;if(p.blocking)sp*=.45;vx=ix*sp;vy=iy*sp;}
   p.x+=vx*dt;p.y+=vy*dt;
   const spd=Math.hypot(vx,vy); if(p.mount&&spd>10) p.face=lerpAng(p.face,Math.atan2(vy,vx),Math.min(1,dt*8));p.move=lerp(p.move,clamp(spd/158,0,1.2),Math.min(1,dt*10));p.phase+=dt*spd*.055;
-  if(spd>20&&p.roll<=0){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx('step');p.foot=-(p.foot||1);{const ma=Math.atan2(vy,vx);if(!inDungeon(p.x,p.y))decal(TEX_FOOT,p.x+Math.cos(ma+Math.PI/2)*2.6*p.foot,p.y+Math.sin(ma+Math.PI/2)*2.6*p.foot,Math.PI/2-ma,.24,.42,[.32,.4,.55],22,.55);}FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
+  if(spd>20&&p.roll<=0&&!p.mount){p.stepT-=dt;if(p.stepT<=0){p.stepT=.33;sfx(inDungeon(p.x,p.y)?'stepStone':inAsh(p.x)?'stepAsh':Math.hypot(p.x-1800,p.y-2380)<300||Math.hypot(p.x-4350,p.y-2380)<260?'stepWood':'step');p.foot=-(p.foot||1);{const ma=Math.atan2(vy,vx);if(!inDungeon(p.x,p.y))decal(TEX_FOOT,p.x+Math.cos(ma+Math.PI/2)*2.6*p.foot,p.y+Math.sin(ma+Math.PI/2)*2.6*p.foot,Math.PI/2-ma,.24,.42,[.32,.4,.55],22,.55);}FXN.emit(p.x*S,groundY(p.x,p.y)+.05,p.y*S,rand(-.3,.3),.3,rand(-.3,.3),.6,.35,.9,.93,1,.35,0,2,1.5);}}
   collide(p);
   if(!p.act&&p.roll<=0&&p.stDelay<=0) p.st=Math.min(maxSt(),p.st+(p.blocking?12:52)*(eqHas('ulvepels')?1.3:1)*(T('v_spind')?1.3:1)*dt);
   p.hpLag+= (p.hp-p.hpLag)*Math.min(1,dt*(p.hpLag>p.hp?1.4:12));

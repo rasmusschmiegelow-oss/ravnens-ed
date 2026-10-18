@@ -49,6 +49,7 @@ function pollPad(dt){
     if(down(13)||(ly>.6&&GPAD.navT<=0)){GPAD.navT=.22;navFocus(1);}
     if(down(14)) navFocus(-1); if(down(15)) navFocus(1);
     if(down(0)){const a=document.activeElement;if(a&&a!==document.body&&a.click)a.click();else navFocus(0);}
+    if(G.state==='prolog'&&(down(0)||down(1)||down(9))){skipPrologue();GPAD.prev=b;return;}
     if(G.state==='cine'&&(down(0)||down(1)||down(9))){if(CINE&&CINE.t>.6)endIntro();GPAD.prev=b;return;}
     if(down(1)||down(9)) dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape'}));
   }

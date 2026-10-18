@@ -5,7 +5,7 @@
 // Stages model where in the game each enemy is met: player level, Dvalin upgrades and gear found by then.
 const SIM_STAGES={
   A:{lvl:1,wpn:0,gear:[],foes:['draugr','archer','wolf','trold','minion','draugr+draugr+archer','wolf+wolf+wolf','trold+trold+trold']},
-  B:{lvl:4,wpn:0,gear:['ravnefjer'],foes:['gjenganger+gjenganger2+gjenganger','bjergtrold+trold+trold','frostvaette+frostvaette','bjergtrold','stenvaette','gjenganger','gjenganger2','frostvaette','seidr','ildvaette']},
+  B:{lvl:4,wpn:0,gear:['ravnefjer'],foes:['skjoldraugr','seidkona+draugr+skjoldraugr','gjenganger+gjenganger2+gjenganger','bjergtrold+trold+trold','frostvaette+frostvaette','bjergtrold','stenvaette','gjenganger','gjenganger2','frostvaette','seidr','ildvaette']},
   C:{lvl:6,wpn:1,gear:['ravnefjer','ulvepels'],foes:['jarl','rimtrold','stenvaette2','lindyngel','vaette']},
   D:{lvl:8,wpn:2,gear:['ravnefjer','ulvepels','mjolnir'],foes:['vogter','lindorm','ulvekonge','ketil','troldmor','isdronning']},
   E:{lvl:11,wpn:3,gear:['ravnefjer','brynje','mjolnir','ulfberht'],foes:['jotun']},
@@ -14,7 +14,7 @@ const SIM_STAGES={
   H:{lvl:18,wpn:6,gear:['vardeflamme','askebrynje','garmtand','tyrsrune'],foes:['surt']},
 };
 function simSetup(cls,st){
-  G.ng=0; G.mode=null; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
+  G.ng=0; G.mode=null; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0}; G.sock={owned:[],slots:[null,null]};
   newPlayer(cls,{...CLASSES[cls].base},'Bot'); P.level=st.lvl;
   const main=cls==='berserker'?'sty':cls==='volve'?'vil':'smi';
   for(let i=1;i<st.lvl;i++){ if(i%3===0) P.stats.smi++; else if(cls==='skjoldmo'&&i%2) P.stats.sty++; else P.stats[main]++; }
@@ -129,7 +129,7 @@ const ROUTE=[
   {boss:'surt',at:[5000,700]},
 ];
 function campaign(cls,opts={}){
-  const log=[], problems=[], skipped=[], bossLvl={}, attempts=[], t0=performance.now();
+  const log=[], problems=[], skipped=[], clearsDone=[], bossLvl={}, attempts=[], t0=performance.now();
   G.sim=true; const prevState=G.state; G.state='play'; const muted=!AU.on; setMuted(true); const prevDiff=SET.diff; SET.diff=opts.diff||'normal';
   let deaths=0, simTime=0;
   const b={react:0,reaction:opts.reaction??.26,miss:opts.miss??.3,parry:opts.parry??.35,hx:0,hy:0};
@@ -185,6 +185,8 @@ function campaign(cls,opts={}){
       attempts.push({boss:kind,try:k+1,result:e.dead?'win':P.dead?'died':'timeout',bossHp:Math.round(Math.max(0,e.hp)/e.maxHp*100),t:Math.round(t),dist:Math.round(Math.hypot(P.x-e.x,P.y-e.y)),aggro:e.aggro});
       if(e.dead) return true;
       if(P.dead) died();
+      // stuck on a boss: go back over the last areas for runes and levels, as a player would
+      if(k>=1&&clearsDone.length){for(const c of clearsDone.slice(-4))clearArea(...c);rest(G.lastRS);}
     }
     return false;
   };
@@ -206,6 +208,7 @@ function campaign(cls,opts={}){
         if(f.muspelsten&&!f.sindriDone){f.sindriDone=true;G.weaponLvl=Math.min(6,G.weaponLvl+1);giveItem('askebrynje');}}
       if(s.fgate){G.flags.fgateOpen=true;setFireGate(true,true);}
       if(s.recruit==='astrid'){if(P.runes>=150)P.runes-=150;makeCompanion('astrid');G.flags.astrid=true;}
+      if(s.clear) clearsDone.push(s.clear);
       if(s.clear&&!clearArea(...s.clear)) skipped.push('Kunne ikke rydde '+where+' '+JSON.stringify(G.enemies.filter(e=>!e.dead&&Math.hypot(e.x-s.clear[0],e.y-s.clear[1])<s.clear[2]+200).map(e=>[e.t,Math.round(e.x),Math.round(e.y),Math.round(e.hp/e.maxHp*100)])));
       if(s.chest){const c=CHESTS.find(q=>q.id===s.chest);G.flags.chests=G.flags.chests||{};if(!G.flags.chests[c.id]){G.flags.chests[c.id]=true;P.runes+=c.runes;giveItem(c.item);if(c.also)giveItem(c.also);}}
       if(s.boss){if(!fightBoss(s.boss,...s.at)){problems.push('Tabte til '+s.boss);break;}}

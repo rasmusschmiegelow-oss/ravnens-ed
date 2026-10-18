@@ -36,7 +36,7 @@ const SAVE_KEY='ravnensEd.v1';
 // Three save slots. Slot 1 keeps the original key so older saves still load.
 const slotKey=i=>i>1?SAVE_KEY+'.s'+i:SAVE_KEY;
 G.slot=1;
-function makeSave(){return{ts:Date.now(),cons:G.cons,ng:G.ng||0,name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq,talents:P.talents||[]};}
+function makeSave(){return{ts:Date.now(),sock:G.sock,cons:G.cons,ng:G.ng||0,name:P.name,cls:P.cls,stats:P.stats,level:P.level,runes:P.runes,flags:G.flags,weaponLvl:G.weaponLvl,extraFlasks:G.extraFlasks,discount:G.discount,lastRS:G.lastRS,lit:RUNESTONES.map(r=>r.lit),stain:G.stain,deaths:G.deaths,play:G.play,inv:G.inv,eq:G.eq,talents:P.talents||[]};}
 function saveGame(){if(G.sim)return;saveMeta();if(G.mode==='valhalla')return;if(!P||G.flags.surtDone)return;try{localStorage.setItem(slotKey(G.slot||1),JSON.stringify(makeSave()));}catch(e){}}
 function loadSave(i){try{const s=localStorage.getItem(slotKey(i||G.slot||1));return s?JSON.parse(s):null;}catch(e){return null;}}
 function clearSave(i){try{localStorage.removeItem(slotKey(i||G.slot||1));}catch(e){}}
@@ -53,7 +53,7 @@ function renderSlots(el,mode){
       b.addEventListener('click',()=>{G.newSlot=i;renderSlots(el,mode);});btns.appendChild(b);}
     else if(s){const p=document.createElement('button');p.type='button';p.className='seg';p.textContent='Spil';p.addEventListener('click',()=>{G.slot=i;$('slots').hidden=true;audioInit();beginGame(loadSave(i));});
       const d=document.createElement('button');d.type='button';d.className='seg';d.textContent=row.dataset.del?'Bekræft':'Slet';
-      d.addEventListener('click',()=>{if(d.textContent==='Slet'){d.textContent='Slet for altid?';return;}clearSave(i);renderSlots(el,mode);$('bCont').hidden=!latestSlot();});btns.append(p,d);}
+      d.addEventListener('click',()=>{if(d.textContent==='Slet'){d.textContent='Slet for altid?';return;}clearSave(i);renderSlots(el,mode);refreshTitle();});btns.append(p,d);}
     row.appendChild(btns);el.appendChild(row);}
 }
 
@@ -65,7 +65,7 @@ function resetRun(){
   for(const id in CHEST_M){const m=CHEST_M[id];m.opening=false;m.open=0;if(m.lid)m.lid.rotation.x=0;}
   RUNESTONES.forEach(r=>{r.lit=r.id===0;RS_MESH[r.id].mat.emissiveIntensity=r.lit?2.6:0;RS_MESH[r.id].light.intensity=r.lit?22:0;});
   GATE.gone=false;G.gateAnim=null;gateDoors.forEach(d=>d.hinge.rotation.y=0);
-  setIceWall(false,true); setFireGate(false,true); resetBeacons(); setGrotto(); setRoses(); G.cons={ild:2,frost:0,bjorn:0,salve:1}; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
+  setIceWall(false,true); setFireGate(false,true); resetBeacons(); setGrotto(); setRoses(); G.sock={owned:[],slots:[null,null]}; G.cons={ild:2,frost:0,bjorn:0,salve:1}; G.vb={dmg:1,hp:1,st:1,flask:0,cd:1,def:1,roll:1,leech:0};
   if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true;
 }
 function beginGame(fromSave){
@@ -76,7 +76,7 @@ function beginGame(fromSave){
     if(G.flags.gateOpen){GATE.gone=true;gateDoors.forEach(d=>d.hinge.rotation.y=d.s*1.6);}
     setGrotto(); setRoses(); if(G.flags.act2) setIceWall(true,true); if(G.flags.fgateOpen) setFireGate(true,true); for(const id in (G.flags.beacons||{})) lightBeacon(id,true);
     const rs=RUNESTONES[G.lastRS];P.x=rs.x;P.y=rs.y+46;P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();
-    P.talents=s.talents||[]; G.cons=s.cons||{ild:2,frost:0,bjorn:0,salve:1};
+    P.talents=s.talents||[]; G.sock=s.sock||{owned:[],slots:[null,null]}; G.cons=s.cons||{ild:2,frost:0,bjorn:0,salve:1};
     {const ck=G.flags.comp||(G.flags.astrid&&!G.flags.astridLeft?'astrid':null);if(ck)makeCompanion(ck);}
   }
   if(!fromSave){P.hp=maxHp();P.hpLag=P.hp;P.st=maxSt();P.flasks=maxFlasks();}
@@ -93,7 +93,7 @@ function toTitle(){
   $('pause').hidden=true;$('end').hidden=true;$('hud').hidden=true;$('rest').hidden=true;$('deathScr').hidden=true;$('prompt').hidden=true;dlgEl.hidden=true;$('letterbox').classList.remove('on');
   G.mode=null; G.ng=0; ['boon','vhMenu','vhEnd'].forEach(id=>$(id).hidden=true);
   clearEnemies(); if(PM){scene.remove(PM.root);PM=null;} if(C){scene.remove(CM.root);C=null;CM=null;} NPCM.astrid.root.visible=true; P=null;
-  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!latestSlot();
+  G.state='title';music('title');$('title').hidden=false;refreshTitle();
   for(const n of NUMS)n.el.remove();NUMS.length=0;
 }
 /** The first act ends with Rimtursen: the ice in the pass melts, and Askefjorden opens. */
@@ -166,9 +166,9 @@ $('bNew').addEventListener('click',()=>{audioInit();crCls='berserker';crStats={.
   G.newSlot=0;let old=1,ot=Infinity;for(let i=1;i<=3;i++){const s=loadSave(i);if(!s){G.newSlot=i;break;}if((s.ts||0)<ot){ot=s.ts||0;old=i;}}if(!G.newSlot)G.newSlot=old;
   renderCreate();renderSlots($('crSlots'),'new');$('title').hidden=true;$('create').hidden=false;});
 $('bLoad').addEventListener('click',()=>{audioInit();renderSlots($('slotList'),'load');$('title').hidden=true;$('slots').hidden=false;});
-$('slotsBack').addEventListener('click',()=>{$('slots').hidden=true;$('title').hidden=false;$('bCont').hidden=!latestSlot();});
+$('slotsBack').addEventListener('click',()=>{$('slots').hidden=true;$('title').hidden=false;refreshTitle();});
 $('bBack').addEventListener('click',()=>{$('create').hidden=true;$('title').hidden=false;});
-$('bStart').addEventListener('click',()=>{G.slot=G.newSlot||1;clearSave();const name=($('inName').value||'').trim()||'Ravnebåren';newPlayer(crCls,crStats,name);beginGame(null);});
+$('bStart').addEventListener('click',()=>{G.slot=G.newSlot||1;clearSave();const name=($('inName').value||'').trim()||'Ravnebåren';newPlayer(crCls,crStats,name);$('create').hidden=true;playPrologue(()=>beginGame(null));});
 $('bCont').addEventListener('click',()=>{const i=latestSlot();if(i){G.slot=i;audioInit();beginGame(loadSave(i));}});
 function openPause(){G.state='pause';$('pzName').textContent=P.name;$('pzClass').textContent=`${CLASSES[P.cls].name} · niveau ${P.level} · ${P.runes} runer`;statRows($('pzStats'),false);$('pzDerived').innerHTML=derived();$('pause').hidden=false;$('pzGo').focus({preventScroll:true});}
 $('pzGo').addEventListener('click',()=>{$('pause').hidden=true;G.state='play';});

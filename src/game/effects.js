@@ -37,6 +37,12 @@ function burst(x,y,z,n,spd,life,size,r,g,b,{sys=FXA,up=1,grav=4,drag=1.5,alpha=1
   for(let i=0;i<n;i++){const a=Math.random()*TAU,s=spd*(.3+Math.random()*.7);sys.emit(x,y,z,Math.cos(a)*s,up*(Math.random()*spd*.8+spd*.2),Math.sin(a)*s,life*(.6+Math.random()*.6),size*(.6+Math.random()*.7),r,g,b,alpha,grav,drag,grow);}
 }
 
+/** A sound from (x, y) in the world, placed by the camera's view: left/right and fading with distance. */
+function sfxAt(k,x,y){
+  if(G.sim) return; const cx=camera.position.x/S, cz=camera.position.z/S, lx=G.camLook.x/S, lz=G.camLook.z/S;
+  const fwd=Math.atan2(lz-cz,lx-cx), a=Math.atan2(y-cz,x-cx), d=Math.hypot(x-lx,y-lz);
+  sfxSpatial(k,Math.sin(angDiff(a,fwd))*.9,Math.max(0,1-d/1100)**1.4);
+}
 /* --- Ground decals: footprints in the snow and marks where blows landed */
 const TEX_FOOT=canvasTex(64,128,(g,w,h)=>{g.clearRect(0,0,w,h);const gr=(cx,cy,rx,ry)=>{const r=g.createRadialGradient(cx,cy,0,cx,cy,Math.max(rx,ry));r.addColorStop(0,'rgba(255,255,255,.95)');r.addColorStop(.7,'rgba(255,255,255,.6)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.beginPath();g.ellipse(cx,cy,rx,ry,0,0,TAU);g.fill();};gr(32,40,20,32);gr(32,98,16,20);});
 const TEX_SPLAT=canvasTex(128,128,(g,w,h)=>{g.clearRect(0,0,w,h);const r=rng(17);for(let i=0;i<26;i++){const a=r()*TAU,d=r()*r()*48,x=64+Math.cos(a)*d,y=64+Math.sin(a)*d,rad=4+r()*(18-d*.25);const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,TAU);g.fill();}});
@@ -50,7 +56,7 @@ function decal(tex,x,y,rot,w,l,col,life,op){
 }
 function updDecals(dt){for(const d of DECALS){if(!d.m.visible)continue;d.t+=dt;const k=d.t/d.life;if(k>=1){d.m.visible=false;continue;}d.m.material.opacity=d.op*Math.min(1,(1-k)*3.5);}}
 const SPLAT_COL={bone:[.82,.78,.7],ice:[.6,.85,1],ichor:[.45,.15,.6],blood:[.32,.02,.03],ash:[.12,.1,.09],ember:[1,.35,.08]};
-function splatType(t){return ['askedraugr','askeskytte','eldseidr'].includes(t)?'ash':['lavavaette','glodkaempe','surt'].includes(t)?'ember':['draugr','archer','minion','seidr','vogter','jarl'].includes(t)?'bone':['jotun','lindorm','frostvaette','lindyngel'].includes(t)?'ice':['gjenganger','gjenganger2','vaette','ildvaette','stenvaette','stenvaette2'].includes(t)?'ichor':'blood';}
+function splatType(t){return ['skjoldraugr','seidkona'].includes(t)?'bone':['askedraugr','askeskytte','eldseidr'].includes(t)?'ash':['lavavaette','glodkaempe','surt'].includes(t)?'ember':['draugr','archer','minion','seidr','vogter','jarl'].includes(t)?'bone':['jotun','lindorm','frostvaette','lindyngel'].includes(t)?'ice':['gjenganger','gjenganger2','vaette','ildvaette','stenvaette','stenvaette2'].includes(t)?'ichor':'blood';}
 
 // Snowfall around the camera
 const SNOW_N=9000;

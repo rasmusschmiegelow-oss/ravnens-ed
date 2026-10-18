@@ -34,6 +34,8 @@ export const LOOKS = {
   dvalin: {file: 'Barbarian', h: 1.25, hide: ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '2H_Axe', 'Mug', 'Barbarian_Cape'], tint: 0xd8a888, wide: 1.3},
   draugr: {file: 'Skeleton_Warrior', h: 1.85, props: {r: 'Skeleton_Blade', l: 'Skeleton_Shield_Small_A'}, tint: 0xb8c8c4, eyes: [0.5, 2.4, 3.4]},
   archer: {file: 'Skeleton_Rogue', h: 1.8, props: {r: 'Skeleton_Crossbow'}, tint: 0xb8c8c4, eyes: [0.5, 2.4, 3.4]},
+  skjoldraugr: {file: 'Skeleton_Warrior', h: 2.0, props: {r: 'Skeleton_Blade', l: 'Skeleton_Shield_Large_A'}, tint: 0x9aa6a8, eyes: [0.5, 2.4, 3.4]},
+  seidkona: {file: 'Skeleton_Mage', h: 1.85, props: {r: 'Skeleton_Staff'}, tint: 0xb8d0b0, eyes: [.6, 3.2, 1.4], emissive: 0x081a0c},
   minion: {file: 'Skeleton_Minion', h: 1.75, props: {r: 'Skeleton_Blade'}, tint: 0xb8c8c4, eyes: [0.5, 2.4, 3.4]},
   jarl: {file: 'Skeleton_Warrior', h: 3.3, props: {r: 'Skeleton_Axe', l: 'Skeleton_Shield_Large_A'}, tint: 0x8a9aa0, eyes: [0.8, 2.8, 4.2], emissive: 0x06141a},
   seidr: {file: 'Skeleton_Mage', h: 1.85, props: {r: 'Skeleton_Staff'}, tint: 0xb4bcd0, eyes: [2.2, .8, 3.6]},

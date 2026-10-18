@@ -42,6 +42,10 @@ export function audioInit() {
     const lfo = ac.createOscillator(); lfo.frequency.value = .06; const lg = ac.createGain(); lg.gain.value = 260; lfo.connect(lg).connect(bp.frequency); lfo.start();
     const lfo2 = ac.createOscillator(); lfo2.frequency.value = .11; const lg2 = ac.createGain(); lg2.gain.value = .04; lfo2.connect(lg2).connect(wg.gain); lfo2.start();
     AU.windGain = wg;
+    // fire crackle bed: filtered noise with random pops, louder near a fire
+    const fn = ac.createBufferSource(); fn.buffer = b; fn.loop = true;
+    const fh = ac.createBiquadFilter(); fh.type = 'bandpass'; fh.frequency.value = 1800; fh.Q.value = .4;
+    const fg = ac.createGain(); fg.gain.value = 0; fn.connect(fh).connect(fg).connect(AU.out); fn.start(); AU.fireGain = fg;
     // samples load in the background; the synth covers anything not ready yet
     for (const f of SFX_FILES) {
       fetch(`assets/sfx/${f}.ogg`).then(r => r.ok ? r.arrayBuffer() : Promise.reject())
@@ -57,6 +61,15 @@ export function setVolumes(music, effects) {
   if (AU.musicBus) AU.musicBus.gain.value = music;
   if (AU.sfxBus) AU.sfxBus.gain.value = effects;
 }
+/** A sound from a place in the world: panned left/right and quieter with distance. */
+export function sfxSpatial(k, pan, gain) {
+  if (!AU.ctx || !AU.on || gain <= .02) return;
+  const p = AU.ctx.createStereoPanner(), g = AU.ctx.createGain(); p.pan.value = Math.max(-1, Math.min(1, pan)); g.gain.value = gain;
+  p.connect(g).connect(AU.out); AU.dest = p; try { sfx(k); } finally { AU.dest = null; }
+  setTimeout(() => { try { p.disconnect(); g.disconnect(); } catch (e) {} }, 3500);
+}
+/** How loud the nearest fire crackles (0..1). */
+export function setFire(level) { if (AU.fireGain) AU.fireGain.gain.value = .05 * level * (.6 + Math.random() * .8); }
 export function setMuted(muted) { AU.on = !muted; if (AU.master) AU.master.gain.value = AU.on ? .8 : 0; }
 
 /* ---------- music: two HTMLAudio elements cross-faded through the music bus ---------- */
@@ -87,12 +100,12 @@ function env(g, t, a, peak, dec) { g.gain.setValueAtTime(0.0001, t); g.gain.line
 function tone(type, f0, f1, dur, vol, delay = 0) {
   const ac = AU.ctx, t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-  env(g, t, .005, vol, dur); o.connect(g).connect(AU.out); o.start(t); o.stop(t + dur + .05);
+  env(g, t, .005, vol, dur); o.connect(g).connect(AU.dest || AU.out); o.start(t); o.stop(t + dur + .05);
 }
 function noise(dur, ft, f0, f1, vol, delay = 0, q = .8) {
   const ac = AU.ctx, t = ac.currentTime + delay, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
   s.buffer = AU.noise; f.type = ft; f.Q.value = q; f.frequency.setValueAtTime(f0, t); if (f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
-  env(g, t, .004, vol, dur); s.connect(f).connect(g).connect(AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + .05);
+  env(g, t, .004, vol, dur); s.connect(f).connect(g).connect(AU.dest || AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + .05);
 }
 /** Plays one random sample whose name starts with prefix. Returns false if none is loaded. */
 function sample(prefix, vol = 1, rate = 1, delay = 0) {
@@ -100,7 +113,7 @@ function sample(prefix, vol = 1, rate = 1, delay = 0) {
   const ac = AU.ctx, s = ac.createBufferSource(), g = ac.createGain();
   s.buffer = AU.buf[names[Math.floor(Math.random() * names.length)]];
   s.playbackRate.value = rate * (.92 + Math.random() * .16); g.gain.value = vol;
-  s.connect(g).connect(AU.out); s.start(ac.currentTime + delay); return true;
+  s.connect(g).connect(AU.dest || AU.out); s.start(ac.currentTime + delay); return true;
 }
 
 export function sfx(k) {
@@ -138,6 +151,9 @@ export function sfx(k) {
       case 'warn': tone('sawtooth', 98, 70, .7, .16); tone('sawtooth', 147, 104, .7, .1); noise(.5, 'lowpass', 600, 150, .25); break;
       case 'heart': tone('sine', 62, 40, .14, .45); tone('sine', 58, 38, .14, .35, .2); break;
       case 'step': sample('footstep_snow', .35) || noise(.06, 'lowpass', 500, 200, .05); break;
+      case 'stepStone': noise(.05, 'bandpass', 2600, 1400, .09, 0, 2); tone('triangle', 180 + Math.random() * 60, 90, .05, .04); break;
+      case 'stepAsh': noise(.09, 'lowpass', 900, 250, .08); sample('footstep_snow', .12, .7); break;
+      case 'stepWood': sample('impactWood_heavy', .12, 1.8) || noise(.06, 'bandpass', 700, 300, .08); break;
     }
   } catch (e) {}
 }

@@ -23,6 +23,8 @@ const ACH=[
   {id:'logi',name:'Ild med ild',desc:'Få Surts hemmelighed ud af Logi.',test:f=>f.surtLore},
   {id:'sigrun',name:'Sigruns fred',desc:'Løs gåden i Isgrotten, og fæld Isdronningen.',test:f=>f.isdronningDead&&f.grotOpen},
   {id:'ledsager',name:'Trofaste venner',desc:'Fuldfør både Astrids og Eirs opgaver.',test:f=>f.eyvindDone&&f.eirDone},
+  {id:'runesmed',name:'Runesmed',desc:'Saml alle fire våbenruner.',test:()=>G.sock&&G.sock.owned.length>=4},
+  {id:'terning',name:'Terningkonge',desc:'Vind tre spil runekast.',test:()=>mN('diceWins')>=3,prog:()=>[Math.min(3,mN('diceWins')),3]},
   {id:'felt',name:'Feltjæger',desc:'Fæld alle fire navngivne feltbosser.',test:f=>f.fb_ulvekonge&&f.fb_ketil&&f.fb_troldmor&&f.fb_askebrud,prog:()=>[['ulvekonge','ketil','troldmor','askebrud'].filter(b=>G.flags['fb_'+b]).length,4]},
   {id:'hest',name:'Hrimfaxes rytter',desc:'Rid på Jarl Thorgrims hest.',test:f=>f.rode},
   {id:'kort',name:'Kortlægger',desc:'Udforsk det meste af verden.',test:f=>(f.seen||'').split('1').length-1>=900,prog:()=>[Math.min(900,(G.flags.seen||'').split('1').length-1),900]},
@@ -49,6 +51,8 @@ function unlockAch(a){
 }
 // What the bestiary says about each foe: a line of lore and how to beat it.
 const BEST={
+  skjoldraugr:['Hrafnkels skjoldborg. De vender sig langsomt.','Slag forfra preller af. Gå rundt om dem, eller knus garden med tunge slag.'],
+  seidkona:['Gravens seiðkoner heler de døde og skærmer dem med runer.','Fæld hende først. Ellers rejser de andre sig igen og igen.'],
   draugr:['De døde fra Hrafnkels tid, der ikke vil ligge stille.','Rul ind under svinget, og slå, mens de trækker armen tilbage.'],
   archer:['Draugr med armbrøst. De sigter længe, før de skyder.','Den lysende linje viser skuddet. Gå til siden, eller luk afstanden.'],
   wolf:['Sultne gråulve, der jager i flok.','De kaster sig frem i en lige linje. Rul til siden, ikke bagud.'],

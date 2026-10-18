@@ -76,20 +76,27 @@
 </section>
 
 <section id="title" class="ov" hidden>
-  <div class="t-wrap">
-    <div class="t-runes">ᚱᚨᚢᚾᛖᚾᛊ · ᛖᛞ</div>
-    <h1>Ravnens Ed</h1>
-    <p class="t-tag">Fimbulvinteren har varet i tre år. Rimtursen ånder frost over Midgard, og de døde går igen i sneen. Ravnene har valgt dig.</p>
-    <div class="t-btns">
-      <button class="btn" id="bNew">Nyt eventyr</button>
-      <button class="btn" id="bCont" hidden>Fortsæt</button>
-      <button class="btn ghost" id="bLoad">Indlæs</button>
-      <button class="btn ghost" id="bValhalla">Valhalla</button>
-      <button class="btn ghost" id="bSet">Indstillinger</button>
+  <div class="tl-col">
+    <div class="tl-mark">
+      <div class="t-runes">ᚱᚨᚢᚾᛖᚾᛊ · ᛖᛞ</div>
+      <h1>Ravnens<br>Ed</h1>
+      <div class="tl-rule"></div>
+      <p class="t-tag">Fimbulvinteren har varet i tre år. Rimtursen ånder frost over Midgard, og de døde går igen i sneen.</p>
     </div>
-    <div class="t-foot" id="touchNote" hidden>Spillet styres med tastatur og mus. Brug en computer for at spille.</div>
-    <div class="t-foot">Tastatur og mus · lyd anbefales · <kbd>M</kbd> slår lyden fra</div>
+    <nav class="tl-menu" aria-label="Hovedmenu">
+      <button class="tl-item main" id="bCont" hidden><span class="tl-rune">ᚠ</span><span class="tl-name">Fortsæt</span><span class="tl-sub" id="contSub"></span></button>
+      <button class="tl-item" id="bNew"><span class="tl-rune">ᚢ</span><span class="tl-name">Nyt eventyr</span></button>
+      <button class="tl-item" id="bLoad"><span class="tl-rune">ᚦ</span><span class="tl-name">Indlæs</span></button>
+      <button class="tl-item" id="bValhalla"><span class="tl-rune">ᚨ</span><span class="tl-name">Valhalla</span><span class="tl-sub" id="vhSub"></span></button>
+      <button class="tl-item" id="bSet"><span class="tl-rune">ᚱ</span><span class="tl-name">Indstillinger</span></button>
+    </nav>
+    <div class="tl-foot"><span id="touchNote" hidden></span><span>Tastatur og mus, controller eller touch · lyd anbefales · <kbd>M</kbd> slår lyden fra</span></div>
   </div>
+  <div class="tl-corner"><div class="tl-act" id="tlAct">AKT I · FIMBULVINTEREN</div><div class="tl-quote" id="tlQuote">«Ravnene har valgt dig.»</div></div>
+</section>
+<section id="prolog" hidden>
+  <div class="pr-frame" id="prFrame"><div class="pr-rune" id="prRune"></div><div class="pr-key" id="prKey"></div><p class="pr-line" id="prLine"></p></div>
+  <div class="pr-skip">Tryk på en tast for at springe over</div>
 </section>
 
 <section id="create" class="ov" hidden>
@@ -168,6 +175,7 @@
   <div class="panel pz">
     <div><div class="eyebrow">Udstyr</div><h2>Hvad du bærer</h2></div>
     <div class="stats" id="invSlots"></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Runeslibning</div><div class="stats" id="invSockets"></div></div>
     <div><div class="eyebrow" style="margin-bottom:8px">Fundet</div><div class="invlist" id="invItems"></div></div>
     <div><button class="btn" id="invGo">Luk</button></div>
   </div>
@@ -210,6 +218,21 @@
       <kbd>Mellemrum</kbd><span>Rul</span><kbd>Tab</kbd><span>Lås på fjende</span><kbd>R / F / Q / E</kbd><span>Mjød · evne · våbenkunst · interagér</span><kbd>I</kbd><span>Udstyr</span><kbd>M</kbd><span>Lyd til og fra</span>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" id="pzGo">Fortsæt</button><button class="btn ghost" id="pzGfx">Indstillinger</button><button class="btn ghost" id="pzPhoto">Fotomode</button><button class="btn ghost" id="pzQuit">Til titelskærmen</button></div>
+  </div>
+</section>
+
+<section id="runekast" class="ov" hidden>
+  <div class="panel pz rk">
+    <div><div class="eyebrow">Runekast</div><h2 id="rkWho"></h2></div>
+    <p class="rk-msg" id="rkMsg"></p>
+    <div id="rkStakes"><div class="travel" id="rkStakeBtns"></div></div>
+    <div id="rkPlay" hidden>
+      <div class="kv" id="rkScore"></div>
+      <div class="rk-dice" id="rkDice"></div>
+      <div class="end-btns" style="justify-content:flex-start"><button class="btn" id="rkThrow">Behold og kast igen</button><button class="btn ghost" id="rkBank">Gem point</button></div>
+      <p class="mute small" style="margin:0">ᛟ (1) giver 100 og ᚠ (5) giver 50. Tre ens giver tallet ×100, tre ᛟ giver 1000. Seks forskellige giver 1500. Først til 1500.</p>
+    </div>
+    <div><button class="btn ghost" id="rkQuit">Rejs dig fra bordet</button></div>
   </div>
 </section>
 

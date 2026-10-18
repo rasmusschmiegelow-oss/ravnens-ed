@@ -36,6 +36,11 @@ python3 tools/serve.py
 - Ledsageropgaver: Astrid leder efter sin bror Eyvind i Askefjorden, og Eir har brug for tre frostroser
 - Fotomode (P eller pausemenuen): frit kamera, filtre, dybdeskarphed og billeder som PNG
 - Tilgængelighed: større tekst og menuer, tydelige farveblind-venlige varsler, sigtehjælp og færre blink
+- Ny titelskærm og en filmisk prolog (designet i Paper)
+- Nye fjenderoller: skjoldbæreren, der blokerer slag forfra, og gravseiðkonen, der heler og skærmer sine allierede
+- Runeslibning: ild-, is-, blod- og tordenruner slibes ind i våbnet (én plads, to fra våben +4)
+- Lyd i rummet: fjender høres fra deres retning, bål knitrer tæt på, og fodtrin lyder forskelligt i sne, på træ, sten og aske
+- Runekast: et terningespil om runer mod Dvalin og Sindri
 - Tre gemmepladser, så flere helte kan være i gang på én gang
 - Touch-styring på mobil og tablet, og spillet kan installeres som app og spilles uden net
 - Over 20 fjendetyper, vildt der flygter, husdyr og landsbyfolk; Jarl Thorgrims opgave
@@ -112,6 +117,9 @@ Med controller: RB let angreb, RT tungt angreb, LT blok, LB våbenkunst, B rul, 
 | `grotto.js` | Isgrotten og runegåden |
 | `companions.js` | Astrids og Eirs opgaver |
 | `photo.js` | fotomode |
+| `prologue.js` | titelskærmens detaljer og prologen |
+| `sockets.js` | runeslibning |
+| `runekast.js` | terningespillet |
 | `weather.js` | vejr, nordlys, storme og lyn |
 | `achievements.js` | bedrifter og bestiarium |
 | `valhalla.js` | Valhalla-arenaen |

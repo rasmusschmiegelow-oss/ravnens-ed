@@ -28,6 +28,7 @@ function frame(now,manual){
       if(G.perfT>5){G.perfChecked=true;const avg=G.perfT/G.perfN;let saved=null;try{saved=localStorage.getItem('ravnensEd.gfx');}catch(e){}
         if(!saved&&avg>1/38&&GFX!=='low'){applyGfx(GFX==='ultra'?'high':'low');toast('Grafikken er sat ned for et jævnere billede. Du kan ændre den i pausemenuen (Esc).');}}}
   } else if(G.state==='cine') updCine(rdt);
+  if(G.state!=='play'&&hintEl) hideHint();
   if(G.state==='dialog'&&G.endT>0) G.endT=Math.max(.6,G.endT-rdt);
   const sdt=G.state==='photo'?0:rdt; // photo mode stops time
   if(P&&G.state!=='title') syncPlayer(sdt);
@@ -46,7 +47,7 @@ function frame(now,manual){
 function start(data){
   window.__gameReady=true;
   $('loading').hidden=true;
-  G.state='title';music('title');$('title').hidden=false;$('bCont').hidden=!latestSlot();
+  G.state='title';music('title');$('title').hidden=false;refreshTitle();
   if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches) $('touchNote').hidden=false;
   if(data&&data.save){beginGame(data.save);if(data.pos&&P){P.x=data.pos.x;P.y=data.pos.y;snapCam();}}
 }

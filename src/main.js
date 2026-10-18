@@ -11,12 +11,12 @@ import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {loadAll, makeChar, makeProp} from './models.js';
-import {AU, audioInit, sfx, music, setMuted, setVolumes} from './audio.js';
+import {AU, audioInit, sfx, music, setMuted, setVolumes, sfxSpatial, setFire} from './audio.js';
 
 Object.assign(window, {THREE, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, ShaderPass, GTAOPass, BokehPass,
-  mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted, setVolumes});
+  mergeGeometries, loadAll, makeChar, makeProp, AU, audioInit, sfx, music, setMuted, setVolumes, sfxSpatial, setFire});
 
-const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "world-act2.js", "grotto.js", "effects.js", "weather.js", "daynight.js", "characters.js", "companions.js", "state.js", "player.js", "belt.js", "horse.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "achievements.js", "talents.js", "progress.js", "valhalla.js", "tutorial.js", "cinematic.js", "input-camera.js", "gamepad.js", "touch.js", "sync-hud.js", "map.js", "photo.js", "loop.js", "devtools.js", "start.js"];
+const GAME_FILES = ["util-world.js", "settings.js", "render.js", "world-build.js", "world-act2.js", "grotto.js", "effects.js", "weather.js", "daynight.js", "characters.js", "companions.js", "state.js", "player.js", "belt.js", "sockets.js", "horse.js", "enemies.js", "world-life.js", "dialogue.js", "journal.js", "achievements.js", "talents.js", "progress.js", "valhalla.js", "prologue.js", "runekast.js", "tutorial.js", "cinematic.js", "input-camera.js", "gamepad.js", "touch.js", "sync-hud.js", "map.js", "photo.js", "loop.js", "devtools.js", "start.js"];
 // installable and playable offline (not while developing with ?dev)
 if ('serviceWorker' in navigator && !location.search.includes('dev')) navigator.serviceWorker.register('sw.js').catch(() => {});
 

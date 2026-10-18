@@ -16,7 +16,8 @@ function updTrail(dt){
   if(swinging){const hand=PM.bone('handslot.r');if(hand){hand.getWorldPosition(_h);_c.set(P.x*S,groundY(P.x,P.y)+1.15,P.y*S);const dir=_h.clone().sub(_c).setY(0).normalize();
       const len=P.cls==='berserker'?1.15:.95;trailPts.push({a:_h.clone(),b:_h.clone().addScaledVector(dir,len).add(new THREE.Vector3(0,.15,0)),age:0});if(trailPts.length>TRAIL_N)trailPts.shift();}}
   const pa=trailGeo.attributes.position.array, ca=trailGeo.attributes.color.array, n=trailPts.length;
-  const col=P&&P.rage>0?[2.4,.5,.25]:[1.5,1.35,1.05];
+  const rc=P&&G.sock&&G.sock.slots[0]?new THREE.Color(SRUNES[G.sock.slots[0]].col):null;
+  const col=P&&P.rage>0?[2.4,.5,.25]:rc?[rc.r*2,rc.g*2,rc.b*2]:[1.5,1.35,1.05];
   for(let i=0;i<TRAIL_N;i++){const q=trailPts[Math.min(n-1,Math.max(0,i-(TRAIL_N-n)))];if(!q){pa.fill(0);break;}
     const k=n<2?0:Math.max(0,1-q.age/.2)*Math.max(0,(i-(TRAIL_N-n))/Math.max(1,n-1));
     pa.set([q.a.x,q.a.y,q.a.z],i*6);pa.set([q.b.x,q.b.y,q.b.z],i*6+3);
@@ -62,6 +63,8 @@ const EANIM={
   minion:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Chop',death:'Death_C_Skeletons'},
   seidr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'Spellcasting',shoot:'Spellcast_Shoot',death:'Death_C_Skeletons'},
   vogter:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'2H_Melee_Attack_Slice',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',summon:'Spellcast_Summon',roar:'Taunt_Longer',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
+  skjoldraugr:{idle:'Blocking',calm:'Skeleton_Inactive_Standing_Pose',move:'Walking_A',arc:'Block_Attack',death:'Death_C_Skeletons',hit:'Block_Hit'},
+  seidkona:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',cast:'Spellcast_Long',shoot:'Spellcast_Shoot',death:'Death_C_Skeletons'},
   draugr:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',arc:'1H_Melee_Attack_Slice_Diagonal',death:'Death_C_Skeletons'},
   archer:{idle:'Idle_Combat',calm:'Skeleton_Inactive_Standing_Pose',move:'Running_C',aim:'1H_Ranged_Aiming',shoot:'1H_Ranged_Shoot',death:'Death_C_Skeletons'},
   jarl:{idle:'Idle_Combat',calm:'Idle_B',move:'Running_A',arc:'1H_Melee_Attack_Slice_Horizontal',leap:'1H_Melee_Attack_Jump_Chop',spin:'2H_Melee_Attack_Spinning',summon:'Spellcast_Summon',roar:'Taunt',cast:'Spellcast_Shoot',death:'Death_C_Skeletons'},
@@ -132,6 +135,7 @@ function syncEnemies(dt){
       const fl=e.flash>0?1.6:0; m.mats.forEach(mt=>{if(mt.emissive)mt.emissive.setScalar(fl*.5);});
     }
     if(e.boss&&e.phase2&&!e.dead&&Math.random()<.6){const c=P2COL[e.t]||[2,1,.4],h=(INTRO[e.boss]&&INTRO[e.boss].h)||3;FXA.emit(e.x*S+rand(-1,1)*h*.25,gy+lift+rand(.2,h),e.y*S+rand(-1,1)*h*.25,rand(-.3,.3),rand(.6,1.6),rand(-.3,.3),rand(.5,1),rand(.15,.32),c[0],c[1],c[2],1,-.4,.5,0);}
+    if(e.wardT>0&&!e.dead&&Math.random()<.5){const a=Math.random()*TAU;FXA.emit(e.x*S+Math.cos(a)*e.r*S*1.4,gy+rand(.2,1.8),e.y*S+Math.sin(a)*e.r*S*1.4,0,.4,0,.6,.25,.6,2.2,1,.8,-.1,0,0);}
     if(e.stun>0&&Math.random()<.4)FXA.emit(e.x*S+rand(-.3,.3),gy+(e.boss?4:2),e.y*S+rand(-.3,.3),0,.4,0,.5,.25,2.4,2.2,.8,1,0,0);
     if(e.t==='jotun'&&!e.dead&&!e.leaving){if(Math.random()<.35)FXN.emit(e.x*S+rand(-2.2,2.2),gy+rand(.2,1.5),e.y*S+rand(-2.2,2.2),rand(-.3,.3),rand(.1,.4),rand(-.3,.3),2.5,.6,.85,.92,1,.12,-.03,.3,2.5);if(Math.random()<.3)FXA.emit(e.x*S+rand(-.3,.3)+Math.cos(e.face)*.8,gy+7.6,e.y*S+rand(-.3,.3)+Math.sin(e.face)*.8,Math.cos(e.face)*1.2,-.2,Math.sin(e.face)*1.2,1.2,.35,.4,.7,.9,.6,-.1,.5,2);}
     if(e.t==='draugr'||e.t==='archer'||e.t==='jarl'){if(Math.random()<.04)FXA.emit(e.x*S,gy+(e.t==='jarl'?2.6:1.4),e.y*S,rand(-.2,.2),rand(.3,.7),rand(-.2,.2),1,.15,.4,1.4,2,1,-.1,0,0);}
@@ -181,6 +185,7 @@ function ambientFX(dt){
   for(const id in CHEST_M){const m=CHEST_M[id];if(m.opening&&m.open<1){m.open=Math.min(1,m.open+dt*2.2);if(m.lid)m.lid.rotation.x=-1.9*easeOut(m.open);}}
   smokeT-=dt;
   if(smokeT<=0){smokeT=.12;for(const s of SMOKERS){if(P&&Math.abs(s.x-P.x*S)>45)continue;FXN.emit(s.x+rand(-.2,.2),s.y,s.z+rand(-.2,.2),wind*.15+rand(-.1,.1),rand(.6,1),rand(-.1,.1),rand(4,6),rand(1,1.6),.32,.33,.36,.35,-.05,.1,3);}}
+  {let best=0;if(P)for(const f of FIRE_FX){if(f.crypt&&!(G.cryptK>.5))continue;const d=Math.hypot(f.x-P.x*S,f.z-P.y*S);best=Math.max(best,1-d/(f.small?9:16));}setFire(Math.max(0,best));}
   for(const f of FIRE_FX){
     if(f.light){if(f.crypt&&G.cryptK<.05&&f.light.intensity===0) continue;
       f.light.intensity=(f.crypt?G.cryptK:1)*f.base*(.82+Math.sin(G.time*13+f.x)*.08+Math.sin(G.time*23.7+f.z)*.06+Math.random()*.06);}

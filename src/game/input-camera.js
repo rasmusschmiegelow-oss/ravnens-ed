@@ -5,6 +5,7 @@
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') return;
   if(G.state==='settings'&&captureRebind(e)) return;
+  if(G.state==='prolog'){skipPrologue();e.preventDefault();return;}
   if(G.state==='photo'){if(e.code==='Escape'||e.code==='KeyP')closePhoto();else if(e.code==='Enter'||e.code==='Space')takePhoto();else if(e.code==='KeyF'){PHOTO.filter=(PHOTO.filter+1)%FILTERS.length;renderPhotoUI();}else keys[e.code]=true;e.preventDefault();return;}
   if(G.state==='cine'){if(CINE&&CINE.t>.6&&(bound('interact',e.code)||['Escape','Space','Enter'].includes(e.code)))endIntro();e.preventDefault();return;}
   keys[e.code]=true; G.padActive=false;
@@ -29,6 +30,7 @@ addEventListener('keydown',e=>{
   else if(G.state==='inv'&&(e.code==='Escape'||bound('inv',e.code))){$('inv').hidden=true;G.state='play';}
   else if(G.state==='journal'&&(e.code==='Escape'||bound('journal',e.code))){closeJournal();}
   else if(G.state==='map'&&(e.code==='Escape'||bound('map',e.code))){closeMap();}
+  else if(G.state==='runekast'&&e.code==='Escape'){$('rkQuit').click();}
   else if(G.state==='settings'&&e.code==='Escape'){closeSettings();}
   else if(G.state==='rest'&&e.code==='Escape'){$('rest').hidden=true;G.state='play';}
   if(e.code==='Space'&&G.state!=='play'&&document.activeElement===document.body) e.preventDefault();
@@ -61,7 +63,7 @@ function updateCamera(dt){
   let goal;
   if(G.state==='title'||G.state==='loading'){
     titleT+=dt*.035;const cx=1800*S,cz=2300*S;
-    const tr=15;goal={pos:new THREE.Vector3(cx+Math.cos(titleT)*tr,hgt(1800,2300)+4.2+Math.sin(titleT*.7)*.8,cz+Math.sin(titleT)*tr),look:new THREE.Vector3(cx,hgt(1800,2300)+6.5,cz-30)};
+    const tr=26;goal={pos:new THREE.Vector3(cx+Math.cos(titleT)*tr,hgt(1800,2300)+11+Math.sin(titleT*.7)*1.2,cz+Math.sin(titleT)*tr),look:new THREE.Vector3(cx,hgt(1800,2300)+2,cz)};
     G.camPos.lerp(goal.pos,G.state==='loading'?1:Math.min(1,dt*.8));G.camLook.lerp(goal.look,Math.min(1,dt*1.2));
   } else if(G.state==='dialog'&&dlgNPC&&P){
     const n=dlgNPC, tall=n.boss==='jotun'?8:n.boss==='surt'?7.2:n.gate?4:n.head?1.4:n.tall?2.6:1.5;

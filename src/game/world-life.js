@@ -102,6 +102,7 @@ function equip(id){
   G.eq[slot]=id; if(id==='idunn')P.flasks++; P.hp=Math.min(P.hp,maxHp()); sfx('pickup'); applyWeaponLook(); renderInv();
 }
 function renderInv(){
+  renderSockets();
   const el=$('invSlots'); el.innerHTML='';
   for(const k of ['arm','weapon','armor','t1','t2']){const id=G.eq[k];const d=document.createElement('div');d.className='slotrow';
     d.innerHTML=`<span class="ab">${SLOTN[k]}</span><span class="nm">${id?ITEMS[id].name+'<small>'+ITEMS[id].desc+'</small>':'<small>'+(k==='arm'?'Klassens standardvåben':'Tom')+'</small>'}</span>`;el.appendChild(d);}

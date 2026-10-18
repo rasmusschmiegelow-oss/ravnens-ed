@@ -49,6 +49,7 @@ function potBurst(id,x,y){
 /** Foes now and then drop a pot or a draught. */
 function maybeDrop(e){
   if(G.sim||G.mode==='valhalla'&&Math.random()<.5) return;
+  {const left=Object.keys(SRUNES).filter(k=>!G.sock.owned.includes(k));if(left.length&&Math.random()<(e.boss?.35:.02)){giveRune(pickOne(left));return;}}
   const ch=e.boss?1:.12; if(Math.random()>ch) return;
   const id=e.boss?pickOne(['bjorn','salve']):pickOne(['ild','ild','frost','salve']); giveCons(id,e.boss?2:1);
 }

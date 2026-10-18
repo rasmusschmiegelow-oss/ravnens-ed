@@ -13,6 +13,8 @@ const ED={
   archer:{name:'Draugr-skytte',hp:110,r:14,spd:66,dmg:19,reach:420,runes:70},
   wolf:{name:'Gråulv',hp:120,r:15,spd:150,dmg:20,reach:160,runes:50},
   jarl:{name:'Hrafnkel, Draugr-jarlen',hp:1080,r:26,spd:92,dmg:28,reach:100,runes:1600},
+  skjoldraugr:{name:'Skjoldbærer',hp:260,r:17,spd:62,dmg:24,reach:52,runes:110,shield:true},
+  seidkona:{name:'Gravseiðkona',hp:150,r:14,spd:70,dmg:16,reach:380,runes:120},
   minion:{name:'Gravtræl',hp:103,r:13,spd:96,dmg:17,reach:42,runes:45},
   seidr:{name:'Seiðr-draugr',hp:133,r:14,spd:58,dmg:22,reach:400,runes:95},
   trold:{name:'Skovtrold',hp:126,r:13,spd:92,dmg:17,reach:42,runes:45},
@@ -47,7 +49,7 @@ const ED={
   surt:{name:'Surt, Herre over Muspelheim',hp:8000,r:44,spd:72,dmg:76,reach:210,runes:0,aggro:420},
 };
 // How each enemy fights: melee swings, ranged casters, lunging beasts, brutes with leaps, or a boss of its own.
-const KIND={draugr:'melee',minion:'melee',trold:'melee',bjergtrold:'melee',ildvaette:'melee',frostvaette:'melee',stenvaette:'melee',stenvaette2:'melee',
+const KIND={skjoldraugr:'melee',seidkona:'healer',draugr:'melee',minion:'melee',trold:'melee',bjergtrold:'melee',ildvaette:'melee',frostvaette:'melee',stenvaette:'melee',stenvaette2:'melee',
   archer:'ranged',seidr:'ranged',vaette:'ranged',wolf:'lunge',gjenganger:'lunge',gjenganger2:'lunge',lindyngel:'lunge',
   jarl:'brute',vogter:'brute',rimtrold:'brute',jotun:'jotun',lindorm:'lindorm',
   askedraugr:'melee',lavavaette:'melee',askeskytte:'ranged',glodulv:'lunge',eldseidr:'mortar',glodkaempe:'brute',garm:'garm',surt:'surt',ulvekonge:'garm',isdronning:'lindorm',eyvind:'melee',ketil:'brute',troldmor:'brute',askebrud:'mortar'};
@@ -55,9 +57,9 @@ const FLOAT={gjenganger:.9,gjenganger2:.9,lindyngel:1.6,vaette:.8,stenvaette:.25
 const SPAWNS=[
   {t:'draugr',x:1640,y:1930},{t:'draugr',x:1960,y:1940},{t:'wolf',x:2150,y:1800},{t:'wolf',x:2200,y:1850},
   {t:'archer',x:1300,y:1600},{t:'draugr',x:1200,y:1560},
-  {t:'draugr',x:1085,y:1330},{t:'archer',x:1010,y:960},{t:'draugr',x:1140,y:1060},{t:'archer',x:760,y:1540},
+  {t:'draugr',x:1085,y:1330},{t:'skjoldraugr',x:1130,y:1300},{t:'seidkona',x:1050,y:1260},{t:'archer',x:1010,y:960},{t:'draugr',x:1140,y:1060},{t:'archer',x:760,y:1540},
   {t:'wolf',x:2500,y:1220},{t:'wolf',x:2560,y:1270},{t:'wolf',x:2620,y:1580},{t:'draugr',x:2400,y:1650},
-  {t:'draugr',x:1600,y:1100},{t:'draugr',x:2000,y:1100},{t:'archer',x:1800,y:1220},{t:'wolf',x:1500,y:1300},{t:'wolf',x:2100,y:1300},
+  {t:'draugr',x:1600,y:1100},{t:'draugr',x:2000,y:1100},{t:'skjoldraugr',x:1800,y:1180},{t:'seidkona',x:1840,y:1260},{t:'archer',x:1800,y:1220},{t:'wolf',x:1500,y:1300},{t:'wolf',x:2100,y:1300},
   {t:'archer',x:1450,y:700},{t:'archer',x:2150,y:700},
   {t:'jarl',x:600,y:1200,boss:'jarl'},
   {t:'seidr',x:2640,y:400},{t:'seidr',x:3160,y:400},{t:'minion',x:2700,y:560},{t:'minion',x:3100,y:560},{t:'minion',x:2900,y:590},
@@ -73,7 +75,7 @@ const SPAWNS=[
   {t:'ulvekonge',x:3050,y:1950,boss:'ulvekonge'},{t:'ketil',x:700,y:2300,boss:'ketil'},{t:'troldmor',x:2450,y:2520,boss:'troldmor'},{t:'askebrud',x:5640,y:1260,boss:'askebrud',act:2},{t:'eyvind',x:4700,y:2020,boss:'eyvind',act:2},
   // Askefjorden (act two)
   {t:'askedraugr',x:4120,y:1990,act:2},{t:'askedraugr',x:4170,y:2100,act:2},{t:'glodulv',x:3990,y:1890,act:2},{t:'glodulv',x:4030,y:1860,act:2},
-  {t:'askeskytte',x:4620,y:2200,act:2},{t:'askedraugr',x:4680,y:2330,act:2},
+  {t:'askeskytte',x:4620,y:2200,act:2},{t:'seidkona',x:4560,y:2240,act:2},{t:'askedraugr',x:4680,y:2330,act:2},
   {t:'askedraugr',x:3820,y:1290,act:2},{t:'askedraugr',x:3900,y:1300,act:2},{t:'eldseidr',x:3860,y:1220,act:2},
   {t:'lavavaette',x:4240,y:1650,act:2},
   {t:'glodulv',x:4460,y:1660,act:2},{t:'glodulv',x:4520,y:1700,act:2},{t:'glodulv',x:4420,y:1740,act:2},{t:'askeskytte',x:4220,y:1560,act:2},
